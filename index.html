@@ -1,0 +1,2671 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Developer Tools Reference</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #F6F5FF;
+      --surface: #FFFFFF;
+      --border: #EBEBF5;
+      --border-hover: #D8D5F0;
+      --text: #18182A;
+      --text-2: #5A5A7A;
+      --text-3: #9898B8;
+      --claude: #7C4DFF;
+      --claude-p: #EDE5FF;
+      --claude-m: #C9B0FF;
+      --cursor: #0EA5E9;
+      --cursor-p: #E0F2FE;
+      --cursor-m: #7DD3FC;
+      --copilot: #10B981;
+      --copilot-p: #D1FAE5;
+      --copilot-m: #6EE7B7;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, sans-serif;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .mono {
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      background: rgba(246, 245, 255, 0.85);
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .logo-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 16px;
+      background: var(--claude-p);
+      border: 1.5px solid var(--claude-m);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #global-search {
+      width: 220px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      outline: none;
+      padding: 0 12px;
+      background: var(--surface);
+      font: 500 12px Inter, sans-serif;
+      color: var(--text);
+      transition: width 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #global-search::placeholder {
+      color: var(--text-3);
+    }
+
+    #global-search:focus {
+      width: 270px;
+      border-color: var(--claude-m);
+      box-shadow: 0 0 0 3px rgba(124, 77, 255, 0.08);
+    }
+
+    .count-tag {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 7px 10px;
+      font: 600 11px Inter, sans-serif;
+      color: var(--text-2);
+      background: var(--surface);
+      min-width: 128px;
+      text-align: center;
+    }
+
+    .btn-primary {
+      height: 36px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--text);
+      color: #fff;
+      font: 600 12px Inter, sans-serif;
+      padding: 0 14px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(24, 24, 42, 0.14);
+    }
+
+    .disclaimer {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      min-height: 34px;
+      padding: 8px 20px;
+      background: var(--claude-p);
+      border-bottom: 1px solid var(--claude-m);
+      color: var(--text-2);
+      font: 500 11px/1.4 Inter, sans-serif;
+      z-index: 45;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .disclaimer a {
+      color: var(--claude);
+      font-weight: 700;
+    }
+
+    .update-banner {
+      position: fixed;
+      top: 94px;
+      left: 0;
+      right: 0;
+      min-height: 42px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 8px 20px;
+      background: #EEF9FF;
+      border-bottom: 2px solid var(--cursor-m);
+      color: var(--text-2);
+      z-index: 44;
+      font: 500 11.5px Inter, sans-serif;
+    }
+
+    .update-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-ghost {
+      height: 30px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      color: var(--text-2);
+      font: 600 11px Inter, sans-serif;
+      padding: 0 10px;
+      cursor: pointer;
+    }
+
+    .btn-cursor {
+      border-color: var(--cursor-m);
+      color: var(--cursor);
+      background: var(--cursor-p);
+    }
+
+    .layout {
+      margin-top: 94px;
+    }
+
+    body.has-update .layout {
+      margin-top: 136px;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 94px;
+      left: 0;
+      bottom: 0;
+      width: 224px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 18px 12px 20px;
+      overflow: auto;
+    }
+
+    body.has-update .sidebar {
+      top: 136px;
+    }
+
+    .nav-title {
+      margin: 0 8px 8px;
+      font: 700 10px Inter, sans-serif;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    .nav-btn,
+    .sub-link {
+      width: 100%;
+      border: 1px solid transparent;
+      border-radius: 20px;
+      background: transparent;
+      padding: 9px 10px;
+      text-align: left;
+      font: 600 12px Inter, sans-serif;
+      color: var(--text-2);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      margin-bottom: 4px;
+    }
+
+    .nav-btn:hover {
+      border-color: var(--border-hover);
+      color: var(--text);
+      background: #fff;
+    }
+
+    .nav-btn.active {
+      color: var(--text);
+      border-color: var(--border);
+      background: #fff;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      flex: 0 0 auto;
+    }
+
+    .dot-home {
+      background: linear-gradient(135deg, var(--claude), var(--cursor));
+    }
+
+    .dot-feedback {
+      background: #F472B6;
+    }
+
+    .dot-claude { background: var(--claude); }
+    .dot-cursor { background: var(--cursor); }
+    .dot-copilot { background: var(--copilot); }
+
+    .sub-nav {
+      margin: 4px 0 10px 16px;
+      border-left: 1px solid var(--border);
+      padding-left: 10px;
+      display: none;
+    }
+
+    .tool-open .sub-nav {
+      display: block;
+    }
+
+    .sub-link {
+      padding: 7px 9px;
+      margin-bottom: 2px;
+      border-radius: 10px;
+      font: 500 11px Inter, sans-serif;
+      border-left: 2px solid transparent;
+    }
+
+    .sub-link.active {
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .sub-link.claude.active { border-left-color: var(--claude); }
+    .sub-link.cursor.active { border-left-color: var(--cursor); }
+    .sub-link.copilot.active { border-left-color: var(--copilot); }
+
+    .content {
+      margin-left: 224px;
+      max-width: 1040px;
+      padding: 32px 28px 80px;
+    }
+
+    main { display: none; }
+    main.active { display: block; }
+
+    .eyebrow {
+      font: 500 12px Inter, sans-serif;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    .hero {
+      display: grid;
+      justify-items: center;
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .hero-marks {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .connector {
+      width: 52px;
+      height: 1px;
+      background: var(--border-hover);
+    }
+
+    .mark-ring {
+      width: 88px;
+      height: 88px;
+      border-radius: 24px;
+      border: 1.5px solid;
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    }
+
+    .mark-ring.small {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+    }
+
+    .mark-claude {
+      background: var(--claude-p);
+      border-color: var(--claude-m);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.52), 0 8px 24px rgba(124, 77, 255, 0.12);
+    }
+
+    .mark-cursor {
+      background: var(--cursor-p);
+      border-color: var(--cursor-m);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.52), 0 8px 24px rgba(14, 165, 233, 0.12);
+    }
+
+    .mark-copilot {
+      background: var(--copilot-p);
+      border-color: var(--copilot-m);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.52), 0 8px 24px rgba(16, 185, 129, 0.12);
+    }
+
+    .mark-labels {
+      display: flex;
+      gap: 24px;
+      margin-top: -2px;
+      color: var(--text-3);
+      font: 600 11px Inter, sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .mark-labels span {
+      width: 88px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      margin: 10px 0 0;
+      text-align: center;
+      max-width: 820px;
+      font-family: "Instrument Serif", serif;
+      font-style: italic;
+      font-size: clamp(36px, 5vw, 60px);
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+      font-weight: 400;
+    }
+
+    .benefit {
+      background: linear-gradient(135deg, var(--claude), var(--cursor));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero p {
+      margin: 0;
+      text-align: center;
+      color: var(--text-2);
+      max-width: 760px;
+      font: 500 15px/1.5 Inter, sans-serif;
+    }
+
+    .chips {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 2px;
+    }
+
+    .chip {
+      border: 1.5px solid transparent;
+      border-radius: 20px;
+      padding: 8px 12px;
+      font: 600 11.5px Inter, sans-serif;
+    }
+
+    .chip.claude { background: var(--claude-p); border-color: var(--claude-m); color: var(--claude); }
+    .chip.cursor { background: var(--cursor-p); border-color: var(--cursor-m); color: var(--cursor); }
+    .chip.copilot { background: var(--copilot-p); border-color: var(--copilot-m); color: var(--copilot); }
+
+    .tool-grid {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .tool-card {
+      border-radius: 20px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      padding: 16px 16px 13px;
+      position: relative;
+      transform: translateY(0);
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(24, 24, 42, 0.04);
+    }
+
+    .tool-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .tool-card.claude:hover { box-shadow: 0 12px 36px rgba(124, 77, 255, 0.12); border-color: var(--claude-m); }
+    .tool-card.cursor:hover { box-shadow: 0 12px 36px rgba(14, 165, 233, 0.12); border-color: var(--cursor-m); }
+    .tool-card.copilot:hover { box-shadow: 0 12px 36px rgba(16, 185, 129, 0.12); border-color: var(--copilot-m); }
+
+    .accent-top {
+      position: absolute;
+      left: 0;
+      top: 0;
+      right: 0;
+      height: 3px;
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+    }
+
+    .acc-claude { background: linear-gradient(90deg, var(--claude-p), var(--claude-m)); }
+    .acc-cursor { background: linear-gradient(90deg, var(--cursor-p), var(--cursor-m)); }
+    .acc-copilot { background: linear-gradient(90deg, var(--copilot-p), var(--copilot-m)); }
+
+    .tool-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .tool-mini {
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
+      border: 1.5px solid;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .tool-mini.claude { border-color: var(--claude-m); background: var(--claude-p); }
+    .tool-mini.cursor { border-color: var(--cursor-m); background: var(--cursor-p); }
+    .tool-mini.copilot { border-color: var(--copilot-m); background: var(--copilot-p); }
+
+    .tool-name {
+      font: 800 16px Inter, sans-serif;
+      line-height: 1.1;
+    }
+
+    .tool-name.claude { color: var(--claude); }
+    .tool-name.cursor { color: var(--cursor); }
+    .tool-name.copilot { color: var(--copilot); }
+
+    .maker {
+      color: var(--text-3);
+      font: 500 11px Inter, sans-serif;
+      margin-top: 2px;
+    }
+
+    .tool-desc {
+      margin: 10px 0;
+      font: 500 12px/1.45 Inter, sans-serif;
+      color: var(--text-2);
+      min-height: 54px;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text-2);
+      padding: 4px 8px;
+      font: 600 10px Inter, sans-serif;
+    }
+
+    .card-cta {
+      margin-top: 12px;
+      font: 700 12px Inter, sans-serif;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .card-cta .arr {
+      display: inline-block;
+      transform: translateX(0);
+    }
+
+    .tool-card:hover .arr { transform: translateX(4px); }
+
+    .card-cta.claude { color: var(--claude); }
+    .card-cta.cursor { color: var(--cursor); }
+    .card-cta.copilot { color: var(--copilot); }
+
+    .compare-wrap {
+      margin-top: 24px;
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--border);
+      padding: 11px 14px;
+      text-align: left;
+      font: 500 12px Inter, sans-serif;
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--text);
+      width: 24%;
+      font-weight: 700;
+      background: var(--surface);
+    }
+
+    tr:hover td,
+    tr:hover th {
+      background: var(--bg);
+    }
+
+    tr:last-child td,
+    tr:last-child th {
+      border-bottom: 0;
+    }
+
+    .tool-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 14px;
+    }
+
+    .tool-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-52 {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      border: 1.5px solid;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .logo-52.claude { background: var(--claude-p); border-color: var(--claude-m); }
+    .logo-52.cursor { background: var(--cursor-p); border-color: var(--cursor-m); }
+    .logo-52.copilot { background: var(--copilot-p); border-color: var(--copilot-m); }
+
+    .tool-title {
+      margin: 0;
+      font: 800 22px/1.1 Inter, sans-serif;
+    }
+
+    .tool-title.claude { color: var(--claude); }
+    .tool-title.cursor { color: var(--cursor); }
+    .tool-title.copilot { color: var(--copilot); }
+
+    .tool-sub {
+      margin: 4px 0 0;
+      color: var(--text-2);
+      font: 500 12.5px Inter, sans-serif;
+    }
+
+    .pill-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .pill {
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      padding: 7px 10px;
+      font: 600 11px Inter, sans-serif;
+      color: var(--text-2);
+      cursor: pointer;
+    }
+
+    .pill.active.claude { background: var(--claude-p); border-color: var(--claude-m); color: var(--claude); }
+    .pill.active.cursor { background: var(--cursor-p); border-color: var(--cursor-m); color: var(--cursor); }
+    .pill.active.copilot { background: var(--copilot-p); border-color: var(--copilot-m); color: var(--copilot); }
+
+    .group-label {
+      margin: 28px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .group-label h3 {
+      margin: 0;
+      font: 700 9.5px Inter, sans-serif;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      white-space: nowrap;
+    }
+
+    .group-label .line {
+      height: 1px;
+      background: var(--border);
+      flex: 1;
+    }
+
+    .cmd-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 10px;
+    }
+
+    .cmd-card {
+      border-radius: 14px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      padding: 16px 16px 13px;
+      position: relative;
+      transform: translateY(0);
+    }
+
+    .cmd-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    .cmd-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      right: 0;
+      height: 2.5px;
+      border-top-left-radius: 14px;
+      border-top-right-radius: 14px;
+    }
+
+    .cmd-card.claude::before { background: linear-gradient(90deg, var(--claude-p), var(--claude-m)); }
+    .cmd-card.cursor::before { background: linear-gradient(90deg, var(--cursor-p), var(--cursor-m)); }
+    .cmd-card.copilot::before { background: linear-gradient(90deg, var(--copilot-p), var(--copilot-m)); }
+
+    .cmd-card.claude:hover { border-color: var(--claude-m); }
+    .cmd-card.cursor:hover { border-color: var(--cursor-m); }
+    .cmd-card.copilot:hover { border-color: var(--copilot-m); }
+
+    .cmd-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cmd {
+      font: 700 11.5px "JetBrains Mono", monospace;
+    }
+
+    .cmd.claude { color: var(--claude); }
+    .cmd.cursor { color: var(--cursor); }
+    .cmd.copilot { color: var(--copilot); }
+
+    .badge {
+      border-radius: 20px;
+      padding: 3px 7px;
+      font: 700 9px Inter, sans-serif;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .badge.skill { background: #FFFBEB; color: #D97706; border: 1px solid #FEF3C7; }
+    .badge.wf { background: #F3E8FF; color: #7E22CE; border: 1px solid #E9D5FF; }
+    .badge.chat { background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; }
+    .badge.ide { background: #E0F2FE; color: #0369A1; border: 1px solid #BAE6FD; }
+
+    .cmd-name {
+      margin-top: 8px;
+      font: 600 12.5px Inter, sans-serif;
+      color: var(--text);
+    }
+
+    .cmd-desc {
+      margin-top: 5px;
+      font: 400 12px/1.45 Inter, sans-serif;
+      color: var(--text-2);
+      min-height: 46px;
+    }
+
+    .ex-label {
+      margin-top: 10px;
+      font: 700 9px Inter, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-3);
+    }
+
+    .ex {
+      margin-top: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      padding: 7px 8px;
+      font: 600 10.5px/1.35 "JetBrains Mono", monospace;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .ex.claude { color: var(--claude); }
+    .ex.cursor { color: var(--cursor); }
+    .ex.copilot { color: var(--copilot); }
+
+    .empty {
+      grid-column: 1 / -1;
+      border: 1.5px dashed var(--border-hover);
+      border-radius: 14px;
+      padding: 16px;
+      color: var(--text-2);
+      background: var(--surface);
+      font: 500 12px Inter, sans-serif;
+    }
+
+    .info-box {
+      border-radius: 14px;
+      padding: 12px;
+      font: 500 12px/1.45 Inter, sans-serif;
+      color: var(--text-2);
+      margin-bottom: 10px;
+      border: 1.5px solid;
+    }
+
+    .info-skill {
+      background: #FFFBEB;
+      border-color: #FEF3C7;
+    }
+
+    .info-agent {
+      background: #FCE7F3;
+      border-color: #F9A8D4;
+    }
+
+    .skills-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .skill-row {
+      display: grid;
+      grid-template-columns: minmax(136px, 180px) 1fr;
+      border: 1.5px solid #FEF3C7;
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .skill-row:hover {
+      border-color: #FCD34D;
+      box-shadow: 0 4px 16px rgba(252, 211, 77, 0.1);
+    }
+
+    .skill-left {
+      background: #FFFBEB;
+      border-right: 1.5px solid #FEF3C7;
+      padding: 12px;
+    }
+
+    .skill-cmd {
+      font: 700 11px "JetBrains Mono", monospace;
+      color: #D97706;
+    }
+
+    .skill-auto {
+      margin-top: 6px;
+      font: 600 10px Inter, sans-serif;
+      color: rgba(217, 119, 6, 0.6);
+      text-transform: lowercase;
+    }
+
+    .skill-right {
+      padding: 12px;
+    }
+
+    .skill-name {
+      font: 600 12.5px Inter, sans-serif;
+      color: var(--text);
+    }
+
+    .skill-desc,
+    .skill-trigger {
+      margin-top: 5px;
+      font: 500 12px/1.4 Inter, sans-serif;
+      color: var(--text-2);
+    }
+
+    .skill-ex {
+      margin-top: 6px;
+      border-radius: 10px;
+      border: 1px solid #FEF3C7;
+      background: #FFFBEB;
+      color: #B45309;
+      padding: 7px 8px;
+      font: 600 10.5px "JetBrains Mono", monospace;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+    }
+
+    .agent-card {
+      border: 1.5px solid var(--border);
+      border-left: 3px solid;
+      border-radius: 14px;
+      background: var(--surface);
+      padding: 12px;
+    }
+
+    .agent-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .agent-name {
+      font: 700 13px Inter, sans-serif;
+      color: var(--text);
+    }
+
+    .agent-badge {
+      background: #FCE7F3;
+      color: #9D174D;
+      border-radius: 20px;
+      border: 1px solid #F9A8D4;
+      padding: 3px 7px;
+      font: 700 9px Inter, sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .agent-desc {
+      margin-top: 8px;
+      color: var(--text-2);
+      font: 500 12px/1.45 Inter, sans-serif;
+      min-height: 46px;
+    }
+
+    .agent-when {
+      margin-top: 6px;
+      color: var(--text-2);
+      font: 500 11.5px Inter, sans-serif;
+    }
+
+    .meta-pills {
+      margin-top: 8px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .meta-pill {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 7px;
+      font: 600 10px Inter, sans-serif;
+      color: var(--text-2);
+    }
+
+    .feedback-header h1 {
+      margin: 0;
+      font: 800 32px/1.1 Inter, sans-serif;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .feedback-sub {
+      margin-top: 6px;
+      color: var(--text-2);
+      font: 500 13px/1.45 Inter, sans-serif;
+      max-width: 680px;
+    }
+
+    .feedback-wrap {
+      margin-top: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .panel {
+      border-radius: 16px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      padding: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      font: 600 11px Inter, sans-serif;
+      color: var(--text-2);
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      padding: 9px 10px;
+      color: var(--text);
+      font: 500 12px Inter, sans-serif;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 130px;
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--claude-m);
+      box-shadow: 0 0 0 3px rgba(124, 77, 255, 0.08);
+    }
+
+    .sent {
+      margin-top: 10px;
+      border-radius: 10px;
+      border: 1.5px solid #86EFAC;
+      background: #ECFDF5;
+      color: #166534;
+      padding: 8px 10px;
+      display: none;
+      font: 600 12px Inter, sans-serif;
+    }
+
+    .signup {
+      background: var(--claude-p);
+      border: 1.5px solid var(--claude-m);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .signup h3 {
+      margin: 0;
+      font: 700 14px Inter, sans-serif;
+      color: var(--claude);
+    }
+
+    .signup p {
+      margin: 6px 0 10px;
+      font: 500 12px Inter, sans-serif;
+      color: var(--text-2);
+    }
+
+    .signup-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .btn-claude {
+      border: 0;
+      border-radius: 12px;
+      background: var(--claude);
+      color: #fff;
+      font: 600 12px Inter, sans-serif;
+      padding: 0 14px;
+      height: 36px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(124, 77, 255, 0.2);
+    }
+
+    .signup-ok {
+      margin-top: 8px;
+      font: 600 11.5px Inter, sans-serif;
+      color: var(--claude);
+      display: none;
+    }
+
+    .modal-wrap {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(24, 24, 42, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 80;
+      padding: 20px;
+    }
+
+    .modal {
+      width: min(560px, 100%);
+      max-height: 82vh;
+      overflow: auto;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      padding: 16px;
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .modal-title {
+      margin: 0;
+      font: 800 18px Inter, sans-serif;
+      color: var(--text);
+    }
+
+    .release-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .release-item {
+      border: 1.5px solid var(--border);
+      border-left: 2px solid;
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff;
+    }
+
+    .release-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+      gap: 8px;
+    }
+
+    .rtag {
+      border-radius: 20px;
+      border: 1px solid;
+      padding: 2px 7px;
+      font: 700 9px Inter, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .rtag-new { background: var(--cursor-p); color: var(--cursor); border-color: var(--cursor-m); }
+    .rtag-fix { background: var(--copilot-p); color: var(--copilot); border-color: var(--copilot-m); }
+    .rtag-change { background: var(--claude-p); color: var(--claude); border-color: var(--claude-m); }
+
+    .footer {
+      margin-left: 224px;
+      border-top: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.7);
+      padding: 16px 28px 18px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .f-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-2);
+      font: 600 12px "JetBrains Mono", monospace;
+    }
+
+    #sym {
+      font-size: 17px;
+      line-height: 1;
+      min-width: 16px;
+      text-align: center;
+    }
+
+    .f-center {
+      text-align: center;
+    }
+
+    .f-main {
+      font: 600 13px Inter, sans-serif;
+      color: var(--text-2);
+    }
+
+    .f-main .heart {
+      color: #F472B6;
+    }
+
+    .f-main .name {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .f-sub {
+      margin-top: 4px;
+      color: var(--text-3);
+      font: 500 11.5px Inter, sans-serif;
+    }
+
+    .f-right {
+      display: flex;
+      justify-content: flex-end;
+      gap: 14px;
+      flex-wrap: wrap;
+      color: var(--text-3);
+      font: 600 11.5px Inter, sans-serif;
+    }
+
+    .f-right a:hover {
+      color: var(--text-2);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+
+    @keyframes ray-pulse {
+      0%,
+      100% {
+        opacity: 0.6;
+        transform: scale(0.95);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+    }
+
+    @keyframes hex-rotate {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(3deg) scale(1.04); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+
+    @keyframes orbit-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .cr {
+      animation: ray-pulse 2.4s ease-in-out infinite;
+      transform-origin: center;
+      transform-box: fill-box;
+    }
+
+    .cr1 { animation-delay: 0s; }
+    .cr2 { animation-delay: 0.3s; }
+    .cr3 { animation-delay: 0.6s; }
+    .cr4 { animation-delay: 0.9s; }
+    .cr5 { animation-delay: 1.2s; }
+    .cr6 { animation-delay: 1.5s; }
+    .cr7 { animation-delay: 1.8s; }
+    .cr8 { animation-delay: 2.1s; }
+
+    .hex-anim {
+      animation: hex-rotate 4s ease-in-out infinite;
+      transform-origin: 24px 24px;
+    }
+
+    .orbit-ring {
+      animation: orbit-spin 6s linear infinite;
+      transform-origin: 24px 24px;
+    }
+
+    .dot-orbit {
+      animation: orbit-spin 6s linear infinite;
+      transform-origin: 24px 24px;
+    }
+
+    .o1 { animation-delay: 0s; }
+    .o2 { animation-delay: -1.5s; }
+    .o3 { animation-delay: -3s; }
+    .o4 { animation-delay: -4.5s; }
+
+    @media (max-width: 1100px) {
+      .tool-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 768px) {
+      .topbar {
+        height: auto;
+        padding: 10px;
+        gap: 10px;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .top-actions {
+        width: 100%;
+        flex-wrap: wrap;
+      }
+
+      #global-search,
+      #global-search:focus {
+        width: 100%;
+      }
+
+      .disclaimer {
+        top: 88px;
+      }
+
+      .update-banner {
+        top: 132px;
+      }
+
+      .layout {
+        margin-top: 132px;
+      }
+
+      body.has-update .layout {
+        margin-top: 174px;
+      }
+
+      .sidebar {
+        position: static;
+        width: 100%;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+        max-height: 240px;
+      }
+
+      body.has-update .sidebar {
+        top: auto;
+      }
+
+      .content {
+        margin-left: 0;
+        max-width: none;
+        padding: 20px 14px 60px;
+      }
+
+      .tool-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .footer {
+        margin-left: 0;
+        grid-template-columns: 1fr;
+        text-align: left;
+      }
+
+      .f-center {
+        text-align: left;
+      }
+
+      .f-right {
+        justify-content: flex-start;
+      }
+
+      .hero-marks {
+        gap: 6px;
+      }
+
+      .connector {
+        width: 24px;
+      }
+
+      .mark-ring {
+        width: 74px;
+        height: 74px;
+      }
+
+      .mark-labels {
+        gap: 8px;
+      }
+
+      .mark-labels span {
+        width: 74px;
+        font-size: 10px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .signup-row {
+        grid-template-columns: 1fr;
+      }
+
+      .skill-row {
+        grid-template-columns: 1fr;
+      }
+
+      .skill-left {
+        border-right: 0;
+        border-bottom: 1.5px solid #FEF3C7;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-box" aria-hidden="true">
+        <svg width="32" height="32" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <g transform="translate(0 0)">
+            <g transform="rotate(0 24 24)"><rect class="cr cr1" x="22" y="5" width="4" height="11" rx="2" fill="#7C4DFF" /></g>
+            <g transform="rotate(45 24 24)"><rect class="cr cr2" x="22" y="5" width="4" height="11" rx="2" fill="#C9B0FF" /></g>
+            <g transform="rotate(90 24 24)"><rect class="cr cr3" x="22" y="5" width="4" height="11" rx="2" fill="#7C4DFF" /></g>
+            <g transform="rotate(135 24 24)"><rect class="cr cr4" x="22" y="5" width="4" height="11" rx="2" fill="#C9B0FF" /></g>
+            <g transform="rotate(180 24 24)"><rect class="cr cr5" x="22" y="5" width="4" height="11" rx="2" fill="#7C4DFF" /></g>
+            <g transform="rotate(225 24 24)"><rect class="cr cr6" x="22" y="5" width="4" height="11" rx="2" fill="#C9B0FF" /></g>
+            <g transform="rotate(270 24 24)"><rect class="cr cr7" x="22" y="5" width="4" height="11" rx="2" fill="#7C4DFF" /></g>
+            <g transform="rotate(315 24 24)"><rect class="cr cr8" x="22" y="5" width="4" height="11" rx="2" fill="#C9B0FF" /></g>
+            <circle cx="24" cy="24" r="9" fill="#7C4DFF" />
+          </g>
+        </svg>
+      </div>
+      <span>AI Dev Reference</span>
+    </div>
+    <div class="top-actions">
+      <label class="sr-only" for="global-search">Search</label>
+      <input id="global-search" type="search" placeholder="Search active tool commands..." />
+      <div id="entry-count" class="count-tag">0 entries · 3 tools</div>
+      <button id="btn-feature" class="btn-primary" type="button">Request a feature</button>
+    </div>
+  </header>
+
+  <div class="disclaimer">
+    <span>Educational reference. All trademarks belong to their respective owners: Anthropic (Claude), Anysphere (Cursor), Microsoft/GitHub (Copilot).</span>
+    <a href="#/feedback" data-route="feedback">Feature missing / Found an error?</a>
+  </div>
+
+  <div id="update-banner" class="update-banner" role="status" aria-live="polite">
+    <span id="update-text">A newer command index is available.</span>
+    <div class="update-actions">
+      <button id="see-changes" class="btn-ghost btn-cursor" type="button">See what changed</button>
+      <button id="dismiss-update" class="btn-ghost" type="button">Dismiss</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <div class="content">
+      <main id="page-landing" class="active">
+        <section class="hero">
+          <div class="eyebrow">Developer Command Reference · 2026</div>
+
+          <div class="hero-marks" aria-hidden="true">
+            <div class="mark-ring mark-claude">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <g transform="rotate(0 24 24)"><rect class="cr cr1" x="22" y="5" width="4" height="11" rx="2" fill="#7C4DFF" /></g>
+                <g transform="rotate(45 24 24)"><rect class="cr cr2" x="22" y="5" width="4" height="11" rx="2" fill="#C9B0FF" /></g>
+                <g transform="rotate(90 24 24)"><rect class="cr cr3" x="22" y="5" width="4" height="11" rx="2" fill="#7C4DFF" /></g>
+                <g transform="rotate(135 24 24)"><rect class="cr cr4" x="22" y="5" width="4" height="11" rx="2" fill="#C9B0FF" /></g>
+                <g transform="rotate(180 24 24)"><rect class="cr cr5" x="22" y="5" width="4" height="11" rx="2" fill="#7C4DFF" /></g>
+                <g transform="rotate(225 24 24)"><rect class="cr cr6" x="22" y="5" width="4" height="11" rx="2" fill="#C9B0FF" /></g>
+                <g transform="rotate(270 24 24)"><rect class="cr cr7" x="22" y="5" width="4" height="11" rx="2" fill="#7C4DFF" /></g>
+                <g transform="rotate(315 24 24)"><rect class="cr cr8" x="22" y="5" width="4" height="11" rx="2" fill="#C9B0FF" /></g>
+                <circle cx="24" cy="24" r="9" fill="#7C4DFF" />
+              </svg>
+            </div>
+            <div class="connector"></div>
+            <div class="mark-ring mark-cursor">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <g class="hex-anim">
+                  <polygon points="24,4 42,14 42,34 24,44 6,34 6,14" stroke="#0EA5E9" stroke-width="2.5" fill="#E0F2FE"></polygon>
+                  <line x1="24" y1="4" x2="24" y2="24" stroke="#0EA5E9" opacity="0.5" />
+                  <line x1="42" y1="14" x2="24" y2="24" stroke="#0EA5E9" opacity="0.5" />
+                  <line x1="42" y1="34" x2="24" y2="24" stroke="#0EA5E9" opacity="0.5" />
+                  <line x1="24" y1="44" x2="24" y2="24" stroke="#0EA5E9" opacity="0.5" />
+                  <line x1="6" y1="34" x2="24" y2="24" stroke="#0EA5E9" opacity="0.5" />
+                  <line x1="6" y1="14" x2="24" y2="24" stroke="#0EA5E9" opacity="0.5" />
+                  <circle cx="24" cy="24" r="7" fill="#0EA5E9"></circle>
+                </g>
+              </svg>
+            </div>
+            <div class="connector"></div>
+            <div class="mark-ring mark-copilot">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <g class="orbit-ring">
+                  <circle cx="24" cy="24" r="18" stroke="#10B981" stroke-width="2" stroke-dasharray="4 3" fill="none"></circle>
+                </g>
+                <circle cx="24" cy="24" r="9" fill="#10B981" opacity="0.9"></circle>
+                <g class="dot-orbit o1"><circle cx="24" cy="6" r="3" fill="#6EE7B7"></circle></g>
+                <g class="dot-orbit o2"><circle cx="42" cy="24" r="3" fill="#6EE7B7"></circle></g>
+                <g class="dot-orbit o3"><circle cx="24" cy="42" r="3" fill="#6EE7B7"></circle></g>
+                <g class="dot-orbit o4"><circle cx="6" cy="24" r="3" fill="#6EE7B7"></circle></g>
+              </svg>
+            </div>
+          </div>
+
+          <div class="mark-labels" aria-hidden="true">
+            <span>Claude</span><span>Cursor</span><span>Copilot</span>
+          </div>
+
+          <h1>
+            Every command,<br />
+            <span class="benefit">one reference.</span>
+          </h1>
+
+          <p>Claude, Cursor, and GitHub Copilot slash commands, built-in skills, and subagents — searchable, always current.</p>
+
+          <div class="chips" id="hero-chips"></div>
+        </section>
+
+        <section class="tool-grid" id="landing-tool-grid"></section>
+
+        <section class="compare-wrap">
+          <table>
+            <tbody>
+              <tr><th>Built-in commands count</th><td>Claude: 28+</td><td>Cursor: 20+</td><td>Copilot: 22+</td></tr>
+              <tr><th>Bundled skills/agents</th><td>Skills + subagents</td><td>Command packs + context tools</td><td>Modes + integrations</td></tr>
+              <tr><th>Parallel execution</th><td>Supported in tool pipelines</td><td>Supported in IDE workflows</td><td>Supported in terminal/task flows</td></tr>
+              <tr><th>Context management</th><td>Memory tiers + agent context</td><td>Workspace-aware context windows</td><td>Chat + repo context + policies</td></tr>
+              <tr><th>MCP support</th><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+              <tr><th>Memory/rules file</th><td>Rules and memory scopes</td><td>.cursor rules and memories</td><td>Instruction files + repo memory</td></tr>
+              <tr><th>Code review</th><td>Review-oriented prompts + agents</td><td>Inline review in editor</td><td>PR and workspace review workflows</td></tr>
+              <tr><th>Surfaces</th><td>Terminal + editor + planning</td><td>IDE sidebar + chat + commands</td><td>Chat view + terminal + editor</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </main>
+
+      <main id="page-claude"></main>
+      <main id="page-cursor"></main>
+      <main id="page-copilot"></main>
+
+      <main id="page-feedback">
+        <section class="feedback-header">
+          <h1>Share feedback</h1>
+          <p class="feedback-sub">Report missing commands, request additions, or suggest improvements for clarity and searchability across Claude, Cursor, and Copilot references.</p>
+        </section>
+
+        <section class="feedback-wrap">
+          <form class="panel" id="feedback-form" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+            <input type="hidden" name="_subject" value="AI Dev Reference Feedback" />
+            <input type="hidden" name="_replyto" value="inbox.nuthan@gmail.com" />
+            <div class="form-grid">
+              <label class="field">Name
+                <input name="name" required />
+              </label>
+              <label class="field">Email
+                <input type="email" name="email" required />
+              </label>
+              <label class="field">Tool
+                <select name="tool" required>
+                  <option value="">Select tool</option>
+                  <option>Claude</option>
+                  <option>Cursor</option>
+                  <option>Copilot</option>
+                  <option>General</option>
+                </select>
+              </label>
+              <label class="field">Type
+                <select name="type" required>
+                  <option value="">Select type</option>
+                  <option>Bug report</option>
+                  <option>Missing command</option>
+                  <option>Content update</option>
+                  <option>Feature request</option>
+                </select>
+              </label>
+              <label class="field full">Message
+                <textarea name="message" required></textarea>
+              </label>
+            </div>
+            <button class="btn-primary" type="submit">Send feedback</button>
+            <div id="feedback-ok" class="sent">✓ Sent!</div>
+          </form>
+
+          <div class="signup">
+            <h3>Release notification signup</h3>
+            <p>Get notified when command references and tool mappings are updated.</p>
+            <form id="notify-form" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+              <input type="hidden" name="_subject" value="AI Dev Reference Notifications" />
+              <input type="hidden" name="_replyto" value="inbox.nuthan@gmail.com" />
+              <div class="signup-row">
+                <input type="email" name="email" placeholder="Email address" required />
+                <button class="btn-claude" type="submit">Notify me</button>
+              </div>
+            </form>
+            <div id="notify-ok" class="signup-ok">You are on the list. Updates will land in your inbox.</div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="release-modal" class="modal-wrap" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="release-title">
+      <div class="modal-head">
+        <h2 id="release-title" class="modal-title">Release notes</h2>
+        <button id="close-modal" class="btn-ghost" type="button">Close</button>
+      </div>
+      <div id="release-list" class="release-list"></div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="f-left">
+      <span id="sym">·</span>
+      <span id="word">Cogitating</span>
+    </div>
+    <div class="f-center">
+      <div class="f-main">Made with <span class="heart">♥️</span> <span class="name">Nuthan Murarysetty</span></div>
+      <div class="f-sub">Educational reference · All trademarks belong to their respective owners</div>
+    </div>
+    <div class="f-right">
+      <a href="https://docs.anthropic.com/" target="_blank" rel="noreferrer">Claude docs</a>
+      <a href="https://docs.cursor.com/" target="_blank" rel="noreferrer">Cursor docs</a>
+      <a href="https://code.visualstudio.com/docs/copilot" target="_blank" rel="noreferrer">Copilot docs</a>
+    </div>
+  </footer>
+
+  <script>
+    const CATALOG_URL = "https://raw.githubusercontent.com/nuthan-murarysetty/ai-dev-ref/main/catalog.json";
+
+    const DATA = {
+      claude: {
+        maker: "Anthropic",
+        subtitle: "Slash commands, bundled skills, and specialized subagents for terminal-first coding workflows.",
+        groups: [
+          {
+            id: "core",
+            label: "Core Commands",
+            entries: [
+              { cmd: "/help", name: "Show Command Help", desc: "List available commands and concise usage guidance.", ex: "/help", badge: "chat" },
+              { cmd: "/init", name: "Initialize Session", desc: "Initialize a coding session with project-aware context.", ex: "/init", badge: "chat" },
+              { cmd: "/review", name: "Code Review", desc: "Review the current diff with risk-focused findings and severity ordering.", ex: "/review", badge: "wf" },
+              { cmd: "/explain", name: "Explain Code", desc: "Explain selected code behavior with practical implementation notes.", ex: "/explain src/server.ts", badge: "chat" },
+              { cmd: "/fix", name: "Fix Error", desc: "Propose and apply a targeted fix for current compile or runtime issues.", ex: "/fix failing tests in auth flow", badge: "wf" },
+              { cmd: "/test", name: "Run Tests", desc: "Run project tests and summarize failures with concrete next actions.", ex: "/test", badge: "ide" },
+              { cmd: "/summarize", name: "Summarize Context", desc: "Summarize conversation and code context before major changes.", ex: "/summarize", badge: "chat" },
+              { cmd: "/undo", name: "Undo Last Action", desc: "Undo the latest generated action when a course correction is needed.", ex: "/undo", badge: "ide" }
+            ]
+          },
+          {
+            id: "workflow",
+            label: "Workflow",
+            entries: [
+              { cmd: "/plan", name: "Execution Plan", desc: "Create a scoped implementation plan before coding.", ex: "/plan add OAuth callback route", badge: "wf" },
+              { cmd: "/search", name: "Search Workspace", desc: "Find symbols, files, and references in the current repository.", ex: "/search request validator", badge: "ide" },
+              { cmd: "/grep [pattern]", name: "Regex Search", desc: "Search quickly with regex or exact strings across the workspace.", ex: "/grep auth|token", badge: "ide" },
+              { cmd: "/refactor", name: "Refactor", desc: "Refactor selected code while preserving behavior and style constraints.", ex: "/refactor src/parser.ts", badge: "wf" },
+              { cmd: "/commit", name: "Prepare Commit", desc: "Draft commit message and summarize modified files.", ex: "/commit", badge: "chat" },
+              { cmd: "/docs", name: "Write Docs", desc: "Generate concise docs or changelog entries from code changes.", ex: "/docs update README for auth", badge: "chat" },
+              { cmd: "/changelog", name: "Build Changelog", desc: "Create release notes from changed files and commit history.", ex: "/changelog since v1.4.0", badge: "chat" },
+              { cmd: "/benchmark", name: "Benchmark Path", desc: "Set up or run benchmark-oriented commands for hotspots.", ex: "/benchmark endpoint /api/search", badge: "wf" }
+            ]
+          },
+          {
+            id: "integration",
+            label: "Integrations",
+            entries: [
+              { cmd: "/mcp list", name: "List MCP Servers", desc: "Display configured MCP servers and capabilities.", ex: "/mcp list", badge: "ide" },
+              { cmd: "/mcp connect [name]", name: "Connect MCP", desc: "Connect and validate an MCP server for tools and resources.", ex: "/mcp connect linear", badge: "ide" },
+              { cmd: "/mcp resources", name: "MCP Resources", desc: "List available MCP resources and prompts from active servers.", ex: "/mcp resources", badge: "ide" },
+              { cmd: "/mcp disconnect [name]", name: "Disconnect MCP", desc: "Disconnect an MCP server while preserving local config.", ex: "/mcp disconnect linear", badge: "ide" },
+              { cmd: "/memory", name: "Memory Notes", desc: "View or update scoped memory notes for user, session, or repository.", ex: "/memory repo add build command", badge: "skill" },
+              { cmd: "/memory view", name: "View Memory", desc: "Inspect user, session, or repository memory files.", ex: "/memory view /memories/repo/notes.md", badge: "skill" },
+              { cmd: "/memory create", name: "Create Memory Note", desc: "Create a new scoped memory note for persistent reuse.", ex: "/memory create /memories/repo/build.md", badge: "skill" },
+              { cmd: "/agent [name]", name: "Invoke Subagent", desc: "Run a specialized subagent for exploration, planning, or implementation.", ex: "/agent Explore find auth middleware", badge: "skill" },
+              { cmd: "/agent list", name: "List Subagents", desc: "Show available subagents with their focus and model profile.", ex: "/agent list", badge: "skill" }
+            ]
+          },
+          {
+            id: "hooks",
+            label: "Hooks & Automation",
+            entries: [
+              { cmd: "pre-tool hook", name: "Before Tool Call", desc: "Validate route, permissions, or constraints before a tool invocation.", ex: "pre-tool: deny destructive git commands", badge: "wf" },
+              { cmd: "post-tool hook", name: "After Tool Call", desc: "Summarize output and update state after tool completion.", ex: "post-tool: parse errors and refresh UI", badge: "wf" },
+              { cmd: "route-change hook", name: "On Page Change", desc: "Run logic such as scroll reset and lazy-render on SPA route changes.", ex: "onRouteChange => window.scrollTo(0,0)", badge: "ide" },
+              { cmd: "search-input hook", name: "On Search Input", desc: "Re-render active tool groups when search terms change.", ex: "onSearch => renderToolPage(activeTool)", badge: "ide" }
+            ]
+          }
+        ],
+        skills: [
+          {
+            cmd: "/project-setup-info-local",
+            name: "Project Setup Info",
+            auto: true,
+            desc: "Provides complete scaffolding guidance for new projects and framework initialization.",
+            ex: "/project-setup-info-local setup Next.js workspace",
+            trigger: "When user asks to create a full project/workspace from scratch"
+          },
+          {
+            cmd: "/get-search-view-results",
+            name: "Search View Reader",
+            auto: false,
+            desc: "Reads current VS Code search results to continue a query-aware workflow.",
+            ex: "/get-search-view-results",
+            trigger: "When results already exist in the VS Code Search panel"
+          },
+          {
+            cmd: "/agent-customization",
+            name: "Agent Customization",
+            auto: true,
+            desc: "Creates or repairs instruction files, custom modes, and skill metadata.",
+            ex: "/agent-customization fix applyTo in prompt file",
+            trigger: "When user asks to create/fix Copilot customization files"
+          },
+          {
+            cmd: "/chronicle",
+            name: "Chronicle Session Search",
+            auto: false,
+            desc: "Queries prior coding sessions and notes with SQL-backed search.",
+            ex: "/chronicle search auth migration",
+            trigger: "When user asks to retrieve or summarize prior session history"
+          },
+          {
+            cmd: "/review-guard",
+            name: "Review Guardrails",
+            auto: true,
+            desc: "Enforces severity-first review output with file-targeted findings.",
+            ex: "/review-guard staged files",
+            trigger: "When user asks for code review mode"
+          }
+        ],
+        agents: [
+          {
+            name: "Explore",
+            badge: "Read-only · Sonnet",
+            color: "#0EA5E9",
+            desc: "Fast read-only exploration across files, symbols, and docs with concise findings.",
+            tools: "Read, Grep, Search",
+            model: "Sonnet",
+            invoke: "Automatic",
+            when: "When broad discovery is needed before implementation"
+          },
+          {
+            name: "Plan",
+            badge: "Planner · Sonnet",
+            color: "#7C4DFF",
+            desc: "Creates implementation plans, sequencing, and risk-aware milestones.",
+            tools: "Read, Search",
+            model: "Sonnet",
+            invoke: "Automatic (plan mode)",
+            when: "When a multi-step feature requires upfront architecture"
+          },
+          {
+            name: "General-purpose",
+            badge: "Builder · Haiku",
+            color: "#10B981",
+            desc: "Balanced coding, patching, and verification for most daily requests.",
+            tools: "Read, Edit, Terminal",
+            model: "Haiku",
+            invoke: "Automatic",
+            when: "When direct implementation and validation are requested"
+          },
+          {
+            name: "Claude Code Guide",
+            badge: "Guide · Sonnet",
+            color: "#F59E0B",
+            desc: "Provides instruction-specific guidance for command and workflow behavior.",
+            tools: "Read, Search",
+            model: "Sonnet",
+            invoke: "Automatic",
+            when: "When user asks for command semantics and guardrails"
+          },
+          {
+            name: "statusline-setup",
+            badge: "Workflow · Sonnet",
+            color: "#7C4DFF",
+            desc: "Optimizes terminal statusline and environment setup for coding sessions.",
+            tools: "Read, Terminal",
+            model: "Sonnet",
+            invoke: "Manual",
+            when: "When user wants custom terminal session ergonomics"
+          },
+          {
+            name: "QA Reviewer",
+            badge: "Review · Sonnet",
+            color: "#10B981",
+            desc: "Focuses on bugs, regressions, and test coverage gaps in changed code.",
+            tools: "Read, Diff, Search",
+            model: "Sonnet",
+            invoke: "Automatic (review prompts)",
+            when: "When user asks for a review or risk assessment"
+          }
+        ],
+        hooks: [
+          {
+            cmd: "onRouteChange",
+            name: "Route Transition Hook",
+            auto: true,
+            desc: "Ensures route transitions reset scroll and load lazy content as needed.",
+            ex: "window.scrollTo(0,0)",
+            trigger: "Runs when hash route changes"
+          },
+          {
+            cmd: "onSearchInput",
+            name: "Global Search Hook",
+            auto: true,
+            desc: "Filters active command groups against cmd, name, and description fields.",
+            ex: "renderToolPage(activeRoute)",
+            trigger: "Runs on topbar search input"
+          },
+          {
+            cmd: "onVersionFetched",
+            name: "Version Banner Hook",
+            auto: true,
+            desc: "Displays update banner when fetched version differs from localStorage.",
+            ex: "if (seen !== json.version) showBanner()",
+            trigger: "Runs after versions.json fetch completes"
+          }
+        ]
+      },
+      cursor: {
+        maker: "Anysphere",
+        subtitle: "Command palette flows, contextual edits, and automation shortcuts inside Cursor IDE.",
+        groups: [
+          {
+            id: "core",
+            label: "Core Commands",
+            entries: [
+              { cmd: "/chat", name: "Open Composer Chat", desc: "Start a contextual chat thread with current workspace context.", ex: "/chat explain this service", badge: "chat" },
+              { cmd: "/edit", name: "Inline Edit", desc: "Edit selected code directly with instruction-guided patches.", ex: "/edit simplify this reducer", badge: "ide" },
+              { cmd: "/generate", name: "Generate Code", desc: "Generate implementation candidates from natural language specs.", ex: "/generate pagination utility", badge: "chat" },
+              { cmd: "/agent", name: "Agent Mode", desc: "Use autonomous execution for multi-step engineering tasks.", ex: "/agent add caching to API", badge: "wf" },
+              { cmd: "/terminal", name: "Terminal Assist", desc: "Generate or explain shell commands for project workflows.", ex: "/terminal run migrations", badge: "ide" },
+              { cmd: "/explain", name: "Explain Selection", desc: "Explain highlighted code and suggest incremental improvements.", ex: "/explain selected block", badge: "chat" },
+              { cmd: "/fix", name: "Fix Current Error", desc: "Patch the current diagnostics with minimal, targeted edits.", ex: "/fix active file", badge: "wf" }
+            ]
+          },
+          {
+            id: "project",
+            label: "Project Navigation",
+            entries: [
+              { cmd: "/find [query]", name: "Find in Repo", desc: "Search repository symbols, snippets, and usage patterns quickly.", ex: "/find jwt verifier", badge: "ide" },
+              { cmd: "/open [file]", name: "Open File", desc: "Open and focus the target file from command context.", ex: "/open src/auth/index.ts", badge: "ide" },
+              { cmd: "/diff", name: "View Diff", desc: "Summarize local modifications against git baseline.", ex: "/diff", badge: "chat" },
+              { cmd: "/review", name: "Review Changes", desc: "Run a concise issue-focused review before committing.", ex: "/review current branch", badge: "wf" },
+              { cmd: "/references", name: "Find References", desc: "Locate symbol references and likely call paths.", ex: "/references useSession", badge: "ide" },
+              { cmd: "/rename", name: "Rename Symbol", desc: "Rename a symbol workspace-wide with language-aware updates.", ex: "/rename UserSvc to UserService", badge: "ide" }
+            ]
+          },
+          {
+            id: "automation",
+            label: "Automation",
+            entries: [
+              { cmd: "/tests", name: "Generate Tests", desc: "Create targeted tests from selected code or failing paths.", ex: "/tests for payment retry logic", badge: "wf" },
+              { cmd: "/doc", name: "Generate Docs", desc: "Generate API docs and architecture notes from code state.", ex: "/doc for webhook handler", badge: "chat" },
+              { cmd: "/fix", name: "Fix Build", desc: "Investigate and patch failing build or lint diagnostics.", ex: "/fix TypeScript errors", badge: "wf" },
+              { cmd: "/commit", name: "Draft Commit", desc: "Draft commit message and changed-file summary.", ex: "/commit", badge: "chat" },
+              { cmd: "/run", name: "Run Task", desc: "Run workspace scripts and summarize their output.", ex: "/run npm run lint", badge: "ide" }
+            ]
+          },
+          {
+            id: "hooks",
+            label: "Hooks & Rules",
+            entries: [
+              { cmd: "pre-command hook", name: "Pre Command Hook", desc: "Validate command intent against .cursor rules before execution.", ex: "pre-command: block unsafe git reset", badge: "wf" },
+              { cmd: "post-edit hook", name: "Post Edit Hook", desc: "Run format/lint or notify after edits are applied.", ex: "post-edit: run eslint on touched files", badge: "ide" },
+              { cmd: "on-save hook", name: "On Save Trigger", desc: "Trigger assistant checks when files are saved.", ex: "on-save: check diagnostics", badge: "ide" },
+              { cmd: "rules hook", name: "Rules File Hook", desc: "Load project-specific behavior from cursor rules files.", ex: "read .cursor/rules for constraints", badge: "wf" }
+            ]
+          }
+        ],
+        hooks: [
+          {
+            cmd: "pre-command",
+            name: "Pre Command Validation",
+            auto: true,
+            desc: "Runs lightweight checks against project rules before command execution.",
+            ex: "validate against .cursor/rules",
+            trigger: "Before slash command or agent action"
+          },
+          {
+            cmd: "post-edit",
+            name: "Post Edit Checks",
+            auto: true,
+            desc: "Triggers formatting, diagnostics, or summary after generated edits.",
+            ex: "run formatter on modified ranges",
+            trigger: "After automated edit completion"
+          },
+          {
+            cmd: "context-load",
+            name: "Context Bootstrap",
+            auto: true,
+            desc: "Loads nearby symbols and open files to improve response quality.",
+            ex: "hydrate symbols from active workspace",
+            trigger: "When a new conversation starts"
+          }
+        ]
+      },
+      copilot: {
+        maker: "Microsoft/GitHub",
+        subtitle: "Slash commands, workspace-aware chat actions, and IDE-integrated coding operations.",
+        groups: [
+          {
+            id: "chat",
+            label: "Chat Commands",
+            entries: [
+              { cmd: "/explain", name: "Explain Code", desc: "Explain selected code or file behavior with practical detail.", ex: "/explain this module", badge: "chat" },
+              { cmd: "/fix", name: "Fix Problem", desc: "Propose fixes for diagnostics in selected scope.", ex: "/fix all lint errors in file", badge: "wf" },
+              { cmd: "/tests", name: "Create Tests", desc: "Generate unit tests and edge-case coverage suggestions.", ex: "/tests for auth middleware", badge: "wf" },
+              { cmd: "/doc", name: "Document", desc: "Write or improve documentation based on current context.", ex: "/doc for this API", badge: "chat" },
+              { cmd: "/simplify", name: "Simplify Code", desc: "Reduce complexity while preserving behavior and readability.", ex: "/simplify this function", badge: "chat" },
+              { cmd: "/explainErrors", name: "Explain Errors", desc: "Explain current diagnostics and likely root causes.", ex: "/explainErrors", badge: "ide" }
+            ]
+          },
+          {
+            id: "workspace",
+            label: "Workspace Actions",
+            entries: [
+              { cmd: "/new", name: "Create File", desc: "Create new file scaffolds from prompt intent.", ex: "/new React component UserCard", badge: "ide" },
+              { cmd: "/edit", name: "Apply Edit", desc: "Apply structured edits to selected files or ranges.", ex: "/edit refactor this function", badge: "ide" },
+              { cmd: "/run", name: "Run Command", desc: "Run terminal commands and summarize outputs.", ex: "/run npm test", badge: "ide" },
+              { cmd: "/search", name: "Code Search", desc: "Search codebase for references and related implementations.", ex: "/search useAuth hook", badge: "ide" },
+              { cmd: "/workspace", name: "Summarize Workspace", desc: "Summarize repository structure and active workstreams.", ex: "/workspace summary", badge: "chat" },
+              { cmd: "/terminal", name: "Terminal Guidance", desc: "Generate shell commands and explain expected output.", ex: "/terminal generate migration command", badge: "ide" }
+            ]
+          },
+          {
+            id: "quality",
+            label: "Quality",
+            entries: [
+              { cmd: "/review", name: "Code Review", desc: "Identify bugs, regressions, and missing tests before merge.", ex: "/review this PR", badge: "wf" },
+              { cmd: "/optimize", name: "Optimize", desc: "Suggest performance and maintainability improvements.", ex: "/optimize this query path", badge: "chat" },
+              { cmd: "/security", name: "Security Check", desc: "Scan for common security pitfalls and mitigation steps.", ex: "/security check auth routes", badge: "wf" },
+              { cmd: "/lint", name: "Lint Guidance", desc: "Summarize lint output and propose prioritized fixes.", ex: "/lint summarize", badge: "ide" },
+              { cmd: "/coverage", name: "Coverage Analysis", desc: "Suggest test coverage improvements based on current code.", ex: "/coverage checkout service", badge: "wf" }
+            ]
+          },
+          {
+            id: "hooks",
+            label: "Hooks & Automations",
+            entries: [
+              { cmd: "chat-submit hook", name: "Chat Submit Hook", desc: "Inject active file and selection context when a chat request is sent.", ex: "onSubmit => attach active editor context", badge: "ide" },
+              { cmd: "diagnostic hook", name: "Diagnostic Hook", desc: "Surface compiler and lint diagnostics to assist repair actions.", ex: "onDiagnostics => prioritize /fix", badge: "wf" },
+              { cmd: "task-output hook", name: "Task Output Hook", desc: "Capture task results for post-run summarization in chat.", ex: "onTaskDone => summarize errors", badge: "ide" },
+              { cmd: "review hook", name: "Review Trigger Hook", desc: "Auto-enable issue-focused review template for /review prompts.", ex: "onReview => severity-first findings", badge: "wf" }
+            ]
+          }
+        ],
+        hooks: [
+          {
+            cmd: "chat-submit",
+            name: "Chat Submit Context Injection",
+            auto: true,
+            desc: "Injects nearby code, file path, and selection metadata into requests.",
+            ex: "attach active editor selection",
+            trigger: "On chat submit"
+          },
+          {
+            cmd: "diagnostic-sync",
+            name: "Diagnostic Synchronization",
+            auto: true,
+            desc: "Synchronizes diagnostics into response context for repair commands.",
+            ex: "merge Problems panel diagnostics",
+            trigger: "When diagnostics change"
+          },
+          {
+            cmd: "task-summary",
+            name: "Task Summary Hook",
+            auto: true,
+            desc: "Converts build/test task outputs into concise summaries.",
+            ex: "summarize failing test stack traces",
+            trigger: "After task completion"
+          }
+        ]
+      }
+    };
+
+    const RELEASE_FALLBACK = {
+      version: "1.0.0",
+      releaseNotes: [
+        { type: "new", title: "Unified command pages", text: "Added claude, cursor, copilot, and feedback routes with lazy rendering." },
+        { type: "change", title: "Search behavior", text: "Global search now filters cmd, name, and desc on active tool pages." },
+        { type: "fix", title: "Version banner", text: "Silent fetch and local dismissal persistence for update checks." }
+      ]
+    };
+
+    const state = {
+      route: "landing",
+      search: "",
+      activeGroup: { claude: "all", cursor: "all", copilot: "all" },
+      rendered: { claude: false, cursor: false, copilot: false },
+      latestVersionData: null,
+      pendingVersion: null
+    };
+
+    let totalEntries = countAllEntries();
+
+    const sidebar = document.getElementById("sidebar");
+    const searchInput = document.getElementById("global-search");
+    const countTag = document.getElementById("entry-count");
+
+    function countAllEntries() {
+      return Object.values(DATA).reduce((sum, t) => {
+        const groupsCount = Array.isArray(t.groups)
+          ? t.groups.reduce((s, g) => s + (Array.isArray(g.entries) ? g.entries.length : 0), 0)
+          : 0;
+        const skillsCount = Array.isArray(t.skills) ? t.skills.length : 0;
+        const agentsCount = Array.isArray(t.agents) ? t.agents.length : 0;
+        const hooksCount = Array.isArray(t.hooks) ? t.hooks.length : 0;
+        return sum + groupsCount + skillsCount + agentsCount + hooksCount;
+      }, 0);
+    }
+
+    function mergeUniqueBy(list, incoming, keyFn) {
+      const seen = new Set(list.map((item) => keyFn(item)));
+      for (const item of incoming) {
+        const key = keyFn(item);
+        if (!seen.has(key)) {
+          list.push(item);
+          seen.add(key);
+        }
+      }
+    }
+
+    function mergeGroups(targetGroups, incomingGroups) {
+      const byId = new Map(targetGroups.map((g) => [g.id, g]));
+      for (const inc of incomingGroups) {
+        if (!inc || !inc.id || !Array.isArray(inc.entries)) continue;
+        const current = byId.get(inc.id);
+        if (!current) {
+          targetGroups.push({ id: inc.id, label: inc.label || inc.id, entries: [...inc.entries] });
+          byId.set(inc.id, targetGroups[targetGroups.length - 1]);
+          continue;
+        }
+        if (inc.label) current.label = inc.label;
+        mergeUniqueBy(current.entries, inc.entries, (e) => `${e.cmd || ""}|${e.name || ""}`);
+      }
+    }
+
+    function mergeRemoteCatalog(remoteTools) {
+      for (const toolKey of ["claude", "cursor", "copilot"]) {
+        const incoming = remoteTools[toolKey];
+        if (!incoming) continue;
+        const target = DATA[toolKey];
+
+        if (incoming.maker) target.maker = incoming.maker;
+        if (incoming.subtitle) target.subtitle = incoming.subtitle;
+
+        if (Array.isArray(incoming.groups)) {
+          mergeGroups(target.groups, incoming.groups);
+        }
+
+        if (Array.isArray(incoming.skills)) {
+          if (!Array.isArray(target.skills)) target.skills = [];
+          mergeUniqueBy(target.skills, incoming.skills, (s) => `${s.cmd || ""}|${s.name || ""}`);
+        }
+
+        if (Array.isArray(incoming.agents)) {
+          if (!Array.isArray(target.agents)) target.agents = [];
+          mergeUniqueBy(target.agents, incoming.agents, (a) => `${a.name || ""}`);
+        }
+
+        if (Array.isArray(incoming.hooks)) {
+          if (!Array.isArray(target.hooks)) target.hooks = [];
+          mergeUniqueBy(target.hooks, incoming.hooks, (h) => `${h.cmd || ""}|${h.name || ""}`);
+        }
+      }
+
+      totalEntries = countAllEntries();
+      state.rendered = { claude: false, cursor: false, copilot: false };
+      renderLandingCards();
+      renderSidebar();
+      if (["claude", "cursor", "copilot"].includes(state.route)) {
+        renderToolPage(state.route);
+      }
+      updateCountTag();
+    }
+
+    async function fetchRemoteCatalog() {
+      try {
+        const res = await fetch(CATALOG_URL, { cache: "no-store" });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!json || !json.tools || typeof json.tools !== "object") return;
+        mergeRemoteCatalog(json.tools);
+      } catch (_err) {
+        // silent
+      }
+    }
+
+    function claudeSvg(size = 28) {
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <g transform="rotate(0 24 24)"><rect class="cr cr1" x="22" y="5" width="4" height="11" rx="2" fill="#7C4DFF" /></g>
+          <g transform="rotate(45 24 24)"><rect class="cr cr2" x="22" y="5" width="4" height="11" rx="2" fill="#C9B0FF" /></g>
+          <g transform="rotate(90 24 24)"><rect class="cr cr3" x="22" y="5" width="4" height="11" rx="2" fill="#7C4DFF" /></g>
+          <g transform="rotate(135 24 24)"><rect class="cr cr4" x="22" y="5" width="4" height="11" rx="2" fill="#C9B0FF" /></g>
+          <g transform="rotate(180 24 24)"><rect class="cr cr5" x="22" y="5" width="4" height="11" rx="2" fill="#7C4DFF" /></g>
+          <g transform="rotate(225 24 24)"><rect class="cr cr6" x="22" y="5" width="4" height="11" rx="2" fill="#C9B0FF" /></g>
+          <g transform="rotate(270 24 24)"><rect class="cr cr7" x="22" y="5" width="4" height="11" rx="2" fill="#7C4DFF" /></g>
+          <g transform="rotate(315 24 24)"><rect class="cr cr8" x="22" y="5" width="4" height="11" rx="2" fill="#C9B0FF" /></g>
+          <circle cx="24" cy="24" r="9" fill="#7C4DFF" />
+        </svg>
+      `;
+    }
+
+    function cursorSvg(size = 28) {
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <g class="hex-anim">
+            <polygon points="24,4 42,14 42,34 24,44 6,34 6,14" stroke="#0EA5E9" stroke-width="2.5" fill="#E0F2FE"></polygon>
+            <line x1="24" y1="4" x2="24" y2="24" stroke="#0EA5E9" opacity="0.5" />
+            <line x1="42" y1="14" x2="24" y2="24" stroke="#0EA5E9" opacity="0.5" />
+            <line x1="42" y1="34" x2="24" y2="24" stroke="#0EA5E9" opacity="0.5" />
+            <line x1="24" y1="44" x2="24" y2="24" stroke="#0EA5E9" opacity="0.5" />
+            <line x1="6" y1="34" x2="24" y2="24" stroke="#0EA5E9" opacity="0.5" />
+            <line x1="6" y1="14" x2="24" y2="24" stroke="#0EA5E9" opacity="0.5" />
+            <circle cx="24" cy="24" r="7" fill="#0EA5E9"></circle>
+          </g>
+        </svg>
+      `;
+    }
+
+    function copilotSvg(size = 28) {
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <g class="orbit-ring"><circle cx="24" cy="24" r="18" stroke="#10B981" stroke-width="2" stroke-dasharray="4 3" fill="none"></circle></g>
+          <circle cx="24" cy="24" r="9" fill="#10B981" opacity="0.9"></circle>
+          <g class="dot-orbit o1"><circle cx="24" cy="6" r="3" fill="#6EE7B7"></circle></g>
+          <g class="dot-orbit o2"><circle cx="42" cy="24" r="3" fill="#6EE7B7"></circle></g>
+          <g class="dot-orbit o3"><circle cx="24" cy="42" r="3" fill="#6EE7B7"></circle></g>
+          <g class="dot-orbit o4"><circle cx="6" cy="24" r="3" fill="#6EE7B7"></circle></g>
+        </svg>
+      `;
+    }
+
+    function renderSidebar() {
+      const route = state.route;
+      sidebar.innerHTML = `
+        <div>
+          <p class="nav-title">Navigation</p>
+          <button class="nav-btn ${route === "landing" ? "active" : ""}" data-route="landing"><span class="dot dot-home"></span>Home</button>
+          <button class="nav-btn ${route === "feedback" ? "active" : ""}" data-route="feedback"><span class="dot dot-feedback"></span>Request a feature</button>
+        </div>
+        <div style="margin-top: 12px;">
+          <p class="nav-title">Tools</p>
+          ${renderToolNav("claude", "Claude", "dot-claude")}
+          ${renderToolNav("cursor", "Cursor", "dot-cursor")}
+          ${renderToolNav("copilot", "Copilot", "dot-copilot")}
+        </div>
+      `;
+
+      sidebar.querySelectorAll("[data-route]").forEach((btn) => {
+        btn.addEventListener("click", () => navigate(btn.getAttribute("data-route")));
+      });
+
+      sidebar.querySelectorAll("[data-group]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const tool = btn.getAttribute("data-tool");
+          const group = btn.getAttribute("data-group");
+          state.activeGroup[tool] = group;
+          renderToolPage(tool);
+          renderSidebar();
+        });
+      });
+    }
+
+    function renderToolNav(tool, label, dotClass) {
+      const active = state.route === tool;
+      const groups = DATA[tool].groups;
+      let sub = "";
+      if (active) {
+        sub += `<button class="sub-link ${tool} ${state.activeGroup[tool] === "all" ? "active" : ""}" data-tool="${tool}" data-group="all">All groups</button>`;
+        for (const g of groups) {
+          sub += `<button class="sub-link ${tool} ${state.activeGroup[tool] === g.id ? "active" : ""}" data-tool="${tool}" data-group="${g.id}">${g.label}</button>`;
+        }
+        if (Array.isArray(DATA[tool].hooks) && DATA[tool].hooks.length) {
+          sub += `<button class="sub-link ${tool} ${state.activeGroup[tool] === "hooks-meta" ? "active" : ""}" data-tool="${tool}" data-group="hooks-meta">Hooks</button>`;
+        }
+        if (tool === "claude") {
+          sub += `<button class="sub-link ${tool} ${state.activeGroup[tool] === "skills" ? "active" : ""}" data-tool="${tool}" data-group="skills">Skills</button>`;
+          sub += `<button class="sub-link ${tool} ${state.activeGroup[tool] === "agents" ? "active" : ""}" data-tool="${tool}" data-group="agents">Agents</button>`;
+        }
+      }
+      return `
+        <div class="${active ? "tool-open" : ""}">
+          <button class="nav-btn ${active ? "active" : ""}" data-route="${tool}"><span class="dot ${dotClass}"></span>${label}</button>
+          <div class="sub-nav">${sub}</div>
+        </div>
+      `;
+    }
+
+    function renderLandingCards() {
+      const grid = document.getElementById("landing-tool-grid");
+      const cards = [
+        {
+          id: "claude",
+          name: "Claude",
+          maker: "Anthropic",
+          desc: "Terminal-native slash commands, rich skills, and subagents for deep workflows.",
+          tags: ["Slash Commands", "Skills", "Subagents", "Hooks"],
+          svg: claudeSvg(28)
+        },
+        {
+          id: "cursor",
+          name: "Cursor",
+          maker: "Anysphere",
+          desc: "IDE-first command flows for editing, navigation, and autonomous coding passes.",
+          tags: ["Composer", "IDE Actions", "Automation", "Hooks"],
+          svg: cursorSvg(28)
+        },
+        {
+          id: "copilot",
+          name: "Copilot",
+          maker: "Microsoft/GitHub",
+          desc: "Workspace-aware chat commands for review, edits, tests, and docs in one surface.",
+          tags: ["Chat", "Workspace", "Quality", "Hooks"],
+          svg: copilotSvg(28)
+        }
+      ];
+
+      grid.innerHTML = cards.map((c) => {
+        return `
+          <article class="tool-card ${c.id}" data-route="${c.id}">
+            <div class="accent-top acc-${c.id}"></div>
+            <div class="tool-head">
+              <div class="tool-mini ${c.id}">${c.svg}</div>
+              <div>
+                <div class="tool-name ${c.id}">${c.name}</div>
+                <div class="maker">by ${c.maker}</div>
+              </div>
+            </div>
+            <p class="tool-desc">${c.desc}</p>
+            <div class="tags">${c.tags.map((t) => `<span class="tag">${t}</span>`).join("")}</div>
+            <span class="card-cta ${c.id}">Open reference <span class="arr">→</span></span>
+          </article>
+        `;
+      }).join("");
+
+      grid.querySelectorAll("[data-route]").forEach((el) => {
+        el.addEventListener("click", () => navigate(el.getAttribute("data-route")));
+      });
+
+      const chips = document.getElementById("hero-chips");
+      chips.innerHTML = ["claude", "cursor", "copilot"].map((id) => {
+        const count = DATA[id].groups.reduce((sum, g) => sum + g.entries.length, 0);
+        const label = id[0].toUpperCase() + id.slice(1);
+        return `<button class="chip ${id}" data-route="${id}">${label} · ${count} commands</button>`;
+      }).join("");
+
+      chips.querySelectorAll("[data-route]").forEach((el) => {
+        el.addEventListener("click", () => navigate(el.getAttribute("data-route")));
+      });
+    }
+
+    function routeFromHash() {
+      const raw = location.hash.replace(/^#\/?/, "").trim();
+      if (!raw) return "landing";
+      const valid = ["landing", "claude", "cursor", "copilot", "feedback"];
+      return valid.includes(raw) ? raw : "landing";
+    }
+
+    function navigate(route) {
+      if (!route) return;
+      if (location.hash !== `#/${route}`) {
+        location.hash = `/${route}`;
+        return;
+      }
+      applyRoute(route);
+    }
+
+    function applyRoute(route) {
+      state.route = route;
+      document.querySelectorAll("main").forEach((m) => m.classList.remove("active"));
+      document.getElementById(`page-${route}`).classList.add("active");
+
+      renderSidebar();
+
+      if (["claude", "cursor", "copilot"].includes(route)) {
+        if (!state.rendered[route]) {
+          renderToolPage(route);
+          state.rendered[route] = true;
+        } else {
+          renderToolPage(route);
+        }
+      }
+
+      updateCountTag();
+      window.scrollTo(0, 0);
+    }
+
+    function renderToolPage(tool) {
+      const target = document.getElementById(`page-${tool}`);
+      const conf = DATA[tool];
+      const groupValue = state.activeGroup[tool] || "all";
+      const q = state.search.trim().toLowerCase();
+
+      const pills = [
+        `<button class="pill ${tool} ${groupValue === "all" ? "active" : ""}" data-tool="${tool}" data-pill="all">All</button>`,
+        ...conf.groups.map((g) => `<button class="pill ${tool} ${groupValue === g.id ? "active" : ""}" data-tool="${tool}" data-pill="${g.id}">${g.label}</button>`)
+      ];
+
+      if (tool === "claude") {
+        pills.push(`<button class="pill claude ${groupValue === "skills" ? "active" : ""}" data-tool="claude" data-pill="skills">Skills</button>`);
+        pills.push(`<button class="pill claude ${groupValue === "agents" ? "active" : ""}" data-tool="claude" data-pill="agents">Agents</button>`);
+      }
+
+      if (Array.isArray(conf.hooks) && conf.hooks.length) {
+        pills.push(`<button class="pill ${tool} ${groupValue === "hooks-meta" ? "active" : ""}" data-tool="${tool}" data-pill="hooks-meta">Hooks</button>`);
+      }
+
+      const sections = [];
+      const commandGroups = groupValue === "all" ? conf.groups : conf.groups.filter((g) => g.id === groupValue);
+
+      if (groupValue === "skills" && tool === "claude") {
+        sections.push(renderSkillsSection(conf.skills));
+      } else if (groupValue === "agents" && tool === "claude") {
+        sections.push(renderAgentsSection(conf.agents));
+      } else if (groupValue === "hooks-meta" && Array.isArray(conf.hooks)) {
+        sections.push(renderHooksSection(conf.hooks));
+      } else {
+        for (const g of commandGroups) {
+          const filtered = g.entries.filter((e) => {
+            if (!q) return true;
+            return [e.cmd, e.name, e.desc].join(" ").toLowerCase().includes(q);
+          });
+          sections.push(`
+            <section>
+              <div class="group-label" id="${tool}-${g.id}">
+                <h3>${g.label}</h3>
+                <div class="line"></div>
+              </div>
+              <div class="cmd-grid">
+                ${filtered.length ? filtered.map((e) => renderCommandCard(tool, e)).join("") : `<div class="empty">No results for "${escapeHtml(state.search)}"</div>`}
+              </div>
+            </section>
+          `);
+        }
+      }
+
+      if (groupValue === "all" && tool === "claude" && !q) {
+        sections.push(renderSkillsSection(conf.skills));
+        sections.push(renderAgentsSection(conf.agents));
+      }
+
+      if (groupValue === "all" && Array.isArray(conf.hooks) && conf.hooks.length && !q) {
+        sections.push(renderHooksSection(conf.hooks));
+      }
+
+      target.innerHTML = `
+        <section class="tool-header">
+          <div class="tool-meta">
+            <div class="logo-52 ${tool}">
+              ${tool === "claude" ? claudeSvg(30) : tool === "cursor" ? cursorSvg(30) : copilotSvg(30)}
+            </div>
+            <div>
+              <h1 class="tool-title ${tool}">${capitalize(tool)}</h1>
+              <p class="tool-sub">${conf.subtitle}</p>
+            </div>
+          </div>
+          <button class="btn-ghost" data-route="landing">← Back</button>
+        </section>
+
+        <nav class="pill-nav">${pills.join("")}</nav>
+
+        ${sections.join("")}
+      `;
+
+      target.querySelectorAll("[data-route]").forEach((btn) => {
+        btn.addEventListener("click", () => navigate(btn.getAttribute("data-route")));
+      });
+
+      target.querySelectorAll("[data-pill]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.activeGroup[tool] = btn.getAttribute("data-pill");
+          renderToolPage(tool);
+          renderSidebar();
+        });
+      });
+    }
+
+    function renderCommandCard(tool, e) {
+      const badge = e.badge ? `<span class="badge ${e.badge}">${badgeLabel(e.badge)}</span>` : "";
+      return `
+        <article class="cmd-card ${tool}">
+          <div class="cmd-top">
+            <span class="cmd ${tool}">${escapeHtml(e.cmd)}</span>
+            ${badge}
+          </div>
+          <div class="cmd-name">${escapeHtml(e.name)}</div>
+          <div class="cmd-desc">${escapeHtml(e.desc)}</div>
+          <div class="ex-label">Example</div>
+          <pre class="ex ${tool}">${escapeHtml(e.ex)}</pre>
+        </article>
+      `;
+    }
+
+    function renderSkillsSection(skills) {
+      return `
+        <section>
+          <div class="group-label" id="claude-skills">
+            <h3>Bundled Skills</h3>
+            <div class="line"></div>
+          </div>
+          <div class="info-box info-skill">Claude can auto-invoke skills based on request intent. User-only skills are available when invoked explicitly.</div>
+          <div class="skills-list">
+            ${skills.map((s) => `
+              <article class="skill-row">
+                <div class="skill-left">
+                  <div class="skill-cmd">${escapeHtml(s.cmd)}</div>
+                  <div class="skill-auto">${s.auto ? "auto-invoked" : "user-only"}</div>
+                </div>
+                <div class="skill-right">
+                  <div class="skill-name">${escapeHtml(s.name)}</div>
+                  <div class="skill-desc">${escapeHtml(s.desc)}</div>
+                  <div class="skill-trigger"><strong>Trigger:</strong> ${escapeHtml(s.trigger)}</div>
+                  <pre class="skill-ex">${escapeHtml(s.ex)}</pre>
+                </div>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderAgentsSection(agents) {
+      return `
+        <section>
+          <div class="group-label" id="claude-agents">
+            <h3>Subagents</h3>
+            <div class="line"></div>
+          </div>
+          <div class="info-box info-agent">Subagents run focused tasks with tuned tools, model choices, and invocation patterns.</div>
+          <div class="agent-grid">
+            ${agents.map((a) => `
+              <article class="agent-card" style="border-left-color:${a.color}">
+                <div class="agent-top">
+                  <div class="agent-name">${escapeHtml(a.name)}</div>
+                  <span class="agent-badge">${escapeHtml(a.badge)}</span>
+                </div>
+                <div class="agent-desc">${escapeHtml(a.desc)}</div>
+                <div class="agent-when"><strong>When used:</strong> ${escapeHtml(a.when)}</div>
+                <div class="meta-pills">
+                  <span class="meta-pill">Tools: ${escapeHtml(a.tools)}</span>
+                  <span class="meta-pill">Model: ${escapeHtml(a.model)}</span>
+                  <span class="meta-pill">Invoke: ${escapeHtml(a.invoke)}</span>
+                </div>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderHooksSection(hooks) {
+      return `
+        <section>
+          <div class="group-label">
+            <h3>Hooks</h3>
+            <div class="line"></div>
+          </div>
+          <div class="info-box info-skill">Lifecycle hooks and automation triggers available in this tool environment.</div>
+          <div class="skills-list">
+            ${hooks.map((h) => `
+              <article class="skill-row">
+                <div class="skill-left">
+                  <div class="skill-cmd">${escapeHtml(h.cmd)}</div>
+                  <div class="skill-auto">${h.auto ? "auto-invoked" : "user-only"}</div>
+                </div>
+                <div class="skill-right">
+                  <div class="skill-name">${escapeHtml(h.name)}</div>
+                  <div class="skill-desc">${escapeHtml(h.desc)}</div>
+                  <div class="skill-trigger"><strong>Trigger:</strong> ${escapeHtml(h.trigger)}</div>
+                  <pre class="skill-ex">${escapeHtml(h.ex)}</pre>
+                </div>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function badgeLabel(v) {
+      if (v === "skill") return "Skill";
+      if (v === "wf") return "Workflow";
+      if (v === "chat") return "Chat";
+      if (v === "ide") return "IDE";
+      return "";
+    }
+
+    function capitalize(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function updateCountTag() {
+      const route = state.route;
+      const searching = state.search.trim() && ["claude", "cursor", "copilot"].includes(route);
+      countTag.textContent = searching ? "Searching…" : `${totalEntries} entries · 3 tools`;
+    }
+
+    function wireGlobalActions() {
+      document.getElementById("btn-feature").addEventListener("click", () => navigate("feedback"));
+
+      searchInput.addEventListener("input", (e) => {
+        state.search = e.target.value || "";
+        if (["claude", "cursor", "copilot"].includes(state.route)) {
+          renderToolPage(state.route);
+        }
+        updateCountTag();
+      });
+
+      const feedbackForm = document.getElementById("feedback-form");
+      const feedbackOk = document.getElementById("feedback-ok");
+      feedbackForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fd = new FormData(feedbackForm);
+        try {
+          const res = await fetch(feedbackForm.action, {
+            method: "POST",
+            body: fd,
+            headers: { Accept: "application/json" }
+          });
+          if (res.ok) {
+            feedbackForm.reset();
+            feedbackOk.style.display = "block";
+          }
+        } catch (_err) {
+          // silent
+        }
+      });
+
+      const notifyForm = document.getElementById("notify-form");
+      const notifyOk = document.getElementById("notify-ok");
+      notifyForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fd = new FormData(notifyForm);
+        try {
+          const res = await fetch(notifyForm.action, {
+            method: "POST",
+            body: fd,
+            headers: { Accept: "application/json" }
+          });
+          if (res.ok) {
+            notifyForm.reset();
+            notifyOk.style.display = "block";
+          }
+        } catch (_err) {
+          // silent
+        }
+      });
+
+      const modal = document.getElementById("release-modal");
+      document.getElementById("see-changes").addEventListener("click", () => {
+        renderReleaseNotes(state.latestVersionData || RELEASE_FALLBACK);
+        modal.style.display = "flex";
+        modal.setAttribute("aria-hidden", "false");
+      });
+      document.getElementById("close-modal").addEventListener("click", () => {
+        modal.style.display = "none";
+        modal.setAttribute("aria-hidden", "true");
+      });
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) {
+          modal.style.display = "none";
+          modal.setAttribute("aria-hidden", "true");
+        }
+      });
+
+      document.getElementById("dismiss-update").addEventListener("click", () => {
+        document.getElementById("update-banner").style.display = "none";
+        document.body.classList.remove("has-update");
+        if (state.pendingVersion) {
+          localStorage.setItem("aidevref-version", state.pendingVersion);
+        }
+      });
+    }
+
+    function renderReleaseNotes(data) {
+      const list = document.getElementById("release-list");
+      const version = data && data.version ? data.version : "unknown";
+      const notes = Array.isArray(data.releaseNotes) ? data.releaseNotes : RELEASE_FALLBACK.releaseNotes;
+      list.innerHTML = `
+        <div class="release-item" style="border-left-color: var(--claude);">
+          <div class="release-top">
+            <strong>Version ${escapeHtml(version)}</strong>
+            <span class="rtag rtag-change">Release</span>
+          </div>
+          <div style="font:500 12px Inter,sans-serif;color:var(--text-2);">Latest command and reference updates.</div>
+        </div>
+        ${notes.map((n) => {
+          const t = (n.type || "change").toLowerCase();
+          const cls = t === "new" ? "rtag-new" : t === "fix" ? "rtag-fix" : "rtag-change";
+          const left = t === "new" ? "var(--cursor)" : t === "fix" ? "var(--copilot)" : "var(--claude)";
+          return `
+            <article class="release-item" style="border-left-color:${left}">
+              <div class="release-top">
+                <strong style="font:700 12px Inter,sans-serif;color:var(--text);">${escapeHtml(n.title || "Update")}</strong>
+                <span class="rtag ${cls}">${escapeHtml(t)}</span>
+              </div>
+              <div style="font:500 12px Inter,sans-serif;color:var(--text-2);">${escapeHtml(n.text || "")}</div>
+            </article>
+          `;
+        }).join("")}
+      `;
+    }
+
+    async function checkVersion() {
+      try {
+        const res = await fetch("https://raw.githubusercontent.com/nuthan-murarysetty/ai-dev-ref/main/versions.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!json || !json.version) return;
+
+        state.latestVersionData = json;
+        const seen = localStorage.getItem("aidevref-version") || "0";
+        if (seen !== json.version) {
+          state.pendingVersion = json.version;
+          const banner = document.getElementById("update-banner");
+          document.getElementById("update-text").textContent = `A new reference version (${json.version}) is available.`;
+          banner.style.display = "flex";
+          document.body.classList.add("has-update");
+        }
+      } catch (_err) {
+        // silent
+      }
+    }
+
+    function initFooterTicker() {
+      const SYMS = ["·", "✢", "✳️", "✶", "✻", "✽"];
+      const SCOLS = ["#7C4DFF", "#0EA5E9", "#7C4DFF", "#F59E0B", "#10B981", "#0EA5E9"];
+      const WORDS = [
+        "Cogitating", "Architecting", "Bootstrapping", "Clauding", "Coalescing",
+        "Computing", "Crafting", "Crunching", "Deliberating", "Discombobulating",
+        "Elucidating", "Finagling", "Generating", "Grooving", "Harmonizing",
+        "Ideating", "Iterating", "Orchestrating", "Pondering", "Scheming",
+        "Shenaniganing", "Synthesizing", "Wrangling"
+      ];
+
+      let i = 0;
+      let w = 0;
+      const symEl = document.getElementById("sym");
+      const wordEl = document.getElementById("word");
+
+      setInterval(() => {
+        i = (i + 1) % SYMS.length;
+        symEl.textContent = SYMS[i];
+        symEl.style.color = SCOLS[i];
+      }, 380);
+
+      setInterval(() => {
+        w = (w + 1) % WORDS.length;
+        wordEl.textContent = WORDS[w];
+      }, 1900);
+    }
+
+    function init() {
+      renderLandingCards();
+      renderSidebar();
+      wireGlobalActions();
+      initFooterTicker();
+      renderReleaseNotes(RELEASE_FALLBACK);
+      checkVersion();
+      fetchRemoteCatalog();
+
+      const route = routeFromHash();
+      applyRoute(route);
+
+      window.addEventListener("hashchange", () => {
+        applyRoute(routeFromHash());
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>

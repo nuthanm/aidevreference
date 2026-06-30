@@ -1,0 +1,685 @@
+"use client";
+
+import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { X } from "lucide-react";
+import { FeedbackForm, ContactForm, NotifyForm } from "@/features/forms/forms";
+import { useFooterTicker } from "@/hooks/use-footer-ticker";
+import { baseCatalog, type Catalog, type Group, type ToolCatalog } from "@/lib/catalog";
+import type { AgentEntry, HookEntry, SkillEntry, CommandEntry } from "@/lib/catalog";
+
+type RouteId =
+  | "landing"
+  | "claude"
+  | "cursor"
+  | "copilot"
+  | "feedback"
+  | "release-notes";
+
+type ReleaseData = {
+  version: string;
+  releaseNotes: Array<{ type?: string; title?: string; text?: string }>;
+};
+
+const RELEASE_FALLBACK: ReleaseData = {
+  version: "1.0.0",
+  releaseNotes: [
+    {
+      type: "new",
+      title: "Unified command pages",
+      text: "Added claude, cursor, copilot, and feedback routes with lazy rendering.",
+    },
+    {
+      type: "change",
+      title: "Search behavior",
+      text: "Global search now filters cmd, name, and desc on active tool pages.",
+    },
+    {
+      type: "fix",
+      title: "Version banner",
+      text: "Silent fetch and local dismissal persistence for update checks.",
+    },
+  ],
+};
+
+const PATH_TO_ROUTE: Record<string, RouteId> = {
+  "/": "landing",
+  "/claude": "claude",
+  "/cursor": "cursor",
+  "/copilot": "copilot",
+  "/feedback": "feedback",
+  "/release-notes": "release-notes",
+};
+
+const ROUTE_TO_PATH: Record<RouteId, string> = {
+  landing: "/",
+  claude: "/claude",
+  cursor: "/cursor",
+  copilot: "/copilot",
+  feedback: "/feedback",
+  "release-notes": "/release-notes",
+};
+
+function badgeLabel(v?: string) {
+  if (v === "skill") return "Skill";
+  if (v === "wf") return "Workflow";
+  if (v === "chat") return "Chat";
+  if (v === "ide") return "IDE";
+  return "";
+}
+
+function toCatalogTools() {
+  return JSON.parse(JSON.stringify(baseCatalog.tools)) as Catalog["tools"];
+}
+
+export function ReferenceShell() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [data, setData] = useState<Catalog["tools"]>(() => toCatalogTools());
+  const [activeGroup, setActiveGroup] = useState({
+    claude: "all",
+    cursor: "all",
+    copilot: "all",
+  });
+  const [latestVersionData, setLatestVersionData] = useState<ReleaseData>(RELEASE_FALLBACK);
+  const [pendingVersion, setPendingVersion] = useState("");
+  const ticker = useFooterTicker();
+  const route = PATH_TO_ROUTE[pathname] || "landing";
+
+  const totalEntries = useMemo(() => {
+    return Object.values(data).reduce((sum, tool) => {
+      const groupsCount = tool.groups.reduce((s, g) => s + g.entries.length, 0);
+      const skillsCount = Array.isArray(tool.skills) ? tool.skills.length : 0;
+      const agentsCount = Array.isArray(tool.agents) ? tool.agents.length : 0;
+      const hooksCount = Array.isArray(tool.hooks) ? tool.hooks.length : 0;
+      return sum + groupsCount + skillsCount + agentsCount + hooksCount;
+    }, 0);
+  }, [data]);
+
+  useEffect(() => {
+    document.body.classList.toggle("has-update", Boolean(pendingVersion));
+    return () => document.body.classList.remove("has-update");
+  }, [pendingVersion]);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/catalog", { cache: "no-store" });
+        if (!res.ok) return;
+        const remote = (await res.json()) as Catalog;
+        if (remote?.tools) {
+          setData(remote.tools);
+        }
+      } catch {
+        // silent
+      }
+    })();
+
+    void (async () => {
+      try {
+        const res = await fetch(
+          "https://raw.githubusercontent.com/nuthan-murarysetty/ai-dev-ref/main/versions.json",
+          { cache: "no-store" },
+        );
+        if (!res.ok) return;
+        const json = (await res.json()) as ReleaseData;
+        if (!json?.version) return;
+        setLatestVersionData(json);
+        const seen = localStorage.getItem("aidevref-version") || "0";
+        if (seen !== json.version) {
+          setPendingVersion(json.version);
+        }
+      } catch {
+        // silent
+      }
+    })();
+  }, []);
+
+  function navigate(nextRoute: RouteId) {
+    router.push(ROUTE_TO_PATH[nextRoute]);
+  }
+
+  function renderCommandCard(tool: "claude" | "cursor" | "copilot", entry: CommandEntry) {
+    const badge = entry.badge ? <span className={`badge ${entry.badge}`}>{badgeLabel(entry.badge)}</span> : null;
+
+    return (
+      <article className={`cmd-card ${tool}`} key={`${entry.cmd}-${entry.name}`}>
+        <div className="cmd-top">
+          <span className={`cmd ${tool}`}>{entry.cmd}</span>
+          {badge}
+        </div>
+        <div className="cmd-name">{entry.name}</div>
+        <div className="cmd-desc">{entry.desc}</div>
+        <div className="ex-label">Example</div>
+        <pre className={`ex ${tool}`}>{entry.ex}</pre>
+      </article>
+    );
+  }
+
+  function renderSkillsSection(skills: SkillEntry[] = []) {
+    return (
+      <section>
+        <div className="group-label" id="claude-skills">
+          <h3>Bundled Skills</h3>
+          <div className="line" />
+        </div>
+        <div className="info-box info-skill">
+          Claude can auto-invoke skills based on request intent. User-only skills are available when
+          invoked explicitly.
+        </div>
+        <div className="skills-list">
+          {skills.map((s) => (
+            <article className="skill-row" key={`${s.cmd}-${s.name}`}>
+              <div className="skill-left">
+                <div className="skill-cmd">{s.cmd}</div>
+                <div className="skill-auto">{s.auto ? "auto-invoked" : "user-only"}</div>
+              </div>
+              <div className="skill-right">
+                <div className="skill-name">{s.name}</div>
+                <div className="skill-desc">{s.desc}</div>
+                <div className="skill-trigger">
+                  <strong>Trigger:</strong> {s.trigger}
+                </div>
+                <pre className="skill-ex">{s.ex}</pre>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  function renderAgentsSection(agents: AgentEntry[] = []) {
+    return (
+      <section>
+        <div className="group-label" id="claude-agents">
+          <h3>Subagents</h3>
+          <div className="line" />
+        </div>
+        <div className="info-box info-agent">
+          Subagents run focused tasks with tuned tools, model choices, and invocation patterns.
+        </div>
+        <div className="agent-grid">
+          {agents.map((a) => (
+            <article className="agent-card" style={{ borderLeftColor: a.color }} key={a.name}>
+              <div className="agent-top">
+                <div className="agent-name">{a.name}</div>
+                <span className="agent-badge">{a.badge}</span>
+              </div>
+              <div className="agent-desc">{a.desc}</div>
+              <div className="agent-when">
+                <strong>When used:</strong> {a.when}
+              </div>
+              <div className="meta-pills">
+                <span className="meta-pill">Tools: {a.tools}</span>
+                <span className="meta-pill">Model: {a.model}</span>
+                <span className="meta-pill">Invoke: {a.invoke}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  function renderHooksSection(hooks: HookEntry[] = []) {
+    return (
+      <section>
+        <div className="group-label">
+          <h3>Hooks</h3>
+          <div className="line" />
+        </div>
+        <div className="info-box info-skill">
+          Lifecycle hooks and automation triggers available in this tool environment.
+        </div>
+        <div className="skills-list">
+          {hooks.map((h) => (
+            <article className="skill-row" key={`${h.cmd}-${h.name}`}>
+              <div className="skill-left">
+                <div className="skill-cmd">{h.cmd}</div>
+                <div className="skill-auto">{h.auto ? "auto-invoked" : "user-only"}</div>
+              </div>
+              <div className="skill-right">
+                <div className="skill-name">{h.name}</div>
+                <div className="skill-desc">{h.desc}</div>
+                <div className="skill-trigger">
+                  <strong>Trigger:</strong> {h.trigger}
+                </div>
+                <pre className="skill-ex">{h.ex}</pre>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  function renderToolPage(tool: "claude" | "cursor" | "copilot") {
+    const conf = data[tool] as ToolCatalog;
+    const groupValue = activeGroup[tool];
+    const q = search.trim().toLowerCase();
+    const commandGroups = groupValue === "all" ? conf.groups : conf.groups.filter((g) => g.id === groupValue);
+
+    const pills = [
+      <button
+        key="all"
+        className={`pill ${tool} ${groupValue === "all" ? "active" : ""}`}
+        onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "all" }))}
+      >
+        All
+      </button>,
+      ...conf.groups.map((g) => (
+        <button
+          key={g.id}
+          className={`pill ${tool} ${groupValue === g.id ? "active" : ""}`}
+          onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: g.id }))}
+        >
+          {g.label}
+        </button>
+      )),
+    ];
+
+    if (tool === "claude") {
+      pills.push(
+        <button
+          key="skills"
+          className={`pill claude ${groupValue === "skills" ? "active" : ""}`}
+          onClick={() => setActiveGroup((prev) => ({ ...prev, claude: "skills" }))}
+        >
+          Skills
+        </button>,
+      );
+      pills.push(
+        <button
+          key="agents"
+          className={`pill claude ${groupValue === "agents" ? "active" : ""}`}
+          onClick={() => setActiveGroup((prev) => ({ ...prev, claude: "agents" }))}
+        >
+          Agents
+        </button>,
+      );
+    }
+
+    if (Array.isArray(conf.hooks) && conf.hooks.length) {
+      pills.push(
+        <button
+          key="hooks-meta"
+          className={`pill ${tool} ${groupValue === "hooks-meta" ? "active" : ""}`}
+          onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "hooks-meta" }))}
+        >
+          Hooks
+        </button>,
+      );
+    }
+
+    const sections: React.ReactNode[] = [];
+
+    if (groupValue === "skills" && tool === "claude") {
+      sections.push(renderSkillsSection(conf.skills));
+    } else if (groupValue === "agents" && tool === "claude") {
+      sections.push(renderAgentsSection(conf.agents));
+    } else if (groupValue === "hooks-meta" && conf.hooks) {
+      sections.push(renderHooksSection(conf.hooks));
+    } else {
+      for (const g of commandGroups) {
+        const filtered = g.entries.filter((e) => {
+          if (!q) return true;
+          return [e.cmd, e.name, e.desc].join(" ").toLowerCase().includes(q);
+        });
+
+        sections.push(
+          <section key={g.id}>
+            <div className="group-label" id={`${tool}-${g.id}`}>
+              <h3>{g.label}</h3>
+              <div className="line" />
+            </div>
+            <div className="cmd-grid">
+              {filtered.length ? (
+                filtered.map((e) => renderCommandCard(tool, e))
+              ) : (
+                <div className="empty">No results for {search}</div>
+              )}
+            </div>
+          </section>,
+        );
+      }
+    }
+
+    if (groupValue === "all" && tool === "claude" && !q) {
+      sections.push(renderSkillsSection(conf.skills));
+      sections.push(renderAgentsSection(conf.agents));
+    }
+
+    if (groupValue === "all" && conf.hooks?.length && !q) {
+      sections.push(renderHooksSection(conf.hooks));
+    }
+
+    return (
+      <>
+        <section className="tool-header">
+          <div className="tool-meta">
+            <div className={`logo-52 ${tool}`}>
+              <div className={`dot dot-${tool}`} style={{ width: 20, height: 20 }} />
+            </div>
+            <div>
+              <h1 className={`tool-title ${tool}`}>{tool[0].toUpperCase() + tool.slice(1)}</h1>
+              <p className="tool-sub">{conf.subtitle}</p>
+            </div>
+          </div>
+          <button className="btn-ghost" onClick={() => navigate("landing")}>
+            ← Back
+          </button>
+        </section>
+        <nav className="pill-nav">{pills}</nav>
+        {sections}
+      </>
+    );
+  }
+
+  function toolNav(tool: "claude" | "cursor" | "copilot", label: string, dotClass: string) {
+    const active = route === tool;
+    return (
+      <div className={active ? "tool-open" : ""}>
+        <button className={`nav-btn ${active ? "active" : ""}`} onClick={() => navigate(tool)}>
+          <span className={`dot ${dotClass}`} />
+          {label}
+        </button>
+        <div className="sub-nav">
+          {active ? (
+            <>
+              <button
+                className={`sub-link ${tool} ${activeGroup[tool] === "all" ? "active" : ""}`}
+                onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "all" }))}
+              >
+                All groups
+              </button>
+              {data[tool].groups.map((g: Group) => (
+                <button
+                  className={`sub-link ${tool} ${activeGroup[tool] === g.id ? "active" : ""}`}
+                  key={g.id}
+                  onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: g.id }))}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <header className="topbar">
+        <div className="brand">
+          <div className="logo-box" aria-hidden="true">
+            <div className="dot dot-claude" style={{ width: 16, height: 16 }} />
+          </div>
+          <span>AI Dev Reference</span>
+        </div>
+        <div className="top-actions">
+          <label className="sr-only" htmlFor="global-search">
+            Search
+          </label>
+          <input
+            id="global-search"
+            type="search"
+            placeholder="Search active tool commands..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div id="entry-count" className="count-tag">
+            {search.trim() && ["claude", "cursor", "copilot"].includes(route)
+              ? "Searching..."
+              : `${totalEntries} entries · 3 tools`}
+          </div>
+          <button id="btn-feature" className="btn-primary" type="button" onClick={() => navigate("feedback")}>
+            Request a feature
+          </button>
+        </div>
+      </header>
+
+      <div className="disclaimer">
+        <span>
+          Educational reference. All trademarks belong to their respective owners: Anthropic (Claude),
+          Anysphere (Cursor), Microsoft/GitHub (Copilot).
+        </span>
+        <button className="link-btn" onClick={() => navigate("feedback")}>
+          Feature missing / Found an error?
+        </button>
+      </div>
+
+      {pendingVersion ? (
+        <div id="update-banner" className="update-banner" style={{ display: "flex" }}>
+          <span id="update-text">A new reference version ({pendingVersion}) is available.</span>
+          <div className="update-actions">
+            <button className="btn-ghost btn-cursor" onClick={() => navigate("release-notes")}>
+              See what changed
+            </button>
+            <button
+              className="btn-ghost"
+              onClick={() => {
+                localStorage.setItem("aidevref-version", pendingVersion);
+                setPendingVersion("");
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="layout">
+        <aside className="sidebar" id="sidebar">
+          <div>
+            <p className="nav-title">Navigation</p>
+            <button className={`nav-btn ${route === "landing" ? "active" : ""}`} onClick={() => navigate("landing")}>
+              <span className="dot dot-home" />Home
+            </button>
+            <button className={`nav-btn ${route === "feedback" ? "active" : ""}`} onClick={() => navigate("feedback")}>
+              <span className="dot dot-feedback" />Request a feature
+            </button>
+            <button
+              className={`nav-btn ${route === "release-notes" ? "active" : ""}`}
+              onClick={() => navigate("release-notes")}
+            >
+              <span className="dot dot-cursor" />Release notes
+            </button>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <p className="nav-title">Tools</p>
+            {toolNav("claude", "Claude", "dot-claude")}
+            {toolNav("cursor", "Cursor", "dot-cursor")}
+            {toolNav("copilot", "Copilot", "dot-copilot")}
+          </div>
+        </aside>
+
+        <div className="content">
+          <AnimatePresence mode="wait">
+            <motion.main
+              key={route}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="active"
+            >
+              {route === "landing" ? (
+                <>
+                  <section className="hero">
+                    <div className="eyebrow">Developer Command Reference · 2026</div>
+                    <h1>
+                      Every command,<br />
+                      <span className="benefit">one reference.</span>
+                    </h1>
+                    <p>
+                      Claude, Cursor, and GitHub Copilot slash commands, built-in skills, and
+                      subagents - searchable, always current.
+                    </p>
+                    <div className="chips">
+                      {(["claude", "cursor", "copilot"] as const).map((id) => {
+                        const count = data[id].groups.reduce((sum, g) => sum + g.entries.length, 0);
+                        const label = id[0].toUpperCase() + id.slice(1);
+                        return (
+                          <button className={`chip ${id}`} key={id} onClick={() => navigate(id)}>
+                            {label} · {count} commands
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  <section className="tool-grid" id="landing-tool-grid">
+                    {([
+                      {
+                        id: "claude",
+                        name: "Claude",
+                        maker: "Anthropic",
+                        desc: "Terminal-native slash commands, rich skills, and subagents for deep workflows.",
+                        tags: ["Slash Commands", "Skills", "Subagents", "Hooks"],
+                      },
+                      {
+                        id: "cursor",
+                        name: "Cursor",
+                        maker: "Anysphere",
+                        desc: "IDE-first command flows for editing, navigation, and autonomous coding passes.",
+                        tags: ["Composer", "IDE Actions", "Automation", "Hooks"],
+                      },
+                      {
+                        id: "copilot",
+                        name: "Copilot",
+                        maker: "Microsoft/GitHub",
+                        desc: "Workspace-aware chat commands for review, edits, tests, and docs in one surface.",
+                        tags: ["Chat", "Workspace", "Quality", "Hooks"],
+                      },
+                    ] as const).map((card) => (
+                      <article className={`tool-card ${card.id}`} key={card.id} onClick={() => navigate(card.id)}>
+                        <div className={`accent-top acc-${card.id}`} />
+                        <div className="tool-head">
+                          <div className={`tool-mini ${card.id}`}>
+                            <div className={`dot dot-${card.id}`} style={{ width: 16, height: 16 }} />
+                          </div>
+                          <div>
+                            <div className={`tool-name ${card.id}`}>{card.name}</div>
+                            <div className="maker">by {card.maker}</div>
+                          </div>
+                        </div>
+                        <p className="tool-desc">{card.desc}</p>
+                        <div className="tags">
+                          {card.tags.map((tag) => (
+                            <span className="tag" key={tag}>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        <span className={`card-cta ${card.id}`}>
+                          Open reference <span className="arr">→</span>
+                        </span>
+                      </article>
+                    ))}
+                  </section>
+
+                  <section className="compare-wrap">
+                    <table>
+                      <tbody>
+                        <tr><th>Built-in commands count</th><td>Claude: 28+</td><td>Cursor: 20+</td><td>Copilot: 22+</td></tr>
+                        <tr><th>Bundled skills/agents</th><td>Skills + subagents</td><td>Command packs + context tools</td><td>Modes + integrations</td></tr>
+                        <tr><th>Parallel execution</th><td>Supported in tool pipelines</td><td>Supported in IDE workflows</td><td>Supported in terminal/task flows</td></tr>
+                        <tr><th>Context management</th><td>Memory tiers + agent context</td><td>Workspace-aware context windows</td><td>Chat + repo context + policies</td></tr>
+                        <tr><th>MCP support</th><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+                        <tr><th>Memory/rules file</th><td>Rules and memory scopes</td><td>.cursor rules and memories</td><td>Instruction files + repo memory</td></tr>
+                        <tr><th>Code review</th><td>Review-oriented prompts + agents</td><td>Inline review in editor</td><td>PR and workspace review workflows</td></tr>
+                        <tr><th>Surfaces</th><td>Terminal + editor + planning</td><td>IDE sidebar + chat + commands</td><td>Chat view + terminal + editor</td></tr>
+                      </tbody>
+                    </table>
+                  </section>
+                </>
+              ) : null}
+
+              {route === "claude" || route === "cursor" || route === "copilot"
+                ? renderToolPage(route)
+                : null}
+
+              {route === "feedback" ? (
+                <>
+                  <section className="feedback-header">
+                    <h1>Share feedback</h1>
+                    <p className="feedback-sub">
+                      Report missing commands, request additions, or suggest improvements for clarity
+                      and searchability across Claude, Cursor, and Copilot references.
+                    </p>
+                  </section>
+                  <section className="feedback-wrap">
+                    <FeedbackForm />
+                    <div className="signup">
+                      <h3>Release notification signup</h3>
+                      <p>Get notified when command references and tool mappings are updated.</p>
+                      <NotifyForm />
+                    </div>
+                    <ContactForm />
+                  </section>
+                </>
+              ) : null}
+
+              {route === "release-notes" ? (
+                <section className="policy-page">
+                  <div className="modal-head" style={{ marginBottom: 12 }}>
+                    <h1 className="modal-title" style={{ margin: 0 }}>Release notes</h1>
+                    <button className="btn-ghost" onClick={() => navigate("landing")}>
+                      <X size={14} /> Close
+                    </button>
+                  </div>
+                  <div className="release-list">
+                    <div className="release-item" style={{ borderLeftColor: "var(--claude)" }}>
+                      <div className="release-top">
+                        <strong>Version {latestVersionData.version}</strong>
+                        <span className="rtag rtag-change">Release</span>
+                      </div>
+                      <div className="release-text">Latest command and reference updates.</div>
+                    </div>
+                    {(latestVersionData.releaseNotes || []).map((n, index) => {
+                      const t = (n.type || "change").toLowerCase();
+                      const cls = t === "new" ? "rtag-new" : t === "fix" ? "rtag-fix" : "rtag-change";
+                      const left = t === "new" ? "var(--cursor)" : t === "fix" ? "var(--copilot)" : "var(--claude)";
+                      return (
+                        <article className="release-item" style={{ borderLeftColor: left }} key={`${n.title}-${index}`}>
+                          <div className="release-top">
+                            <strong className="release-strong">{n.title || "Update"}</strong>
+                            <span className={`rtag ${cls}`}>{t}</span>
+                          </div>
+                          <div className="release-text">{n.text || ""}</div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              ) : null}
+            </motion.main>
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <footer className="footer">
+        <div className="f-left">
+          <span id="sym">{ticker.symbol}</span>
+          <span id="word">{ticker.word}</span>
+        </div>
+        <div className="f-center">
+          <div className="f-main">
+            Made with <span className="heart">♥</span> <span className="name">Nuthan Murarysetty</span>
+          </div>
+          <div className="f-sub">Educational reference · All trademarks belong to their respective owners</div>
+        </div>
+        <div className="f-right">
+          <Link href="https://docs.anthropic.com/" target="_blank" rel="noreferrer">Claude docs</Link>
+          <Link href="https://docs.cursor.com/" target="_blank" rel="noreferrer">Cursor docs</Link>
+          <Link href="https://code.visualstudio.com/docs/copilot" target="_blank" rel="noreferrer">Copilot docs</Link>
+        </div>
+      </footer>
+    </>
+  );
+}
