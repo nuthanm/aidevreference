@@ -81,8 +81,18 @@
       gap: 10px;
     }
 
+    .search-wrap {
+      position: relative;
+      width: 320px;
+      transition: width 0.2s ease;
+    }
+
+    .search-wrap.open {
+      width: 460px;
+    }
+
     #global-search {
-      width: 220px;
+      width: 100%;
       height: 36px;
       border-radius: 10px;
       border: 1.5px solid var(--border);
@@ -99,9 +109,160 @@
     }
 
     #global-search:focus {
-      width: 270px;
       border-color: var(--claude-m);
       box-shadow: 0 0 0 3px rgba(124, 77, 255, 0.08);
+    }
+
+    .search-wrap.open #global-search {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .search-dropdown {
+      position: absolute;
+      top: calc(100% - 1px);
+      left: 0;
+      right: 0;
+      border: 1.5px solid var(--claude-m);
+      border-top: 0;
+      background: var(--surface);
+      border-radius: 0 0 24px 24px;
+      box-shadow: 0 16px 28px rgba(24, 24, 42, 0.12);
+      overflow: hidden;
+      z-index: 80;
+    }
+
+    .search-option {
+      width: 100%;
+      border: 0;
+      border-top: 1px solid var(--border);
+      background: transparent;
+      text-align: left;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .search-option.claude:hover {
+      background: #f5f3ff;
+    }
+
+    .search-option.cursor:hover {
+      background: #eff9ff;
+    }
+
+    .search-option.copilot:hover {
+      background: #effcf6;
+    }
+
+    .search-option:first-child {
+      border-top: 0;
+    }
+
+    .search-option-main {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .search-option-cmd {
+      color: var(--text);
+      font: 700 11.5px Inter, sans-serif;
+    }
+
+    .search-option-name {
+      color: var(--text-2);
+      font: 500 11px Inter, sans-serif;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .search-option-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 0 0 auto;
+    }
+
+    .search-option-category {
+      color: var(--claude);
+      background: var(--claude-p);
+      border: 1px solid var(--claude-m);
+      border-radius: 999px;
+      padding: 3px 7px;
+      font: 700 10px Inter, sans-serif;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+
+    .search-option.claude .search-option-category {
+      color: var(--claude);
+      background: var(--claude-p);
+      border-color: var(--claude-m);
+    }
+
+    .search-option.cursor .search-option-category {
+      color: var(--cursor);
+      background: var(--cursor-p);
+      border-color: var(--cursor-m);
+    }
+
+    .search-option.copilot .search-option-category {
+      color: var(--copilot);
+      background: var(--copilot-p);
+      border-color: var(--copilot-m);
+    }
+
+    .search-option-kind {
+      border-radius: 999px;
+      padding: 3px 7px;
+      font: 700 10px Inter, sans-serif;
+      border: 1px solid var(--border);
+      color: var(--text-2);
+      background: var(--bg);
+      text-transform: capitalize;
+      white-space: nowrap;
+    }
+
+    .search-option-kind.command {
+      color: #6b7280;
+      border-color: #d1d5db;
+      background: #f9fafb;
+    }
+
+    .search-option-kind.prompt {
+      color: #7c3aed;
+      border-color: #c4b5fd;
+      background: #f5f3ff;
+    }
+
+    .search-option-kind.skill {
+      color: #2563eb;
+      border-color: #93c5fd;
+      background: #eff6ff;
+    }
+
+    .search-option-kind.agent {
+      color: #0f766e;
+      border-color: #5eead4;
+      background: #ecfeff;
+    }
+
+    .search-option-kind.hook {
+      color: #b45309;
+      border-color: #fcd34d;
+      background: #fffbeb;
+    }
+
+    .search-empty {
+      padding: 10px 12px;
+      color: var(--text-3);
+      font: 500 11px Inter, sans-serif;
     }
 
     .count-tag {
@@ -1449,6 +1610,8 @@
         flex-wrap: wrap;
       }
 
+      .search-wrap,
+      .search-wrap.open,
       #global-search,
       #global-search:focus {
         width: 100%;

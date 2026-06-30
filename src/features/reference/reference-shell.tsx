@@ -98,8 +98,100 @@ export function ReferenceShell() {
   const [latestVersionData, setLatestVersionData] = useState<ReleaseData>(RELEASE_FALLBACK);
   const [pendingVersion, setPendingVersion] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   const ticker = useFooterTicker();
   const route = PATH_TO_ROUTE[pathname] || "landing";
+
+  const activeTool = route === "claude" || route === "cursor" || route === "copilot" ? route : null;
+
+  const searchSuggestions = useMemo(() => {
+    const toolsToSearch = activeTool
+      ? [activeTool]
+      : (["claude", "cursor", "copilot"] as const);
+
+    const q = search.trim().toLowerCase();
+    if (!q) {
+      return [] as Array<{
+        key: string;
+        cmd: string;
+        name: string;
+        category: string;
+        tool: "claude" | "cursor" | "copilot";
+        kind: "command" | "skill" | "agent" | "hook" | "prompt";
+      }>;
+    }
+
+    const matches: Array<{
+      key: string;
+      cmd: string;
+      name: string;
+      category: string;
+      tool: "claude" | "cursor" | "copilot";
+      kind: "command" | "skill" | "agent" | "hook" | "prompt";
+    }> = [];
+
+    for (const tool of toolsToSearch) {
+      const conf = data[tool];
+      for (const g of conf.groups) {
+        for (const e of g.entries) {
+          const haystack = `${e.cmd} ${e.name} ${e.desc}`.toLowerCase();
+          if (!haystack.includes(q)) continue;
+          const kind = e.badge === "chat" ? "prompt" : "command";
+          matches.push({
+            key: `${tool}|command|${g.id}|${e.cmd}|${e.name}`,
+            cmd: e.cmd,
+            name: e.name,
+            category: `${tool[0].toUpperCase() + tool.slice(1)} · ${g.label.replace(/\s+commands?$/i, "")}`,
+            tool,
+            kind,
+          });
+        }
+      }
+
+      for (const s of conf.skills || []) {
+        const haystack = `${s.cmd} ${s.name} ${s.desc} ${s.trigger}`.toLowerCase();
+        if (!haystack.includes(q)) continue;
+        matches.push({
+          key: `${tool}|skill|${s.cmd}|${s.name}`,
+          cmd: s.cmd,
+          name: s.name,
+          category: `${tool[0].toUpperCase() + tool.slice(1)} · Skills`,
+          tool,
+          kind: "skill",
+        });
+      }
+
+      for (const a of conf.agents || []) {
+        const haystack = `${a.name} ${a.desc} ${a.when} ${a.invoke}`.toLowerCase();
+        if (!haystack.includes(q)) continue;
+        matches.push({
+          key: `${tool}|agent|${a.name}`,
+          cmd: "@agent",
+          name: a.name,
+          category: `${tool[0].toUpperCase() + tool.slice(1)} · Agents`,
+          tool,
+          kind: "agent",
+        });
+      }
+
+      for (const h of conf.hooks || []) {
+        const haystack = `${h.cmd} ${h.name} ${h.desc} ${h.trigger}`.toLowerCase();
+        if (!haystack.includes(q)) continue;
+        matches.push({
+          key: `${tool}|hook|${h.cmd}|${h.name}`,
+          cmd: h.cmd,
+          name: h.name,
+          category: `${tool[0].toUpperCase() + tool.slice(1)} · Hooks`,
+          tool,
+          kind: "hook",
+        });
+      }
+    }
+
+    return matches.slice(0, 8);
+  }, [activeTool, data, search]);
+
+  const showSearchSuggestions = Boolean(searchFocused && search.trim());
 
   const totalEntries = useMemo(() => {
     return Object.values(data).reduce((sum, tool) => {
@@ -454,13 +546,48 @@ export function ReferenceShell() {
           <label className="sr-only" htmlFor="global-search">
             Search
           </label>
-          <input
-            id="global-search"
-            type="search"
-            placeholder="Search active tool commands..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <div className={`search-wrap ${showSearchSuggestions ? "open" : ""}`}>
+            <input
+              id="global-search"
+              type="search"
+              placeholder="Search active tool commands..."
+              value={search}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => {
+                window.setTimeout(() => setSearchFocused(false), 120);
+              }}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {showSearchSuggestions ? (
+              <div className="search-dropdown" role="listbox" aria-label="Command suggestions">
+                {searchSuggestions.length ? (
+                  searchSuggestions.map((item) => (
+                    <button
+                      className={`search-option ${item.tool}`}
+                      key={item.key}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setSearch(item.cmd);
+                        setSearchFocused(false);
+                      }}
+                    >
+                      <span className="search-option-main">
+                        <span className="search-option-cmd">{item.cmd}</span>
+                        <span className="search-option-name">{item.name}</span>
+                      </span>
+                      <span className="search-option-meta">
+                        <span className="search-option-category">{item.category}</span>
+                        <span className={`search-option-kind ${item.kind}`}>{item.kind}</span>
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="search-empty">No matching commands</div>
+                )}
+              </div>
+            ) : null}
+          </div>
           <div id="entry-count" className="count-tag">
             {search.trim() && ["claude", "cursor", "copilot"].includes(route)
               ? "Searching..."
