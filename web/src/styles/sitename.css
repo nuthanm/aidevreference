@@ -205,15 +205,24 @@
       position: fixed;
       top: 94px;
       left: 0;
-      bottom: 0;
       width: 224px;
+      height: calc(100dvh - 94px);
       background: var(--surface);
       border-right: 1px solid var(--border);
       padding: 18px 12px 20px;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: hidden;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
       display: flex;
       flex-direction: column;
       transition: width 180ms ease;
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+      display: none;
     }
 
     .sidebar.collapsed {
@@ -223,6 +232,7 @@
 
     body.has-update .sidebar {
       top: 136px;
+      height: calc(100dvh - 136px);
     }
 
     .nav-title {
@@ -263,10 +273,29 @@
     }
 
     .sidebar-main {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
       min-height: 0;
       overflow-x: hidden;
       overflow-y: auto;
       padding-right: 2px;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .sidebar-main::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+      display: none;
+    }
+
+    .sidebar-tools {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
     }
 
     .sidebar-footer {
@@ -321,12 +350,23 @@
       padding: 9px 10px;
       text-align: left;
       font: 600 12px Inter, sans-serif;
+      line-height: 1.25;
       color: var(--text-2);
       display: flex;
       align-items: center;
       gap: 8px;
       cursor: pointer;
       margin-bottom: 4px;
+      min-height: 36px;
+      position: relative;
+    }
+
+    .nav-label {
+      display: block;
+      flex: 1 1 auto;
+      min-width: 0;
+      white-space: normal;
+      word-break: break-word;
     }
 
     .nav-icon-wrap {
@@ -1435,10 +1475,18 @@
         width: 100%;
         border-right: 0;
         border-bottom: 1px solid var(--border);
-        max-height: 240px;
+        max-height: calc(100dvh - 220px);
         padding: 12px;
         overflow-x: hidden;
         overflow-y: auto;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      .sidebar::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+        display: none;
       }
 
       .sidebar.collapsed {

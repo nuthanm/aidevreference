@@ -552,12 +552,12 @@ export function ReferenceShell() {
               </span>
               <span className="nav-label">Release notes</span>
             </button>
-          </div>
-          <div style={{ marginTop: 12 }}>
-            <p className="nav-title">Tools</p>
-            {toolNav("claude", "Claude", <Bot size={15} className="nav-icon" />)}
-            {toolNav("cursor", "Cursor", <MousePointer2 size={15} className="nav-icon" />)}
-            {toolNav("copilot", "Copilot", <Sparkles size={15} className="nav-icon" />)}
+            <div className="sidebar-tools">
+              <p className="nav-title">Tools</p>
+              {toolNav("claude", "Claude", <Bot size={15} className="nav-icon" />)}
+              {toolNav("cursor", "Cursor", <MousePointer2 size={15} className="nav-icon" />)}
+              {toolNav("copilot", "Copilot", <Sparkles size={15} className="nav-icon" />)}
+            </div>
           </div>
 
           <div className="sidebar-footer">
