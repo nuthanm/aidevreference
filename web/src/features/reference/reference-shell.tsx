@@ -4,7 +4,18 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
+import {
+  Bot,
+  Bug,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Home,
+  Lightbulb,
+  MousePointer2,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { FeedbackForm, ContactForm, NotifyForm } from "@/features/forms/forms";
 import { useFooterTicker } from "@/hooks/use-footer-ticker";
 import { baseCatalog, type Catalog, type Group, type ToolCatalog } from "@/lib/catalog";
@@ -86,6 +97,7 @@ export function ReferenceShell() {
   });
   const [latestVersionData, setLatestVersionData] = useState<ReleaseData>(RELEASE_FALLBACK);
   const [pendingVersion, setPendingVersion] = useState("");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const ticker = useFooterTicker();
   const route = PATH_TO_ROUTE[pathname] || "landing";
 
@@ -103,6 +115,17 @@ export function ReferenceShell() {
     document.body.classList.toggle("has-update", Boolean(pendingVersion));
     return () => document.body.classList.remove("has-update");
   }, [pendingVersion]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("aidevref-sidebar-collapsed");
+    if (stored !== null) {
+      setSidebarCollapsed(stored === "1");
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("aidevref-sidebar-collapsed", sidebarCollapsed ? "1" : "0");
+  }, [sidebarCollapsed]);
 
   useEffect(() => {
     void (async () => {
@@ -379,13 +402,19 @@ export function ReferenceShell() {
     );
   }
 
-  function toolNav(tool: "claude" | "cursor" | "copilot", label: string, dotClass: string) {
+  function toolNav(tool: "claude" | "cursor" | "copilot", label: string, icon: React.ReactNode) {
     const active = route === tool;
     return (
       <div className={active ? "tool-open" : ""}>
-        <button className={`nav-btn ${active ? "active" : ""}`} onClick={() => navigate(tool)}>
-          <span className={`dot ${dotClass}`} />
-          {label}
+        <button
+          className={`nav-btn has-tooltip ${active ? "active" : ""}`}
+          onClick={() => navigate(tool)}
+          data-tooltip={label}
+          aria-label={label}
+          title={label}
+        >
+          <span className="nav-icon-wrap">{icon}</span>
+          <span className="nav-label">{label}</span>
         </button>
         <div className="sub-nav">
           {active ? (
@@ -472,28 +501,93 @@ export function ReferenceShell() {
         </div>
       ) : null}
 
-      <div className="layout">
-        <aside className="sidebar" id="sidebar">
-          <div>
+      <div className={`layout ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+        <aside className={`sidebar ${sidebarCollapsed ? "collapsed" : ""}`} id="sidebar">
+          <button
+            className="sidebar-toggle has-tooltip"
+            type="button"
+            onClick={() => setSidebarCollapsed((prev) => !prev)}
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            data-tooltip={sidebarCollapsed ? "Expand menu" : "Collapse menu"}
+            title={sidebarCollapsed ? "Expand menu" : "Collapse menu"}
+          >
+            {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+            <span className="sidebar-toggle-label">Menu</span>
+          </button>
+          <div className="sidebar-main">
             <p className="nav-title">Navigation</p>
-            <button className={`nav-btn ${route === "landing" ? "active" : ""}`} onClick={() => navigate("landing")}>
-              <span className="dot dot-home" />Home
-            </button>
-            <button className={`nav-btn ${route === "feedback" ? "active" : ""}`} onClick={() => navigate("feedback")}>
-              <span className="dot dot-feedback" />Request a feature
+            <button
+              className={`nav-btn has-tooltip ${route === "landing" ? "active" : ""}`}
+              onClick={() => navigate("landing")}
+              data-tooltip="Home"
+              aria-label="Home"
+              title="Home"
+            >
+              <span className="nav-icon-wrap">
+                <Home size={15} className="nav-icon" />
+              </span>
+              <span className="nav-label">Home</span>
             </button>
             <button
-              className={`nav-btn ${route === "release-notes" ? "active" : ""}`}
-              onClick={() => navigate("release-notes")}
+              className={`nav-btn has-tooltip ${route === "feedback" ? "active" : ""}`}
+              onClick={() => navigate("feedback")}
+              data-tooltip="Request a feature"
+              aria-label="Request a feature"
+              title="Request a feature"
             >
-              <span className="dot dot-cursor" />Release notes
+              <span className="nav-icon-wrap">
+                <Lightbulb size={15} className="nav-icon" />
+              </span>
+              <span className="nav-label">Request a feature</span>
+            </button>
+            <button
+              className={`nav-btn has-tooltip ${route === "release-notes" ? "active" : ""}`}
+              onClick={() => navigate("release-notes")}
+              data-tooltip="Release notes"
+              aria-label="Release notes"
+              title="Release notes"
+            >
+              <span className="nav-icon-wrap">
+                <FileText size={15} className="nav-icon" />
+              </span>
+              <span className="nav-label">Release notes</span>
             </button>
           </div>
           <div style={{ marginTop: 12 }}>
             <p className="nav-title">Tools</p>
-            {toolNav("claude", "Claude", "dot-claude")}
-            {toolNav("cursor", "Cursor", "dot-cursor")}
-            {toolNav("copilot", "Copilot", "dot-copilot")}
+            {toolNav("claude", "Claude", <Bot size={15} className="nav-icon" />)}
+            {toolNav("cursor", "Cursor", <MousePointer2 size={15} className="nav-icon" />)}
+            {toolNav("copilot", "Copilot", <Sparkles size={15} className="nav-icon" />)}
+          </div>
+
+          <div className="sidebar-footer">
+            <button
+              className="nav-btn has-tooltip footer-action"
+              onClick={() => navigate("feedback")}
+              data-tooltip="Submit feature / Found error"
+              aria-label="Submit feature / Found error"
+              title="Submit feature / Found error"
+              type="button"
+            >
+              <span className="nav-icon-wrap">
+                <Bug size={15} className="nav-icon" />
+              </span>
+              <span className="nav-label">Submit feature / Found error</span>
+            </button>
+
+            <button
+              className="sidebar-app-logo has-tooltip"
+              onClick={() => navigate("landing")}
+              data-tooltip="AI Dev Reference"
+              aria-label="AI Dev Reference"
+              title="AI Dev Reference"
+              type="button"
+            >
+              <span className="sidebar-app-mark" aria-hidden="true">
+                <span className="dot dot-home" />
+              </span>
+              <span className="nav-label">AI Dev Reference</span>
+            </button>
           </div>
         </aside>
 
