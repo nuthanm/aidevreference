@@ -11,6 +11,11 @@ body {
   font-weight: 700;
   cursor: pointer;
   padding: 0;
+  font-size: 14px;
+}
+
+.link-btn-sm {
+  font-size: 12px;
 }
 
 .error-text {

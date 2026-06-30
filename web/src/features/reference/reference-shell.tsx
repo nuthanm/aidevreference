@@ -415,12 +415,12 @@ export function ReferenceShell() {
   return (
     <>
       <header className="topbar">
-        <div className="brand">
+        <button className="brand" onClick={() => navigate("landing")} style={{ border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
           <div className="logo-box" aria-hidden="true">
             <div className="dot dot-claude" style={{ width: 16, height: 16 }} />
           </div>
           <span>AI Dev Reference</span>
-        </div>
+        </button>
         <div className="top-actions">
           <label className="sr-only" htmlFor="global-search">
             Search
@@ -445,11 +445,10 @@ export function ReferenceShell() {
 
       <div className="disclaimer">
         <span>
-          Educational reference. All trademarks belong to their respective owners: Anthropic (Claude),
-          Anysphere (Cursor), Microsoft/GitHub (Copilot).
+          Educational reference. All trademarks belong to their respective owners: <strong>Anthropic (Claude), Anysphere (Cursor), Microsoft/GitHub (Copilot).</strong>
         </span>
-        <button className="link-btn" onClick={() => navigate("feedback")}>
-          Feature missing / Found an error?
+        <button className="link-btn link-btn-sm" onClick={() => navigate("feedback")}>
+          Anything Missing / Found an error?
         </button>
       </div>
 

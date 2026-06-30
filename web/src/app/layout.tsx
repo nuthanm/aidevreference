@@ -20,6 +20,7 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
+  icons: { icon: "/favicon.svg" },
   title: "AI Developer Tools Reference",
   description: "Searchable command, skills, subagent, and hooks reference for Claude, Cursor, and Copilot.",
   openGraph: {
