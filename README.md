@@ -37,6 +37,20 @@ npm run dev
 
 5. Open http://localhost:3000
 
+## Deploy To Vercel
+
+Use the repository root as the project root in Vercel. Do not set the Root Directory to `web`, because the Next.js app lives at the repository root under `src/app`.
+
+Recommended project settings:
+
+- Framework Preset: `Next.js`
+- Root Directory: repository root
+- Install Command: `npm install`
+- Build Command: `npm run build`
+- Output Directory: leave empty
+
+If an existing Vercel project shows a 404 for `/`, first verify the Root Directory setting and then redeploy.
+
 ## Environment Variables
 
 See [.env.example](.env.example) for all variables.

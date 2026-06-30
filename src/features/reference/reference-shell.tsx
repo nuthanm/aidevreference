@@ -6,11 +6,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   Bot,
+  BookOpen,
   Bug,
   ChevronLeft,
   ChevronRight,
   FileText,
+  Github,
   Home,
+  Linkedin,
   Lightbulb,
   MousePointer2,
   Sparkles,
@@ -257,6 +260,12 @@ export function ReferenceShell() {
     router.push(ROUTE_TO_PATH[nextRoute]);
   }
 
+  function renderToolGlyph(tool: "claude" | "cursor" | "copilot", size = 18) {
+    if (tool === "claude") return <Bot size={size} />;
+    if (tool === "cursor") return <MousePointer2 size={size} />;
+    return <Sparkles size={size} />;
+  }
+
   function renderCommandCard(tool: "claude" | "cursor" | "copilot", entry: CommandEntry) {
     const badge = entry.badge ? <span className={`badge ${entry.badge}`}>{badgeLabel(entry.badge)}</span> : null;
 
@@ -477,7 +486,7 @@ export function ReferenceShell() {
         <section className="tool-header">
           <div className="tool-meta">
             <div className={`logo-52 ${tool}`}>
-              <div className={`dot dot-${tool}`} style={{ width: 20, height: 20 }} />
+              {renderToolGlyph(tool, 20)}
             </div>
             <div>
               <h1 className={`tool-title ${tool}`}>{tool[0].toUpperCase() + tool.slice(1)}</h1>
@@ -538,7 +547,11 @@ export function ReferenceShell() {
       <header className="topbar">
         <button className="brand" onClick={() => navigate("landing")} style={{ border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
           <div className="logo-box" aria-hidden="true">
-            <div className="dot dot-claude" style={{ width: 16, height: 16 }} />
+            <span className="brand-mark">
+              <span className="brand-mark-node node-claude" />
+              <span className="brand-mark-node node-cursor" />
+              <span className="brand-mark-node node-copilot" />
+            </span>
           </div>
           <span>AI Dev Reference</span>
         </button>
@@ -711,7 +724,11 @@ export function ReferenceShell() {
               type="button"
             >
               <span className="sidebar-app-mark" aria-hidden="true">
-                <span className="dot dot-home" />
+                <span className="brand-mark brand-mark-sm">
+                  <span className="brand-mark-node node-claude" />
+                  <span className="brand-mark-node node-cursor" />
+                  <span className="brand-mark-node node-copilot" />
+                </span>
               </span>
               <span className="nav-label">AI Dev Reference</span>
             </button>
@@ -731,25 +748,45 @@ export function ReferenceShell() {
               {route === "landing" ? (
                 <>
                   <section className="hero">
-                    <div className="eyebrow">Developer Command Reference · 2026</div>
-                    <h1>
-                      Every command,<br />
-                      <span className="benefit">one reference.</span>
-                    </h1>
-                    <p>
-                      Claude, Cursor, and GitHub Copilot slash commands, built-in skills, and
-                      subagents - searchable, always current.
-                    </p>
-                    <div className="chips">
-                      {(["claude", "cursor", "copilot"] as const).map((id) => {
-                        const count = data[id].groups.reduce((sum, g) => sum + g.entries.length, 0);
-                        const label = id[0].toUpperCase() + id.slice(1);
-                        return (
-                          <button className={`chip ${id}`} key={id} onClick={() => navigate(id)}>
-                            {label} · {count} commands
-                          </button>
-                        );
-                      })}
+                    <div className="hero-surface">
+                      <div className="eyebrow">Developer Command Reference · 2026</div>
+                      <h1>
+                        Every command,<br />
+                        <span className="benefit">one reference.</span>
+                      </h1>
+                      <p>
+                        Commands, skills, and subagents for Claude, Cursor, and GitHub Copilot.
+                        One searchable reference, always current.
+                      </p>
+                      <div className="hero-tool-row" aria-label="Included tools">
+                        <article className="hero-tool-item claude" aria-label="Claude">
+                          <span className="hero-tool-icon">
+                            <Bot size={18} />
+                          </span>
+                          <span className="hero-tool-name">Claude</span>
+                          <span className="hero-tool-meta">
+                            {data.claude.groups.reduce((sum, g) => sum + g.entries.length, 0)} commands
+                          </span>
+                        </article>
+                        <article className="hero-tool-item cursor" aria-label="Cursor">
+                          <span className="hero-tool-icon">
+                            <MousePointer2 size={18} />
+                          </span>
+                          <span className="hero-tool-name">Cursor</span>
+                          <span className="hero-tool-meta">
+                            {data.cursor.groups.reduce((sum, g) => sum + g.entries.length, 0)} commands
+                          </span>
+                        </article>
+                        <article className="hero-tool-item copilot" aria-label="Copilot">
+                          <span className="hero-tool-icon">
+                            <Sparkles size={18} />
+                          </span>
+                          <span className="hero-tool-name">Copilot</span>
+                          <span className="hero-tool-meta">
+                            {data.copilot.groups.reduce((sum, g) => sum + g.entries.length, 0)} commands
+                          </span>
+                        </article>
+                      </div>
                     </div>
                   </section>
 
@@ -778,27 +815,30 @@ export function ReferenceShell() {
                       },
                     ] as const).map((card) => (
                       <article className={`tool-card ${card.id}`} key={card.id} onClick={() => navigate(card.id)}>
-                        <div className={`accent-top acc-${card.id}`} />
                         <div className="tool-head">
                           <div className={`tool-mini ${card.id}`}>
-                            <div className={`dot dot-${card.id}`} style={{ width: 16, height: 16 }} />
+                            {renderToolGlyph(card.id, 18)}
                           </div>
                           <div>
                             <div className={`tool-name ${card.id}`}>{card.name}</div>
                             <div className="maker">by {card.maker}</div>
                           </div>
                         </div>
-                        <p className="tool-desc">{card.desc}</p>
-                        <div className="tags">
-                          {card.tags.map((tag) => (
-                            <span className="tag" key={tag}>
-                              {tag}
-                            </span>
-                          ))}
+                        <div className="tool-strip-body">
+                          <p className="tool-desc">{card.desc}</p>
+                          <div className="tags">
+                            {card.tags.map((tag) => (
+                              <span className="tag" key={tag}>
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                        <span className={`card-cta ${card.id}`}>
-                          Open reference <span className="arr">→</span>
-                        </span>
+                        <div className="tool-strip-cta">
+                          <span className={`card-cta ${card.id}`}>
+                            Open reference <span className="arr">→</span>
+                          </span>
+                        </div>
                       </article>
                     ))}
                   </section>
@@ -885,19 +925,45 @@ export function ReferenceShell() {
 
       <footer className="footer">
         <div className="f-left">
-          <span id="sym">{ticker.symbol}</span>
-          <span id="word">{ticker.word}</span>
+          <div className="f-kicker">
+            <span className="k-sym">{ticker.symbol}</span>
+            <span className="k-word">{ticker.word}</span>
+          </div>
         </div>
         <div className="f-center">
           <div className="f-main">
-            Made with <span className="heart">♥</span> <span className="name">Nuthan Murarysetty</span>
+            Crafted with <span className="heart">♥</span> by <span className="name">Nuthan Murarysetty</span>
           </div>
-          <div className="f-sub">Educational reference · All trademarks belong to their respective owners</div>
+          <div className="f-sub">Independent educational reference for Claude, Cursor, and Copilot</div>
         </div>
         <div className="f-right">
-          <Link href="https://docs.anthropic.com/" target="_blank" rel="noreferrer">Claude docs</Link>
-          <Link href="https://docs.cursor.com/" target="_blank" rel="noreferrer">Cursor docs</Link>
-          <Link href="https://code.visualstudio.com/docs/copilot" target="_blank" rel="noreferrer">Copilot docs</Link>
+          <div className="f-link-row docs-row">
+            <Link className="doc-link claude" href="https://docs.anthropic.com/" target="_blank" rel="noreferrer">Claude Docs</Link>
+            <Link className="doc-link cursor" href="https://docs.cursor.com/" target="_blank" rel="noreferrer">Cursor Docs</Link>
+            <Link className="doc-link copilot" href="https://code.visualstudio.com/docs/copilot" target="_blank" rel="noreferrer">Copilot Docs</Link>
+          </div>
+        </div>
+        <div className="f-legal">
+          <Link href="/privacy-policy">Privacy Policy</Link>
+          <Link href="/terms-and-conditions">Terms and Conditions</Link>
+        </div>
+        <div className="f-social">
+          <Link className="social-link" href="https://github.com/nuthanm" target="_blank" rel="noreferrer" aria-label="GitHub" title="GitHub">
+            <Github size={14} />
+            <span className="sr-only">GitHub</span>
+          </Link>
+          <Link className="social-link" href="https://www.linkedin.com/in/nuthanm/?skipRedirect=true" target="_blank" rel="noreferrer" aria-label="LinkedIn" title="LinkedIn">
+            <Linkedin size={14} />
+            <span className="sr-only">LinkedIn</span>
+          </Link>
+          <Link className="social-link" href="https://x.com/nuthanmurari" target="_blank" rel="noreferrer" aria-label="X" title="X">
+            <X size={14} />
+            <span className="sr-only">X</span>
+          </Link>
+          <Link className="social-link" href="https://nuthanmurarysetty.medium.com/" target="_blank" rel="noreferrer" aria-label="Medium" title="Medium">
+            <BookOpen size={14} />
+            <span className="sr-only">Medium</span>
+          </Link>
         </div>
       </footer>
     </>
