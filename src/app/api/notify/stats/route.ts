@@ -1,22 +1,16 @@
 import { NextResponse } from "next/server";
-import { readSubscribers } from "@/lib/subscribers";
+import { getSubscriberStats } from "@/lib/subscribers";
 
 export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    const subscribers = await readSubscribers();
-    const confirmed = subscribers.filter((record) => record.confirmed).length;
-    const pending = subscribers.length - confirmed;
+    const stats = await getSubscriberStats();
 
     return NextResponse.json(
       {
         ok: true,
-        stats: {
-          confirmed,
-          pending,
-          total: subscribers.length,
-        },
+        stats,
       },
       {
         headers: {

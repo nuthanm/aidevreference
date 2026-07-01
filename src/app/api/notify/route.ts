@@ -6,10 +6,9 @@ import { isMailerConfigured, sendMail } from "@/lib/mailer";
 import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 import {
   createPendingSubscriber,
-  getSubscriberByEmail,
-  readSubscribers,
+  getSubscriberByEmailStored,
   refreshConfirmToken,
-  writeSubscribers,
+  upsertSubscriber,
 } from "@/lib/subscribers";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { zodErrorToFieldMap } from "@/lib/validators";
@@ -64,8 +63,7 @@ export async function POST(req: NextRequest) {
 
     const baseUrl = getBaseUrl(req);
 
-    const records = await readSubscribers();
-    const existing = getSubscriberByEmail(records, parsed.data.email);
+    const existing = await getSubscriberByEmailStored(parsed.data.email);
 
     if (existing?.confirmed) {
       return NextResponse.json({ ok: true, message: "Already subscribed" });
@@ -75,10 +73,7 @@ export async function POST(req: NextRequest) {
       ? refreshConfirmToken(existing)
       : createPendingSubscriber(parsed.data.email);
 
-    const nextRecords = existing
-      ? records.map((record) => (record.email === existing.email ? subscriber : record))
-      : [...records, subscriber];
-    await writeSubscribers(nextRecords);
+    await upsertSubscriber(subscriber);
 
     const adminTo = process.env.MAIL_TO || process.env.SMTP_USER;
     if (adminTo) {

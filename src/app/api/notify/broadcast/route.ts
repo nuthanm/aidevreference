@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isMailerConfigured, sendMail } from "@/lib/mailer";
 import { releaseBroadcastTemplate } from "@/lib/email-templates";
-import { readSubscribers } from "@/lib/subscribers";
+import { readConfirmedSubscribers } from "@/lib/subscribers";
 
 export const runtime = "nodejs";
 
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const notes = Array.isArray(body?.notes) ? body.notes.filter((v: unknown) => typeof v === "string") : [];
 
     const baseUrl = getBaseUrl(req);
-    const subscribers = (await readSubscribers()).filter((record) => record.confirmed);
+    const subscribers = await readConfirmedSubscribers();
     if (!subscribers.length) {
       return NextResponse.json({ ok: true, sent: 0, message: "No subscribers" });
     }

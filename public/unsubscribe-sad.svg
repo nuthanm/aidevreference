@@ -1,0 +1,10 @@
+<svg width="320" height="220" viewBox="0 0 320 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="220" rx="24" fill="#F3F1FA"/>
+  <circle cx="160" cy="98" r="58" fill="#FFFFFF" stroke="#D7D2E8" stroke-width="4"/>
+  <circle cx="139" cy="87" r="6" fill="#2A2540"/>
+  <circle cx="181" cy="87" r="6" fill="#2A2540"/>
+  <path d="M132 126C140 114 180 114 188 126" stroke="#2A2540" stroke-width="5" stroke-linecap="round"/>
+  <path d="M112 62L98 48" stroke="#C4BDD9" stroke-width="4" stroke-linecap="round"/>
+  <path d="M208 62L222 48" stroke="#C4BDD9" stroke-width="4" stroke-linecap="round"/>
+  <text x="160" y="190" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#2A2540">Bye for now</text>
+</svg>

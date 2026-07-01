@@ -60,6 +60,7 @@ See [.env.example](.env.example) for all variables.
 - `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`
 - `CATALOG_FEEDS` (optional comma-separated list of JSON feeds)
 - `NEXT_PUBLIC_SITE_URL`
+- `DATABASE_URL` (Neon Postgres connection string for subscriber persistence)
 
 ## API Endpoints
 
@@ -84,7 +85,19 @@ See [.env.example](.env.example) for all variables.
 
 ## Notification Data
 
-Subscribers are stored at [data/subscribers.json](data/subscribers.json).
+Subscribers are stored in PostgreSQL (Neon recommended) using the `subscribers` table.
+
+Create schema:
+
+```sql
+-- run db/subscribers.sql in your Neon SQL editor
+```
+
+Set environment variable:
+
+```bash
+DATABASE_URL=postgresql://user:password@ep-xxxxxxx.us-east-2.aws.neon.tech/neondb?sslmode=require
+```
 
 Broadcast request example:
 

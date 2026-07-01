@@ -3,10 +3,9 @@ import { notifyUserTemplate } from "@/lib/email-templates";
 import { isMailerConfigured, sendMail } from "@/lib/mailer";
 import {
   confirmSubscriber,
-  getSubscriberByConfirmToken,
+  getSubscriberByConfirmTokenStored,
   isConfirmTokenExpired,
-  readSubscribers,
-  writeSubscribers,
+  upsertSubscriber,
 } from "@/lib/subscribers";
 
 export const runtime = "nodejs";
@@ -59,8 +58,7 @@ export async function GET(req: NextRequest) {
       return htmlResponse("Invalid confirmation link", "The confirmation token is missing.", 400);
     }
 
-    const records = await readSubscribers();
-    const target = getSubscriberByConfirmToken(records, token);
+    const target = await getSubscriberByConfirmTokenStored(token);
     if (!target) {
       return htmlResponse("Invalid confirmation link", "This confirmation link is not valid anymore.", 400);
     }
@@ -74,10 +72,7 @@ export async function GET(req: NextRequest) {
     }
 
     const confirmed = confirmSubscriber(target);
-    const nextRecords = records.map((record) =>
-      record.email === target.email ? confirmed : record,
-    );
-    await writeSubscribers(nextRecords);
+    await upsertSubscriber(confirmed);
 
     if (isMailerConfigured()) {
       const baseUrl = getBaseUrl(req);
