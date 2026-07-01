@@ -92,7 +92,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unable to save subscription.";
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[notify] subscription error:", message);
     const safeMessage = process.env.NODE_ENV === "production" ? "Unable to save subscription." : `Unable to save subscription: ${message}`;
     return NextResponse.json({ ok: false, error: safeMessage }, { status: 500 });
   }

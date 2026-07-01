@@ -31,9 +31,20 @@ function createToken(size = 24) {
 }
 
 function getSqlClient() {
-  const connection = process.env.DATABASE_URL?.trim();
-  if (!connection) {
+  const raw = process.env.DATABASE_URL?.trim();
+  if (!raw) {
     throw new Error("DATABASE_URL is not configured.");
+  }
+
+  // The postgres npm package v3 does not recognise the channel_binding query param
+  // used by Neon connection strings — strip it to avoid connection errors.
+  let connection = raw;
+  try {
+    const url = new URL(raw);
+    url.searchParams.delete("channel_binding");
+    connection = url.toString();
+  } catch {
+    // not a valid URL — use as-is
   }
 
   if (!globalThis.__aidevrefSql) {

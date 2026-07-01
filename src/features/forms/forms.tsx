@@ -409,6 +409,7 @@ type NotifyValues = z.infer<typeof notifySchema>;
 export function NotifyForm() {
   const [statusText, setStatusText] = useState("");
   const [statusTone, setStatusTone] = useState<"success" | "error" | "info">("info");
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const requiresCaptcha = isConfiguredTurnstileSiteKey(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   const form = useForm<NotifyValues>({
     resolver: zodResolver(notifySchema),
@@ -472,6 +473,9 @@ export function NotifyForm() {
           const msg = err instanceof Error ? err.message : "Unable to register email.";
           setStatusTone("error");
           setStatusText(msg);
+          // Token is single-use — reset the widget so user gets a fresh token on retry
+          form.setValue("captchaToken", "");
+          setCaptchaResetKey((k) => k + 1);
         }
       })}
     >
@@ -496,7 +500,7 @@ export function NotifyForm() {
       {requiresCaptcha ? (
         <div className="field" style={{ marginTop: 10 }}>
           <span className="field-label-row">CAPTCHA</span>
-          <TurnstileField onToken={setCaptchaToken} onLoadError={onCaptchaError} />
+          <TurnstileField key={captchaResetKey} onToken={setCaptchaToken} onLoadError={onCaptchaError} />
         </div>
       ) : null}
 
