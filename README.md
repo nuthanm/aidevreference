@@ -1,35 +1,41 @@
 # AI Developer Tools Reference (Next.js)
 
-Production-oriented Next.js migration of the AI command reference app with:
+[![Build](https://img.shields.io/github/actions/workflow/status/nuthan-murarysetty/ai-dev-ref/auto-broadcast-feed-updates.yml?label=auto-broadcast&logo=github)](https://github.com/nuthan-murarysetty/ai-dev-ref/actions/workflows/auto-broadcast-feed-updates.yml)
+[![Broadcast Workflow](https://img.shields.io/github/actions/workflow/status/nuthan-murarysetty/ai-dev-ref/broadcast-release.yml?label=manual-broadcast&logo=github)](https://github.com/nuthan-murarysetty/ai-dev-ref/actions/workflows/broadcast-release.yml)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5.7-000000?logo=nextdotjs)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/github/license/nuthan-murarysetty/ai-dev-ref)](LICENSE)
+
+Production-oriented Next.js migration of the AI command reference app.
+
+## Highlights
 
 - Server API forms (no Formspree dependency)
-- Schema validation with zod
-- React Hook Form + zod client forms
-- CAPTCHA support with Cloudflare Turnstile
-- SMTP email templates with signature for requests and subscriptions
-- Subscriber registry with double opt-in + unsubscribe links
-- Official docs links per tool
-- Automatic catalog sync from configured feed URLs
-- Privacy Policy and Terms pages
-- Metadata API + OpenGraph + Twitter + robots + sitemap
+- Schema validation with zod + React Hook Form
+- Cloudflare Turnstile support
+- SMTP email templates for request, confirm, and broadcast flows
+- Subscriber registry with double opt-in and unsubscribe links
+- Catalog sync from configured feed URLs
+- Combined release timeline: GitHub releases + feed updates
+- Manual and auto broadcast workflows with delivery stats
 
-## Run Locally
+## Quick Start
 
-1. Install dependencies:
+1. Install dependencies.
 
 ```bash
 npm install
 ```
 
-2. Create env file:
+2. Copy environment file.
 
 ```bash
 copy .env.example .env.local
 ```
 
-3. Set SMTP and Turnstile keys in .env.local.
+3. Fill required values in .env.local.
 
-4. Start dev server:
+4. Run development server.
 
 ```bash
 cmd /c npm run dev
@@ -37,123 +43,108 @@ cmd /c npm run dev
 
 5. Open http://localhost:3000
 
-## Deploy To Vercel
-
-Use the repository root as the project root in Vercel. Do not set the Root Directory to `web`, because the Next.js app lives at the repository root under `src/app`.
-
-Recommended project settings:
-
-- Framework Preset: `Next.js`
-- Root Directory: repository root
-- Install Command: `npm install`
-- Build Command: `npm run build`
-- Output Directory: leave empty
-
-If an existing Vercel project shows a 404 for `/`, first verify the Root Directory setting and then redeploy.
-
 ## Environment Variables
 
-See [.env.example](.env.example) for all variables.
+See [.env.example](.env.example) for the complete template.
 
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`
-- `MAIL_FROM`, `MAIL_TO`
-- `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`
-- `CATALOG_FEEDS` (optional comma-separated list of JSON feeds)
-- `NEXT_PUBLIC_SITE_URL`
-- `DATABASE_URL` (Neon Postgres connection string for subscriber persistence)
+Core app and mail settings:
+
+- SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
+- MAIL_FROM, MAIL_TO
+- NEXT_PUBLIC_TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY
+- NEXT_PUBLIC_SITE_URL
+- DATABASE_URL
+- CATALOG_FEEDS (optional comma-separated feed URLs)
+
+Broadcast security settings:
+
+- ADMIN_BROADCAST_KEY for POST /api/notify/broadcast
+- CRON_BROADCAST_KEY for POST /api/notify/auto-broadcast
+
+## How To Generate Keys
+
+Use one secure random value per key. Minimum recommendation: 32 bytes.
+
+PowerShell:
+
+```powershell
+[Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Maximum 256 }))
+```
+
+Node.js:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
+```
+
+OpenSSL:
+
+```bash
+openssl rand -base64 48
+```
+
+Then set both app and GitHub secrets to the same exact values:
+
+- ADMIN_BROADCAST_KEY
+- CRON_BROADCAST_KEY
+
+## Database Setup
+
+Use PostgreSQL (Neon recommended).
+
+1. Run [db/subscribers.sql](db/subscribers.sql) in your database.
+2. Set DATABASE_URL in your environment.
 
 ## API Endpoints
 
-- `GET /api/catalog`: merged catalog from base data + remote feeds
-- `GET /api/releases`: combined GitHub releases + feed update timeline and state
-- `POST /api/feedback`: validated feature/issue request submission
-- `POST /api/notify`: validated update subscription (sends confirmation email)
-- `GET /api/notify/confirm?token=...`: confirms subscription token
-- `GET /api/notify/unsubscribe?token=...`: unsubscribes recipient
-- `GET /api/notify/stats`: public-safe subscription counters (confirmed, pending, total)
-- `POST /api/notify/broadcast`: sends release notification to subscribers (requires `x-admin-key` header)
-- `POST /api/notify/auto-broadcast`: scheduler endpoint, sends feed updates only when new entries appear since last successful broadcast
+- GET /api/catalog: merged base + feed catalog (with dev diagnostics)
+- GET /api/releases: GitHub + feed update timeline and feed-state metadata
+- POST /api/feedback: validated request submission
+- POST /api/notify: newsletter subscribe flow with verification email
+- GET /api/notify/confirm?token=...: confirm subscriber
+- GET /api/notify/unsubscribe?token=...: unsubscribe subscriber
+- GET /api/notify/stats: confirmed/pending/total counters
+- POST /api/notify/broadcast: manual release/feed broadcast (admin key)
+- POST /api/notify/auto-broadcast: scheduled feed broadcast (cron key)
 
 ## Routes
 
-- `/`
-- `/claude`
-- `/cursor`
-- `/copilot`
-- `/feedback`
-- `/privacy-policy`
-- `/terms-and-conditions`
-- `/release-notes`
+- /
+- /claude
+- /cursor
+- /copilot
+- /feedback
+- /privacy-policy
+- /terms-and-conditions
+- /release-notes
 
-## Notification Data
+## GitHub Actions Workflows
 
-Subscribers are stored in PostgreSQL (Neon recommended) using the `subscribers` table.
+Manual broadcast workflow:
 
-Create schema:
+- [broadcast-release.yml](.github/workflows/broadcast-release.yml)
+- Requires secrets:
+  - BROADCAST_ENDPOINT_URL (example: https://your-domain.com/api/notify/broadcast)
+  - ADMIN_BROADCAST_KEY
 
-```sql
--- run db/subscribers.sql in your Neon SQL editor
-```
+Auto broadcast scheduler workflow:
 
-Set environment variable:
+- [auto-broadcast-feed-updates.yml](.github/workflows/auto-broadcast-feed-updates.yml)
+- Runs every 6 hours and supports manual workflow dispatch
+- Requires secrets:
+  - AUTO_BROADCAST_ENDPOINT_URL (example: https://your-domain.com/api/notify/auto-broadcast)
+  - CRON_BROADCAST_KEY
 
-```bash
-DATABASE_URL=postgresql://user:password@ep-xxxxxxx.us-east-2.aws.neon.tech/neondb?sslmode=require
-```
+## Deploy To Vercel
 
-Broadcast request example:
+Use repository root as project root. Do not set Root Directory to web.
 
-```json
-POST /api/notify/broadcast
-x-admin-key: your_admin_broadcast_key
+Recommended settings:
 
-{
-	"version": "v1.2.0",
-	"notes": [
-		"Added new Claude command entries",
-		"Updated Copilot quality commands"
-	]
-}
-```
+- Framework Preset: Next.js
+- Root Directory: repository root
+- Install Command: npm install
+- Build Command: npm run build
+- Output Directory: leave empty
 
-## One-Click Broadcast via GitHub Actions
-
-Use workflow [.github/workflows/broadcast-release.yml](.github/workflows/broadcast-release.yml).
-
-Required GitHub repository secrets:
-
-- `BROADCAST_ENDPOINT_URL` (example: `https://your-domain.com/api/notify/broadcast`)
-- `ADMIN_BROADCAST_KEY` (must match server env value)
-
-Optional for scheduled auto-broadcast:
-
-- `CRON_BROADCAST_KEY` (must match server env value)
-- `AUTO_BROADCAST_ENDPOINT_URL` (example: `https://your-domain.com/api/notify/auto-broadcast`)
-
-How to trigger:
-
-1. Open **Actions** tab in GitHub.
-2. Select **Broadcast Release Email** workflow.
-3. Click **Run workflow**.
-4. Enter version and release notes (one note per line).
-
-Only confirmed subscribers receive broadcast emails.
-
-## Automatic Feed Broadcast (Scheduler)
-
-Trigger endpoint:
-
-```bash
-POST /api/notify/auto-broadcast
-x-cron-key: your_cron_broadcast_key
-```
-
-Behavior:
-
-- Sends emails only when feed updates are new since the last successful send.
-- If any recipient delivery fails, state is not advanced and manual retry remains available in Release Notes.
-
-GitHub Actions workflow:
-
-- [.github/workflows/auto-broadcast-feed-updates.yml](.github/workflows/auto-broadcast-feed-updates.yml)
-- Runs every 6 hours and supports manual trigger via `workflow_dispatch`.
+If you see a 404 on /, re-check Root Directory and redeploy.
