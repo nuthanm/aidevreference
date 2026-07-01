@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { collectCatalogValidationWarnings, getMergedCatalog } from "@/lib/catalog";
+import { collectCatalogValidationWarnings } from "@/lib/catalog";
+import { getMergedCatalog } from "@/lib/catalog-server";
 
 export const runtime = "nodejs";
 

@@ -140,6 +140,34 @@ function toCatalogTools() {
   return JSON.parse(JSON.stringify(baseCatalog.tools)) as Catalog["tools"];
 }
 
+function extractCatalogKeys(tools: Catalog["tools"]) {
+  const keys: string[] = [];
+
+  for (const tool of ["claude", "cursor", "copilot"] as const) {
+    const conf = tools[tool];
+
+    for (const group of conf.groups) {
+      for (const entry of group.entries) {
+        keys.push(`${tool}|command|${group.id}|${entry.cmd}|${entry.name}`);
+      }
+    }
+
+    for (const skill of conf.skills || []) {
+      keys.push(`${tool}|skill|${skill.cmd}|${skill.name}`);
+    }
+
+    for (const agent of conf.agents || []) {
+      keys.push(`${tool}|agent|${agent.name}`);
+    }
+
+    for (const hook of conf.hooks || []) {
+      keys.push(`${tool}|hook|${hook.cmd}|${hook.name}`);
+    }
+  }
+
+  return keys;
+}
+
 export function ReferenceShell() {
   const pathname = usePathname();
   const router = useRouter();
@@ -161,7 +189,7 @@ export function ReferenceShell() {
   const [broadcastResult, setBroadcastResult] = useState<BroadcastResponse | null>(null);
   const [broadcastError, setBroadcastError] = useState("");
   const [subscriberStats, setSubscriberStats] = useState<SubscriberStats | null>(null);
-  const [pendingVersion, setPendingVersion] = useState("");
+  const [catalogUpdateCount, setCatalogUpdateCount] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -270,11 +298,6 @@ export function ReferenceShell() {
   }, [data]);
 
   useEffect(() => {
-    document.body.classList.toggle("has-update", Boolean(pendingVersion));
-    return () => document.body.classList.remove("has-update");
-  }, [pendingVersion]);
-
-  useEffect(() => {
     const stored = localStorage.getItem("aidevref-sidebar-collapsed");
     if (stored !== null) {
       setSidebarCollapsed(stored === "1");
@@ -306,10 +329,11 @@ export function ReferenceShell() {
 
         if (activeTool) {
           const remote = (await res.json()) as { tool?: "claude" | "cursor" | "copilot"; data?: ToolCatalog };
-          if (remote?.tool && remote?.data) {
+          const tool = remote?.tool;
+          if (tool && remote?.data && (tool === "claude" || tool === "cursor" || tool === "copilot")) {
             setData((prev) => ({
               ...prev,
-              [remote.tool]: remote.data,
+              [tool]: remote.data,
             }));
           }
           return;
@@ -329,16 +353,47 @@ export function ReferenceShell() {
   useEffect(() => {
     void (async () => {
       try {
+        const res = await fetch("/api/catalog", { cache: "no-store" });
+        if (!res.ok) return;
+
+        const remote = (await res.json()) as Catalog;
+        if (!remote?.tools) return;
+
+        const currentKeys = extractCatalogKeys(remote.tools);
+        const storageKey = "aidevref-catalog-seen-keys-v1";
+        const seenRaw = localStorage.getItem(storageKey);
+
+        if (!seenRaw) {
+          localStorage.setItem(storageKey, JSON.stringify(currentKeys));
+          setCatalogUpdateCount(0);
+          return;
+        }
+
+        let seenKeys = new Set<string>();
+        try {
+          const parsed = JSON.parse(seenRaw) as string[];
+          seenKeys = new Set(Array.isArray(parsed) ? parsed : []);
+        } catch {
+          seenKeys = new Set<string>();
+        }
+
+        const unseenCount = currentKeys.filter((key) => !seenKeys.has(key)).length;
+        setCatalogUpdateCount(unseenCount);
+      } catch {
+        // silent
+      }
+    })();
+  }, [pathname]);
+
+  useEffect(() => {
+    void (async () => {
+      try {
         const res = await fetch("/api/releases", { cache: "no-store" });
         if (!res.ok) return;
         const json = (await res.json()) as ReleasesApiResponse;
         const version = json.version?.trim();
         if (version) {
           setLatestVersionData((prev) => ({ ...prev, version }));
-          const seen = localStorage.getItem("aidevref-version") || "0";
-          if (seen !== version) {
-            setPendingVersion(version);
-          }
         }
         if (Array.isArray(json.entries) && json.entries.length) {
           setReleaseTimeline(json.entries);
@@ -798,26 +853,6 @@ export function ReferenceShell() {
         </button>
       </div>
 
-      {pendingVersion ? (
-        <div id="update-banner" className="update-banner" style={{ display: "flex" }}>
-          <span id="update-text">A new reference version ({pendingVersion}) is available.</span>
-          <div className="update-actions">
-            <button className="btn-ghost btn-cursor" onClick={() => navigate("release-notes")}>
-              See what changed
-            </button>
-            <button
-              className="btn-ghost"
-              onClick={() => {
-                localStorage.setItem("aidevref-version", pendingVersion);
-                setPendingVersion("");
-              }}
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       <div className={`layout ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${isMobileMenuOpen ? "mobile-menu-open" : ""}`}>
         <button
           className="sidebar-overlay"
@@ -874,6 +909,11 @@ export function ReferenceShell() {
                 <FileText size={15} className="nav-icon" />
               </span>
               <span className="nav-label">Release notes</span>
+              {route !== "release-notes" && catalogUpdateCount > 0 ? (
+                <span className="nav-count" aria-label={`${catalogUpdateCount} new catalog updates`}>
+                  {catalogUpdateCount}
+                </span>
+              ) : null}
             </button>
             <div className="sidebar-tools">
               <p className="nav-title">Tools</p>

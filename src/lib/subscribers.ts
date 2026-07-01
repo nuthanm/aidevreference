@@ -97,11 +97,15 @@ async function ensureBroadcastStateTable() {
       id TEXT PRIMARY KEY,
       last_feed_signature TEXT NOT NULL,
       last_feed_total INTEGER NOT NULL DEFAULT 0,
+      last_feed_keys JSONB NOT NULL DEFAULT '[]'::jsonb,
       last_version TEXT NOT NULL,
       last_sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+  await sql.unsafe(
+    `ALTER TABLE ${BROADCAST_STATE_TABLE} ADD COLUMN IF NOT EXISTS last_feed_keys JSONB NOT NULL DEFAULT '[]'::jsonb;`,
+  );
 
   globalThis.__aidevrefBroadcastStateTableReady = true;
 }
@@ -132,6 +136,7 @@ type SubscriberRow = {
 type BroadcastStateRow = {
   last_feed_signature: string;
   last_feed_total: number;
+  last_feed_keys: unknown;
   last_version: string;
   last_sent_at: string | Date;
 };
@@ -139,6 +144,7 @@ type BroadcastStateRow = {
 export type BroadcastStateRecord = {
   lastFeedSignature: string;
   lastFeedTotal: number;
+  lastFeedKeys: string[];
   lastVersion: string;
   lastSentAt: string;
 };
@@ -156,9 +162,14 @@ function fromRow(row: SubscriberRow): SubscriberRecord {
 }
 
 function broadcastStateFromRow(row: BroadcastStateRow): BroadcastStateRecord {
+  const parsedKeys = Array.isArray(row.last_feed_keys)
+    ? row.last_feed_keys.filter((value): value is string => typeof value === "string")
+    : [];
+
   return {
     lastFeedSignature: row.last_feed_signature,
     lastFeedTotal: Number(row.last_feed_total || 0),
+    lastFeedKeys: parsedKeys,
     lastVersion: row.last_version,
     lastSentAt: toIsoString(row.last_sent_at) || nowIso(),
   };
@@ -369,6 +380,7 @@ export async function getBroadcastStateStored() {
     SELECT
       last_feed_signature,
       last_feed_total,
+      last_feed_keys,
       last_version,
       last_sent_at
     FROM release_broadcast_state
@@ -382,6 +394,7 @@ export async function getBroadcastStateStored() {
 export async function upsertBroadcastStateStored(input: {
   feedSignature: string;
   feedTotal: number;
+  feedKeys?: string[];
   version: string;
 }) {
   await ensureBroadcastStateTable();
@@ -392,6 +405,7 @@ export async function upsertBroadcastStateStored(input: {
       id,
       last_feed_signature,
       last_feed_total,
+      last_feed_keys,
       last_version,
       last_sent_at,
       updated_at
@@ -400,6 +414,7 @@ export async function upsertBroadcastStateStored(input: {
       ${BROADCAST_STATE_ID},
       ${input.feedSignature},
       ${input.feedTotal},
+      ${sql.json(input.feedKeys || [])},
       ${input.version},
       NOW(),
       NOW()
@@ -408,6 +423,7 @@ export async function upsertBroadcastStateStored(input: {
     DO UPDATE SET
       last_feed_signature = EXCLUDED.last_feed_signature,
       last_feed_total = EXCLUDED.last_feed_total,
+        last_feed_keys = EXCLUDED.last_feed_keys,
       last_version = EXCLUDED.last_version,
       last_sent_at = NOW(),
       updated_at = NOW()

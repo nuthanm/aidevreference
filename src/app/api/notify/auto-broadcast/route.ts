@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBroadcastStateStored } from "@/lib/subscribers";
+import { buildCatalogBroadcastPayload } from "@/lib/catalog-broadcast";
+import { sendReleaseBroadcast } from "@/lib/release-broadcast";
+import { getBroadcastStateStored, upsertBroadcastStateStored } from "@/lib/subscribers";
 
 export const runtime = "nodejs";
 
@@ -11,6 +13,14 @@ function isAuthorized(req: NextRequest) {
   return req.headers.get("x-cron-key") === cronKey;
 }
 
+function getBaseUrl(req: NextRequest) {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) {
+    return configured.replace(/\/$/, "");
+  }
+  return req.nextUrl.origin;
+}
+
 export async function POST(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
@@ -18,12 +28,58 @@ export async function POST(req: NextRequest) {
 
   try {
     const state = await getBroadcastStateStored().catch(() => undefined);
+    const feed = await buildCatalogBroadcastPayload(state?.lastFeedKeys || []);
+
+    if (!state?.lastFeedKeys?.length) {
+      await upsertBroadcastStateStored({
+        feedSignature: feed.signature,
+        feedTotal: 0,
+        feedKeys: feed.currentKeys,
+        version: feed.version,
+      }).catch(() => undefined);
+
+      return NextResponse.json({
+        ok: true,
+        skipped: true,
+        reason: "Baseline initialized. Waiting for new catalog additions before sending.",
+        totalNewEntries: 0,
+        lastSentAt: state?.lastSentAt || null,
+      });
+    }
+
+    if (!feed.notes.length) {
+      return NextResponse.json({
+        ok: true,
+        skipped: true,
+        reason: "No new catalog additions detected.",
+        totalNewEntries: 0,
+        lastSentAt: state?.lastSentAt || null,
+      });
+    }
+
+    const baseUrl = getBaseUrl(req);
+    const result = await sendReleaseBroadcast({
+      baseUrl,
+      version: feed.version,
+      notes: feed.notes,
+    });
+
+    if (!result.ok && result.error) {
+      return NextResponse.json(result, { status: 503 });
+    }
+
+    if (result.ok) {
+      await upsertBroadcastStateStored({
+        feedSignature: feed.signature,
+        feedTotal: feed.notes.length,
+        feedKeys: feed.currentKeys,
+        version: feed.version,
+      }).catch(() => undefined);
+    }
 
     return NextResponse.json({
-      ok: true,
-      skipped: true,
-      reason: "Static catalog mode is enabled. Auto-broadcast feed updates are disabled.",
-      totalNewEntries: 0,
+      ...result,
+      totalNewEntries: feed.notes.length,
       lastSentAt: state?.lastSentAt || null,
     });
   } catch {

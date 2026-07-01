@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildCatalogBroadcastPayload } from "@/lib/catalog-broadcast";
 import { sendReleaseBroadcast } from "@/lib/release-broadcast";
-import { upsertBroadcastStateStored } from "@/lib/subscribers";
+import { getBroadcastStateStored, upsertBroadcastStateStored } from "@/lib/subscribers";
 
 export const runtime = "nodejs";
 
@@ -23,20 +24,24 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const version = typeof body?.version === "string" && body.version.trim() ? body.version.trim() : "latest";
-    const notes = Array.isArray(body?.notes) ? body.notes.filter((v: unknown) => typeof v === "string") : [];
-    const feedSignature = typeof body?.feedSignature === "string" ? body.feedSignature.trim() : "";
-    const feedTotal = typeof body?.feedTotal === "number" && Number.isFinite(body.feedTotal)
-      ? Math.max(0, Math.trunc(body.feedTotal))
-      : 0;
+    const requestedVersion = typeof body?.version === "string" && body.version.trim() ? body.version.trim() : "";
+    const requestedNotes = Array.isArray(body?.notes) ? body.notes.filter((v: unknown): v is string => typeof v === "string") : [];
+    const state = await getBroadcastStateStored().catch(() => undefined);
+    const feed = await buildCatalogBroadcastPayload(state?.lastFeedKeys || []);
+
+    const version = requestedVersion || feed.version;
+    const notes = requestedNotes.length
+      ? requestedNotes
+      : (feed.notes.length ? feed.notes : ["Catalog and references were refreshed."]);
 
     const baseUrl = getBaseUrl(req);
     const result = await sendReleaseBroadcast({ baseUrl, version, notes });
 
-    if (result.ok && feedSignature) {
+    if (result.ok) {
       await upsertBroadcastStateStored({
-        feedSignature,
-        feedTotal,
+        feedSignature: feed.signature,
+        feedTotal: feed.notes.length,
+        feedKeys: feed.currentKeys,
         version,
       }).catch(() => undefined);
     }
@@ -45,7 +50,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(result, { status: 503 });
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      generatedFromCatalogUpdates: !requestedNotes.length,
+      totalNewEntries: feed.notes.length,
+    });
   } catch {
     return NextResponse.json({ ok: false, error: "Unable to send broadcast" }, { status: 500 });
   }
