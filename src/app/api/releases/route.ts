@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { baseCatalog, getMergedCatalog } from "@/lib/catalog";
-import { summarizeFeedUpdates } from "@/lib/release-updates";
 import { getBroadcastStateStored } from "@/lib/subscribers";
 
 export const runtime = "nodejs";
@@ -79,33 +77,40 @@ async function readGithubReleases(): Promise<ReleaseEntry[]> {
 }
 
 export async function GET() {
-  const [mergedCatalog, githubEntries, broadcastState] = await Promise.all([
-    getMergedCatalog(),
+  const [githubEntries, broadcastState] = await Promise.all([
     readGithubReleases(),
     getBroadcastStateStored().catch(() => undefined),
   ]);
 
-  const feed = summarizeFeedUpdates(baseCatalog, mergedCatalog);
-  const hasNewSinceLastSend = Boolean(
-    feed.totalNewEntries > 0
-    && feed.signature
-    && feed.signature !== (broadcastState?.lastFeedSignature || ""),
-  );
+  const feed = {
+    totalNewEntries: 0,
+    byTool: {
+      claude: 0,
+      cursor: 0,
+      copilot: 0,
+    },
+    hasNewEntries: false,
+    signature: "static-catalog-mode",
+    lastSentAt: broadcastState?.lastSentAt || null,
+  };
 
-  const entries = [...feed.entries, ...githubEntries];
-  const latestVersion = githubEntries[0]?.title || mergedCatalog.generatedAt;
+  const entries: ReleaseEntry[] = [
+    {
+      id: "catalog-static-mode",
+      source: "feed",
+      type: "change",
+      title: "Catalog mode",
+      text: "Catalog data for commands, skills, agents, and hooks is now served from a static local source.",
+    },
+    ...githubEntries,
+  ];
+  const latestVersion = githubEntries[0]?.title || "static-catalog";
 
   return NextResponse.json(
     {
       ok: true,
       version: latestVersion,
-      feed: {
-        totalNewEntries: feed.totalNewEntries,
-        byTool: feed.byTool,
-        hasNewEntries: hasNewSinceLastSend,
-        signature: feed.signature,
-        lastSentAt: broadcastState?.lastSentAt || null,
-      },
+      feed,
       entries,
     },
     {

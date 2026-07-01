@@ -24,3 +24,10 @@ CREATE TABLE IF NOT EXISTS release_broadcast_state (
   last_sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS catalog_snapshots (
+  id TEXT PRIMARY KEY,
+  payload JSONB NOT NULL,
+  version BIGINT NOT NULL DEFAULT 1,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

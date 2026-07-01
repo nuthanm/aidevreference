@@ -1,0 +1,22 @@
+{
+  "tools": {
+    "claude": {
+      "groups": [],
+      "skills": [],
+      "agents": [],
+      "hooks": []
+    },
+    "cursor": {
+      "groups": [],
+      "skills": [],
+      "agents": [],
+      "hooks": []
+    },
+    "copilot": {
+      "groups": [],
+      "skills": [],
+      "agents": [],
+      "hooks": []
+    }
+  }
+}

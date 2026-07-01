@@ -1,3 +1,6 @@
+import catalogSeed from "../../catalog.json";
+import { getCatalogSnapshotStored } from "@/lib/catalog-store";
+
 export type Badge = "skill" | "wf" | "chat" | "ide";
 
 export type CommandEntry = {
@@ -69,9 +72,7 @@ const COPILOT_DOCS = "https://code.visualstudio.com/docs/copilot";
 
 export const baseCatalog: Catalog = {
   generatedAt: new Date().toISOString(),
-  sourceFeeds: [
-    "https://raw.githubusercontent.com/nuthanm/aidevreference/main/catalog.json",
-  ],
+  sourceFeeds: ["static-catalog-db"],
   tools: {
     claude: {
       maker: "Anthropic",
@@ -140,6 +141,30 @@ export const baseCatalog: Catalog = {
           ],
         },
       ],
+      skills: [
+        {
+          cmd: "@refactor-flow",
+          name: "Refactor Flow",
+          auto: false,
+          desc: "Guides larger refactors with checkpoints and validation.",
+          ex: "@refactor-flow split auth service",
+          trigger: "When user asks for multi-file structural refactors",
+          officialUrl: CURSOR_DOCS,
+        },
+      ],
+      agents: [
+        {
+          name: "Codebase Explorer",
+          badge: "Focused · Balanced",
+          color: "#0EA5E9",
+          desc: "Explores related files quickly before proposing edits.",
+          tools: "Search, Read, Edit",
+          model: "Cursor Agent",
+          invoke: "On demand",
+          when: "When broad context is needed before code changes",
+          officialUrl: CURSOR_DOCS,
+        },
+      ],
       hooks: [
         {
           cmd: "pre-command",
@@ -154,7 +179,7 @@ export const baseCatalog: Catalog = {
     },
     copilot: {
       maker: "Microsoft/GitHub",
-      subtitle: "Slash commands and quality workflows for GitHub Copilot in VS Code.",
+      subtitle: "Slash commands, reusable skills, and quality workflows for GitHub Copilot in VS Code.",
       officialDocs: [COPILOT_DOCS],
       groups: [
         {
@@ -165,6 +190,30 @@ export const baseCatalog: Catalog = {
             { cmd: "/fix", name: "Fix Issues", desc: "Fixes current diagnostics with proposed edits.", ex: "/fix this file", badge: "wf", officialUrl: COPILOT_DOCS },
             { cmd: "/tests", name: "Create Tests", desc: "Generate tests from context.", ex: "/tests for auth", badge: "wf", officialUrl: COPILOT_DOCS },
           ],
+        },
+      ],
+      skills: [
+        {
+          cmd: "/tests",
+          name: "Test Scaffolding Skill",
+          auto: false,
+          desc: "Builds baseline unit and integration tests from local context.",
+          ex: "/tests for notify route",
+          trigger: "When user asks for test generation",
+          officialUrl: COPILOT_DOCS,
+        },
+      ],
+      agents: [
+        {
+          name: "Fix and Verify",
+          badge: "Workflow · Reliable",
+          color: "#10B981",
+          desc: "Applies fixes, then validates diagnostics and behavior.",
+          tools: "Edit, Problems, Terminal",
+          model: "Copilot Agent",
+          invoke: "On demand",
+          when: "When handling bug fixes with follow-up validation",
+          officialUrl: COPILOT_DOCS,
         },
       ],
       hooks: [
@@ -181,72 +230,6 @@ export const baseCatalog: Catalog = {
     },
   },
 };
-
-function mergeUniqueBy<T>(base: T[], incoming: T[], keyFn: (item: T) => string) {
-  const seen = new Set(base.map((item) => keyFn(item)));
-  for (const item of incoming) {
-    const key = keyFn(item);
-    if (!seen.has(key)) {
-      base.push(item);
-      seen.add(key);
-    }
-  }
-}
-
-function mergeGroups(base: Group[], incoming: Group[]) {
-  const groupMap = new Map(base.map((g) => [g.id, g]));
-  for (const remoteGroup of incoming) {
-    if (!remoteGroup?.id || !Array.isArray(remoteGroup.entries)) continue;
-    const current = groupMap.get(remoteGroup.id);
-    if (!current) {
-      base.push({
-        id: remoteGroup.id,
-        label: remoteGroup.label || remoteGroup.id,
-        entries: [...remoteGroup.entries],
-      });
-      continue;
-    }
-    if (remoteGroup.label) current.label = remoteGroup.label;
-    mergeUniqueBy(current.entries, remoteGroup.entries, (e) => `${e.cmd}|${e.name}`);
-  }
-}
-
-function mergeCatalog(base: Catalog, incoming: Partial<Catalog>) {
-  if (!incoming?.tools) return;
-  const tools = ["claude", "cursor", "copilot"] as const;
-
-  for (const tool of tools) {
-    const remoteTool = incoming.tools?.[tool];
-    if (!remoteTool) continue;
-
-    const target = base.tools[tool];
-    if (remoteTool.subtitle) target.subtitle = remoteTool.subtitle;
-    if (remoteTool.maker) target.maker = remoteTool.maker;
-
-    if (Array.isArray(remoteTool.officialDocs)) {
-      mergeUniqueBy(target.officialDocs, remoteTool.officialDocs, (v) => v);
-    }
-
-    if (Array.isArray(remoteTool.groups)) {
-      mergeGroups(target.groups, remoteTool.groups);
-    }
-
-    if (Array.isArray(remoteTool.skills)) {
-      if (!target.skills) target.skills = [];
-      mergeUniqueBy(target.skills, remoteTool.skills, (s) => `${s.cmd}|${s.name}`);
-    }
-
-    if (Array.isArray(remoteTool.agents)) {
-      if (!target.agents) target.agents = [];
-      mergeUniqueBy(target.agents, remoteTool.agents, (a) => `${a.name}`);
-    }
-
-    if (Array.isArray(remoteTool.hooks)) {
-      if (!target.hooks) target.hooks = [];
-      mergeUniqueBy(target.hooks, remoteTool.hooks, (h) => `${h.cmd}|${h.name}`);
-    }
-  }
-}
 
 export function collectCatalogValidationWarnings(catalog: Catalog) {
   const warnings: string[] = [];
@@ -292,31 +275,27 @@ export function collectCatalogValidationWarnings(catalog: Catalog) {
 }
 
 export async function getMergedCatalog(): Promise<Catalog> {
-  const merged: Catalog = JSON.parse(JSON.stringify(baseCatalog));
-  const envFeeds = process.env.CATALOG_FEEDS?.split(",")
-    .map((v) => v.trim())
-    .filter(Boolean);
+  const jsonSeed = catalogSeed as Catalog;
+  const fallback: Catalog = JSON.parse(JSON.stringify(
+    (jsonSeed?.tools ? jsonSeed : baseCatalog),
+  ));
 
-  const feeds = envFeeds?.length ? envFeeds : baseCatalog.sourceFeeds;
-  merged.sourceFeeds = [...feeds];
+  let merged: Catalog = fallback;
+  merged.sourceFeeds = ["json-seed-cache"];
 
-  for (const feed of feeds) {
-    try {
-      const res = await fetch(feed, { cache: "no-store" });
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (!data || typeof data !== "object") continue;
-      if (data.tools) {
-        mergeCatalog(merged, data as Partial<Catalog>);
-      } else {
-        mergeCatalog(merged, { tools: data } as Partial<Catalog>);
-      }
-    } catch {
-      // ignore feed failures
+  try {
+    const snapshot = await getCatalogSnapshotStored();
+    if (snapshot?.catalog?.tools) {
+      merged = JSON.parse(JSON.stringify(snapshot.catalog)) as Catalog;
+      merged.sourceFeeds = ["database-snapshot"];
     }
+  } catch {
+    // Fallback to JSON cache/base catalog when DB is unavailable.
   }
 
-  merged.generatedAt = new Date().toISOString();
+  if (!merged.generatedAt) {
+    merged.generatedAt = new Date().toISOString();
+  }
 
   if (process.env.NODE_ENV !== "production") {
     const warnings = collectCatalogValidationWarnings(merged);

@@ -300,8 +300,21 @@ export function ReferenceShell() {
   useEffect(() => {
     void (async () => {
       try {
-        const res = await fetch("/api/catalog", { cache: "no-store" });
+        const endpoint = activeTool ? `/api/catalog?tool=${activeTool}` : "/api/catalog";
+        const res = await fetch(endpoint, { cache: "default" });
         if (!res.ok) return;
+
+        if (activeTool) {
+          const remote = (await res.json()) as { tool?: "claude" | "cursor" | "copilot"; data?: ToolCatalog };
+          if (remote?.tool && remote?.data) {
+            setData((prev) => ({
+              ...prev,
+              [remote.tool]: remote.data,
+            }));
+          }
+          return;
+        }
+
         const remote = (await res.json()) as Catalog;
         if (remote?.tools) {
           setData(remote.tools);
@@ -311,6 +324,9 @@ export function ReferenceShell() {
       }
     })();
 
+  }, [activeTool]);
+
+  useEffect(() => {
     void (async () => {
       try {
         const res = await fetch("/api/releases", { cache: "no-store" });
@@ -1129,7 +1145,7 @@ export function ReferenceShell() {
                         <strong>Version {latestVersionData.version}</strong>
                         <span className="rtag rtag-change">Release</span>
                       </div>
-                      <div className="release-text">Latest command, GitHub release, and feed updates.</div>
+                      <div className="release-text">Latest command catalog and GitHub release updates.</div>
                     </div>
                     {releaseTimeline.map((n, index) => {
                       const t = (n.type || "change").toLowerCase();
