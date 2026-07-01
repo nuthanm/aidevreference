@@ -15,6 +15,7 @@ import {
   Home,
   Linkedin,
   Lightbulb,
+  Menu,
   MousePointer2,
   Sparkles,
   X,
@@ -101,6 +102,7 @@ export function ReferenceShell() {
   const [latestVersionData, setLatestVersionData] = useState<ReleaseData>(RELEASE_FALLBACK);
   const [pendingVersion, setPendingVersion] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const ticker = useFooterTicker();
   const route = PATH_TO_ROUTE[pathname] || "landing";
@@ -223,6 +225,18 @@ export function ReferenceShell() {
   }, [sidebarCollapsed]);
 
   useEffect(() => {
+    const media = window.matchMedia("(max-width: 768px)");
+    const onViewportChange = () => {
+      if (!media.matches) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    onViewportChange();
+    media.addEventListener("change", onViewportChange);
+    return () => media.removeEventListener("change", onViewportChange);
+  }, []);
+
+  useEffect(() => {
     void (async () => {
       try {
         const res = await fetch("/api/catalog", { cache: "no-store" });
@@ -257,7 +271,16 @@ export function ReferenceShell() {
   }, []);
 
   function navigate(nextRoute: RouteId) {
+    setIsMobileMenuOpen(false);
     router.push(ROUTE_TO_PATH[nextRoute]);
+  }
+
+  function toggleSidebarMenu() {
+    if (window.matchMedia("(max-width: 768px)").matches) {
+      setIsMobileMenuOpen((prev) => !prev);
+      return;
+    }
+    setSidebarCollapsed((prev) => !prev);
   }
 
   function renderToolGlyph(tool: "claude" | "cursor" | "copilot", size = 18) {
@@ -545,6 +568,16 @@ export function ReferenceShell() {
   return (
     <>
       <header className="topbar">
+        <button
+          className="mobile-menu-btn"
+          type="button"
+          onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+          aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="sidebar"
+        >
+          {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+        </button>
         <button className="brand" onClick={() => navigate("landing")} style={{ border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
           <div className="logo-box" aria-hidden="true">
             <span className="brand-mark">
@@ -555,6 +588,16 @@ export function ReferenceShell() {
           </div>
           <span>AI Dev Reference</span>
         </button>
+        <div className="brand-quick-actions">
+          <button id="btn-feature" className="btn-primary" type="button" onClick={() => navigate("feedback")}>
+            Request a feature
+          </button>
+          <div id="entry-count" className="count-tag">
+            {search.trim() && ["claude", "cursor", "copilot"].includes(route)
+              ? "Searching..."
+              : `${totalEntries} entries · 3 tools`}
+          </div>
+        </div>
         <div className="top-actions">
           <label className="sr-only" htmlFor="global-search">
             Search
@@ -601,22 +644,19 @@ export function ReferenceShell() {
               </div>
             ) : null}
           </div>
-          <div id="entry-count" className="count-tag">
-            {search.trim() && ["claude", "cursor", "copilot"].includes(route)
-              ? "Searching..."
-              : `${totalEntries} entries · 3 tools`}
-          </div>
-          <button id="btn-feature" className="btn-primary" type="button" onClick={() => navigate("feedback")}>
-            Request a feature
-          </button>
         </div>
       </header>
 
       <div className="disclaimer">
-        <span>
-          Educational reference. All trademarks belong to their respective owners: <strong>Anthropic (Claude), Anysphere (Cursor), Microsoft/GitHub (Copilot).</strong>
+        <span className="disclaimer-text">
+          <span className="disclaimer-text-full">
+            Educational reference. All trademarks belong to their respective owners: <strong>Anthropic (Claude), Anysphere (Cursor), Microsoft/GitHub (Copilot).</strong>
+          </span>
+          <span className="disclaimer-text-compact">
+            Educational reference for Claude, Cursor, and Copilot.
+          </span>
         </span>
-        <button className="link-btn link-btn-sm" onClick={() => navigate("feedback")}>
+        <button className="link-btn link-btn-sm disclaimer-action" onClick={() => navigate("feedback")}>
           Anything Missing / Found an error?
         </button>
       </div>
@@ -641,12 +681,18 @@ export function ReferenceShell() {
         </div>
       ) : null}
 
-      <div className={`layout ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+      <div className={`layout ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${isMobileMenuOpen ? "mobile-menu-open" : ""}`}>
+        <button
+          className="sidebar-overlay"
+          type="button"
+          aria-label="Close navigation menu"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
         <aside className={`sidebar ${sidebarCollapsed ? "collapsed" : ""}`} id="sidebar">
           <button
             className="sidebar-toggle has-tooltip"
             type="button"
-            onClick={() => setSidebarCollapsed((prev) => !prev)}
+            onClick={toggleSidebarMenu}
             aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             data-tooltip={sidebarCollapsed ? "Expand menu" : "Collapse menu"}
             title={sidebarCollapsed ? "Expand menu" : "Collapse menu"}
