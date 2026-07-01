@@ -70,7 +70,7 @@ const COPILOT_DOCS = "https://code.visualstudio.com/docs/copilot";
 export const baseCatalog: Catalog = {
   generatedAt: new Date().toISOString(),
   sourceFeeds: [
-    "https://raw.githubusercontent.com/nuthan-murarysetty/ai-dev-ref/main/catalog.json",
+    "https://raw.githubusercontent.com/nuthanm/aidevreference/main/catalog.json",
   ],
   tools: {
     claude: {

@@ -1,0 +1,55 @@
+{
+  "tools": {
+    "claude": {
+      "subtitle": "Remote feed overrides for Claude",
+      "groups": [
+        {
+          "id": "remote-claude",
+          "label": "Remote Claude Updates",
+          "entries": [
+            {
+              "cmd": "/claude-remote",
+              "name": "Claude Remote Example",
+              "desc": "Example command loaded from catalog feed.",
+              "ex": "/claude-remote"
+            }
+          ]
+        }
+      ]
+    },
+    "cursor": {
+      "subtitle": "Remote feed overrides for Cursor",
+      "groups": [
+        {
+          "id": "remote-cursor",
+          "label": "Remote Cursor Updates",
+          "entries": [
+            {
+              "cmd": "/cursor-remote",
+              "name": "Cursor Remote Example",
+              "desc": "Example command loaded from catalog feed.",
+              "ex": "/cursor-remote"
+            }
+          ]
+        }
+      ]
+    },
+    "copilot": {
+      "subtitle": "Remote feed overrides for Copilot",
+      "groups": [
+        {
+          "id": "remote-copilot",
+          "label": "Remote Copilot Updates",
+          "entries": [
+            {
+              "cmd": "/copilot-remote",
+              "name": "Copilot Remote Example",
+              "desc": "Example command loaded from catalog feed.",
+              "ex": "/copilot-remote"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
