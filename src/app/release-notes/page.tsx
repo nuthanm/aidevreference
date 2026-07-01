@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ReleaseNotesTable } from "./release-notes-table";
+import { ReferenceShell } from "@/features/reference/reference-shell";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata(
@@ -9,5 +9,5 @@ export const metadata: Metadata = pageMetadata(
 );
 
 export default function ReleaseNotesPage() {
-  return <ReleaseNotesTable />;
+  return <ReferenceShell />;
 }

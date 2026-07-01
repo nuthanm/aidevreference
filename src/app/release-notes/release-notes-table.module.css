@@ -50,6 +50,30 @@
   font-weight: 700;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.homeLink {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid #c8d1df;
+  color: #1f3b5b;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  background: #fff;
+}
+
+.homeLink:hover {
+  background: #f8fafc;
+}
+
 .metaSummary {
   margin-bottom: 12px;
   color: #475569;
@@ -217,6 +241,11 @@
 }
 
 @media (max-width: 860px) {
+  .headerActions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .formRow {
     grid-template-columns: 1fr;
   }

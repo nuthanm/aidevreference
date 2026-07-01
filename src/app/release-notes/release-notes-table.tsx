@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import styles from "./release-notes-table.module.css";
 
 type ToolKey = "claude" | "cursor" | "copilot";
@@ -164,14 +165,17 @@ export function ReleaseNotesTable() {
   }, [newUpdates, page]);
 
   return (
-    <main className={styles.page}>
+    <section className={styles.page}>
       <section className={styles.panel}>
         <div className={styles.headerRow}>
           <div>
             <h1 className={styles.title}>Catalog Updates</h1>
             <p className={styles.subtitle}>Only newly added catalog items are listed here. No release history.</p>
           </div>
-          <div className={styles.badge}>{newUpdates.length} new</div>
+          <div className={styles.headerActions}>
+            <div className={styles.badge}>{newUpdates.length} new</div>
+            <Link href="/" className={styles.homeLink}>Back to Home</Link>
+          </div>
         </div>
 
         <div className={styles.metaSummary}>
@@ -229,6 +233,6 @@ export function ReleaseNotesTable() {
           </div>
         ) : null}
       </section>
-    </main>
+    </section>
   );
 }

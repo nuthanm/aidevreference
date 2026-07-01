@@ -33,82 +33,19 @@ type RouteId =
   | "feedback"
   | "release-notes";
 
-type ReleaseData = {
-  version: string;
-  releaseNotes: Array<{ type?: string; title?: string; text?: string }>;
-};
-
-type ReleaseEntry = {
-  id: string;
-  source: "github" | "feed";
-  type: "new" | "change" | "fix";
-  title: string;
-  text: string;
-  url?: string;
-  publishedAt?: string;
-};
-
-type ReleasesApiResponse = {
-  ok?: boolean;
-  version?: string;
-  feed?: {
-    totalNewEntries?: number;
-    byTool?: {
-      claude?: number;
-      cursor?: number;
-      copilot?: number;
-    };
-    hasNewEntries?: boolean;
-    signature?: string;
-    lastSentAt?: string | null;
-  };
-  entries?: ReleaseEntry[];
-};
-
-type BroadcastResponse = {
-  ok?: boolean;
-  sent?: number;
-  failed?: number;
-  totalRecipients?: number;
-  failures?: string[];
-  message?: string;
-  error?: string;
-};
-
 type SubscriberStats = {
   confirmed: number;
   pending: number;
   total: number;
 };
 
-const RELEASE_FALLBACK: ReleaseData = {
-  version: "1.0.0",
-  releaseNotes: [
-    {
-      type: "new",
-      title: "Unified command pages",
-      text: "Added claude, cursor, copilot, and feedback routes with lazy rendering.",
-    },
-    {
-      type: "change",
-      title: "Search behavior",
-      text: "Global search now filters cmd, name, and desc on active tool pages.",
-    },
-    {
-      type: "fix",
-      title: "Version banner",
-      text: "Silent fetch and local dismissal persistence for update checks.",
-    },
-  ],
+type CatalogUpdateRow = {
+  key: string;
+  tool: "claude" | "cursor" | "copilot";
+  kind: "command" | "skill" | "agent" | "hook";
+  title: string;
+  details: string;
 };
-
-const RELEASE_TIMELINE_FALLBACK: ReleaseEntry[] = RELEASE_FALLBACK.releaseNotes.map((note, index) => ({
-  id: `fallback-${index}`,
-  source: "github",
-  type: (note.type as "new" | "change" | "fix") || "change",
-  title: note.title || `Update ${index + 1}`,
-  text: note.text || "",
-}));
 
 const PATH_TO_ROUTE: Record<string, RouteId> = {
   "/": "landing",
@@ -140,32 +77,56 @@ function toCatalogTools() {
   return JSON.parse(JSON.stringify(baseCatalog.tools)) as Catalog["tools"];
 }
 
-function extractCatalogKeys(tools: Catalog["tools"]) {
-  const keys: string[] = [];
+function extractCatalogRows(tools: Catalog["tools"]): CatalogUpdateRow[] {
+  const rows: CatalogUpdateRow[] = [];
 
   for (const tool of ["claude", "cursor", "copilot"] as const) {
     const conf = tools[tool];
 
     for (const group of conf.groups) {
       for (const entry of group.entries) {
-        keys.push(`${tool}|command|${group.id}|${entry.cmd}|${entry.name}`);
+        rows.push({
+          key: `${tool}|command|${group.id}|${entry.cmd}|${entry.name}`,
+          tool,
+          kind: "command",
+          title: `${entry.cmd} ${entry.name}`.trim(),
+          details: entry.desc || "Command entry",
+        });
       }
     }
 
     for (const skill of conf.skills || []) {
-      keys.push(`${tool}|skill|${skill.cmd}|${skill.name}`);
+      rows.push({
+        key: `${tool}|skill|${skill.cmd}|${skill.name}`,
+        tool,
+        kind: "skill",
+        title: `${skill.cmd} ${skill.name}`.trim(),
+        details: skill.desc || "Skill entry",
+      });
     }
 
     for (const agent of conf.agents || []) {
-      keys.push(`${tool}|agent|${agent.name}`);
+      rows.push({
+        key: `${tool}|agent|${agent.name}`,
+        tool,
+        kind: "agent",
+        title: agent.name,
+        details: agent.desc || "Agent entry",
+      });
     }
 
     for (const hook of conf.hooks || []) {
-      keys.push(`${tool}|hook|${hook.cmd}|${hook.name}`);
+      rows.push({
+        key: `${tool}|hook|${hook.cmd}|${hook.name}`,
+        tool,
+        kind: "hook",
+        title: `${hook.cmd} ${hook.name}`.trim(),
+        details: hook.desc || "Hook entry",
+      });
     }
   }
 
-  return keys;
+  return rows;
 }
 
 export function ReferenceShell() {
@@ -178,18 +139,10 @@ export function ReferenceShell() {
     cursor: "all",
     copilot: "all",
   });
-  const [latestVersionData, setLatestVersionData] = useState<ReleaseData>(RELEASE_FALLBACK);
-  const [releaseTimeline, setReleaseTimeline] = useState<ReleaseEntry[]>(RELEASE_TIMELINE_FALLBACK);
-  const [feedNewCount, setFeedNewCount] = useState(0);
-  const [feedHasNewEntries, setFeedHasNewEntries] = useState(false);
-  const [feedSignature, setFeedSignature] = useState("");
-  const [feedLastSentAt, setFeedLastSentAt] = useState<string | null>(null);
-  const [broadcastAdminKey, setBroadcastAdminKey] = useState("");
-  const [isBroadcasting, setIsBroadcasting] = useState(false);
-  const [broadcastResult, setBroadcastResult] = useState<BroadcastResponse | null>(null);
-  const [broadcastError, setBroadcastError] = useState("");
   const [subscriberStats, setSubscriberStats] = useState<SubscriberStats | null>(null);
   const [catalogUpdateCount, setCatalogUpdateCount] = useState(0);
+  const [catalogUpdateRows, setCatalogUpdateRows] = useState<CatalogUpdateRow[]>([]);
+  const [catalogUpdatesPage, setCatalogUpdatesPage] = useState(1);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -287,6 +240,13 @@ export function ReferenceShell() {
 
   const showSearchSuggestions = Boolean(searchFocused && search.trim());
 
+  const catalogUpdatesPageSize = 10;
+  const catalogUpdatesTotalPages = Math.max(1, Math.ceil(catalogUpdateRows.length / catalogUpdatesPageSize));
+  const visibleCatalogUpdates = useMemo(() => {
+    const start = (catalogUpdatesPage - 1) * catalogUpdatesPageSize;
+    return catalogUpdateRows.slice(start, start + catalogUpdatesPageSize);
+  }, [catalogUpdateRows, catalogUpdatesPage]);
+
   const totalEntries = useMemo(() => {
     return Object.values(data).reduce((sum, tool) => {
       const groupsCount = tool.groups.reduce((s, g) => s + g.entries.length, 0);
@@ -351,63 +311,47 @@ export function ReferenceShell() {
   }, [activeTool]);
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const res = await fetch("/api/catalog", { cache: "no-store" });
-        if (!res.ok) return;
+    const storageKey = "aidevref-catalog-seen-keys-v1";
+    const rows = extractCatalogRows(data);
+    const currentKeys = rows.map((row) => row.key);
+    const seenRaw = localStorage.getItem(storageKey);
 
-        const remote = (await res.json()) as Catalog;
-        if (!remote?.tools) return;
+    if (!seenRaw) {
+      localStorage.setItem(storageKey, JSON.stringify(currentKeys));
+      setCatalogUpdateCount(0);
+      setCatalogUpdateRows([]);
+      return;
+    }
 
-        const currentKeys = extractCatalogKeys(remote.tools);
-        const storageKey = "aidevref-catalog-seen-keys-v1";
-        const seenRaw = localStorage.getItem(storageKey);
+    let seenKeys = new Set<string>();
+    try {
+      const parsed = JSON.parse(seenRaw) as string[];
+      seenKeys = new Set(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      seenKeys = new Set<string>();
+    }
 
-        if (!seenRaw) {
-          localStorage.setItem(storageKey, JSON.stringify(currentKeys));
-          setCatalogUpdateCount(0);
-          return;
-        }
+    const unseenRows = rows.filter((row) => !seenKeys.has(row.key));
 
-        let seenKeys = new Set<string>();
-        try {
-          const parsed = JSON.parse(seenRaw) as string[];
-          seenKeys = new Set(Array.isArray(parsed) ? parsed : []);
-        } catch {
-          seenKeys = new Set<string>();
-        }
+    if (route === "release-notes") {
+      setCatalogUpdateRows(unseenRows);
+      setCatalogUpdateCount(0);
+      setCatalogUpdatesPage(1);
+      localStorage.setItem(storageKey, JSON.stringify(currentKeys));
+      return;
+    }
 
-        const unseenCount = currentKeys.filter((key) => !seenKeys.has(key)).length;
-        setCatalogUpdateCount(unseenCount);
-      } catch {
-        // silent
-      }
-    })();
-  }, [pathname]);
+    setCatalogUpdateRows([]);
+    setCatalogUpdateCount(unseenRows.length);
+  }, [data, route]);
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const res = await fetch("/api/releases", { cache: "no-store" });
-        if (!res.ok) return;
-        const json = (await res.json()) as ReleasesApiResponse;
-        const version = json.version?.trim();
-        if (version) {
-          setLatestVersionData((prev) => ({ ...prev, version }));
-        }
-        if (Array.isArray(json.entries) && json.entries.length) {
-          setReleaseTimeline(json.entries);
-        }
-        const totalFeedEntries = json.feed?.totalNewEntries || 0;
-        setFeedNewCount(totalFeedEntries);
-        setFeedHasNewEntries(Boolean(json.feed?.hasNewEntries));
-        setFeedSignature(json.feed?.signature || "");
-        setFeedLastSentAt(json.feed?.lastSentAt || null);
-      } catch {
-        // silent
-      }
-    })();
+    if (catalogUpdatesPage > catalogUpdatesTotalPages) {
+      setCatalogUpdatesPage(catalogUpdatesTotalPages);
+    }
+  }, [catalogUpdatesPage, catalogUpdatesTotalPages]);
 
+  useEffect(() => {
     void (async () => {
       try {
         const res = await fetch("/api/notify/stats", { cache: "no-store" });
@@ -714,47 +658,6 @@ export function ReferenceShell() {
         </div>
       </div>
     );
-  }
-
-  async function triggerBroadcast() {
-    setBroadcastError("");
-    setBroadcastResult(null);
-    setIsBroadcasting(true);
-
-    try {
-      const notes = releaseTimeline.slice(0, 8).map((item) => `${item.title}: ${item.text}`);
-      const res = await fetch("/api/notify/broadcast", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(broadcastAdminKey.trim() ? { "x-admin-key": broadcastAdminKey.trim() } : {}),
-        },
-        body: JSON.stringify({
-          version: latestVersionData.version,
-          notes,
-          feedSignature,
-          feedTotal: feedNewCount,
-        }),
-      });
-
-      const json = (await res.json().catch(() => ({}))) as BroadcastResponse;
-
-      if (!res.ok) {
-        setBroadcastError(json.error || "Unable to send broadcast.");
-        setBroadcastResult(json);
-        return;
-      }
-
-      setBroadcastResult(json);
-      if ((json.failed || 0) === 0) {
-        setFeedHasNewEntries(false);
-        setFeedLastSentAt(new Date().toISOString());
-      }
-    } catch {
-      setBroadcastError("Unable to send broadcast.");
-    } finally {
-      setIsBroadcasting(false);
-    }
   }
 
   return (
@@ -1116,100 +1019,74 @@ export function ReferenceShell() {
               ) : null}
 
               {route === "release-notes" ? (
-                <section className="policy-page">
-                  <div className="modal-head" style={{ marginBottom: 12 }}>
-                    <h1 className="modal-title" style={{ margin: 0 }}>Release notes</h1>
-                    <button className="btn-ghost" onClick={() => navigate("landing")}>
+                <section className="catalog-updates-page">
+                  <div className="catalog-updates-hero">
+                    <div>
+                      <h1>Catalog Updates</h1>
+                      <p>Integrated in the main design. Shows newly added catalog items only.</p>
+                    </div>
+                    <button className="btn-ghost" type="button" onClick={() => navigate("landing")}>
                       <X size={14} /> Close
                     </button>
                   </div>
-                  <section className="panel" style={{ marginBottom: 12 }}>
-                    <h3 style={{ marginTop: 0, marginBottom: 8 }}>Update broadcast</h3>
-                    <p style={{ marginTop: 0, marginBottom: 10, color: "var(--text-2)", fontSize: 12 }}>
-                      Sends release + feed update notes to subscribers.
-                    </p>
-                    <div className="form-grid" style={{ marginBottom: 10 }}>
-                      <label className="field full">
-                        <span className="field-label-row">Admin key (required in production)</span>
-                        <input
-                          type="password"
-                          value={broadcastAdminKey}
-                          onChange={(event) => setBroadcastAdminKey(event.target.value)}
-                          placeholder="Enter ADMIN_BROADCAST_KEY"
-                        />
-                      </label>
+
+                  <section className="catalog-updates-shell">
+                    <div className="catalog-updates-head">
+                      <div className="catalog-chip">{catalogUpdateRows.length} new</div>
+                      <div className="catalog-chip">Total catalog items: {totalEntries}</div>
                     </div>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <button
-                        className="btn-primary"
-                        type="button"
-                        onClick={() => void triggerBroadcast()}
-                        disabled={
-                          isBroadcasting
-                          || (!feedHasNewEntries && (broadcastResult?.failed || 0) === 0)
-                        }
-                      >
-                        {isBroadcasting ? "Sending..." : "Send update email"}
-                      </button>
-                      <span className="count-tag">
-                        Recipients: {subscriberStats?.confirmed ?? 0}
-                      </span>
-                      <span className="count-tag">
-                        Feed new entries: {feedNewCount}
-                      </span>
-                      <span className="count-tag">
-                        Last sent: {feedLastSentAt ? new Date(feedLastSentAt).toLocaleString() : "Never"}
-                      </span>
+
+                    <div className="catalog-updates-table-wrap">
+                      <table className="catalog-updates-table">
+                        <thead>
+                          <tr>
+                            <th>Updated/Inserted Item</th>
+                            <th>Tool</th>
+                            <th>Type</th>
+                            <th>Details</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {visibleCatalogUpdates.length ? (
+                            visibleCatalogUpdates.map((item) => (
+                              <tr key={item.key}>
+                                <td>{item.title}</td>
+                                <td><span className="catalog-tool-tag">{item.tool.toUpperCase()}</span></td>
+                                <td>{item.kind}</td>
+                                <td>{item.details}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={4} className="catalog-empty">No new catalog updates.</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
                     </div>
-                    {broadcastError ? (
-                      <div className="inline-toast error" style={{ marginTop: 10 }}>{broadcastError}</div>
-                    ) : null}
-                    {broadcastResult ? (
-                      <div
-                        className={`inline-toast ${(broadcastResult.failed || 0) > 0 ? "error" : "success"}`}
-                        style={{ marginTop: 10 }}
-                      >
-                        {broadcastResult.message || "Broadcast completed."} Sent: {broadcastResult.sent || 0} / {broadcastResult.totalRecipients || 0}
-                        {` · Failed: ${broadcastResult.failed || 0}`}
-                      </div>
-                    ) : null}
-                    {broadcastResult?.failures?.length ? (
-                      <div className="field-helper" style={{ marginTop: 8 }}>
-                        Failed recipients (sample): {broadcastResult.failures.slice(0, 5).join(", ")}
+
+                    {catalogUpdatesTotalPages > 1 ? (
+                      <div className="catalog-pagination">
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          disabled={catalogUpdatesPage === 1}
+                          onClick={() => setCatalogUpdatesPage((prev) => Math.max(1, prev - 1))}
+                        >
+                          Previous
+                        </button>
+                        <span className="catalog-page-info">Page {catalogUpdatesPage} of {catalogUpdatesTotalPages}</span>
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          disabled={catalogUpdatesPage === catalogUpdatesTotalPages}
+                          onClick={() => setCatalogUpdatesPage((prev) => Math.min(catalogUpdatesTotalPages, prev + 1))}
+                        >
+                          Next
+                        </button>
                       </div>
                     ) : null}
                   </section>
-                  <div className="release-list">
-                    <div className="release-item" style={{ borderLeftColor: "var(--claude)" }}>
-                      <div className="release-top">
-                        <strong>Version {latestVersionData.version}</strong>
-                        <span className="rtag rtag-change">Release</span>
-                      </div>
-                      <div className="release-text">Latest command catalog and GitHub release updates.</div>
-                    </div>
-                    {releaseTimeline.map((n, index) => {
-                      const t = (n.type || "change").toLowerCase();
-                      const cls = t === "new" ? "rtag-new" : t === "fix" ? "rtag-fix" : "rtag-change";
-                      const left = t === "new" ? "var(--cursor)" : t === "fix" ? "var(--copilot)" : "var(--claude)";
-                      return (
-                        <article className="release-item" style={{ borderLeftColor: left }} key={`${n.id}-${index}`}>
-                          <div className="release-top">
-                            <strong className="release-strong">
-                              {n.url ? (
-                                <Link href={n.url} target="_blank" rel="noreferrer">
-                                  {n.title || "Update"}
-                                </Link>
-                              ) : (
-                                n.title || "Update"
-                              )}
-                            </strong>
-                            <span className={`rtag ${cls}`}>{n.source === "feed" ? `feed ${t}` : `github ${t}`}</span>
-                          </div>
-                          <div className="release-text">{n.text || ""}</div>
-                        </article>
-                      );
-                    })}
-                  </div>
                 </section>
               ) : null}
             </motion.main>
