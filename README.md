@@ -7,7 +7,7 @@ Production-oriented Next.js migration of the AI command reference app with:
 - React Hook Form + zod client forms
 - CAPTCHA support with Cloudflare Turnstile
 - SMTP email templates with signature for requests and subscriptions
-- Subscriber registry for update notifications
+- Subscriber registry with double opt-in + unsubscribe links
 - Official docs links per tool
 - Automatic catalog sync from configured feed URLs
 - Privacy Policy and Terms pages
@@ -32,7 +32,7 @@ copy .env.example .env.local
 4. Start dev server:
 
 ```bash
-npm run dev
+cmd /c npm run dev
 ```
 
 5. Open http://localhost:3000
@@ -64,9 +64,11 @@ See [.env.example](.env.example) for all variables.
 ## API Endpoints
 
 - `GET /api/catalog`: merged catalog from base data + remote feeds
-- `POST /api/contact`: validated contact request submission
 - `POST /api/feedback`: validated feature/issue request submission
-- `POST /api/notify`: validated update subscription
+- `POST /api/notify`: validated update subscription (sends confirmation email)
+- `GET /api/notify/confirm?token=...`: confirms subscription token
+- `GET /api/notify/unsubscribe?token=...`: unsubscribes recipient
+- `GET /api/notify/stats`: public-safe subscription counters (confirmed, pending, total)
 - `POST /api/notify/broadcast`: sends release notification to subscribers (requires `x-admin-key` header)
 
 ## Routes
@@ -98,3 +100,21 @@ x-admin-key: your_admin_broadcast_key
 	]
 }
 ```
+
+## One-Click Broadcast via GitHub Actions
+
+Use workflow [.github/workflows/broadcast-release.yml](.github/workflows/broadcast-release.yml).
+
+Required GitHub repository secrets:
+
+- `BROADCAST_ENDPOINT_URL` (example: `https://your-domain.com/api/notify/broadcast`)
+- `ADMIN_BROADCAST_KEY` (must match server env value)
+
+How to trigger:
+
+1. Open **Actions** tab in GitHub.
+2. Select **Broadcast Release Email** workflow.
+3. Click **Run workflow**.
+4. Enter version and release notes (one note per line).
+
+Only confirmed subscribers receive broadcast emails.

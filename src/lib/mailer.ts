@@ -7,13 +7,24 @@ type SendInput = {
   html: string;
 };
 
+function isPlaceholder(value?: string) {
+  if (!value) return true;
+  const normalized = value.trim().toLowerCase();
+  return (
+    !normalized
+    || normalized.includes("replace_with")
+    || normalized === "smtp.example.com"
+    || normalized === "mailer@example.com"
+  );
+}
+
 function getTransport() {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
-  if (!host || !user || !pass) {
+  if (isPlaceholder(host) || isPlaceholder(user) || isPlaceholder(pass)) {
     return null;
   }
 
@@ -26,7 +37,9 @@ function getTransport() {
 }
 
 export function isMailerConfigured() {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  return !isPlaceholder(process.env.SMTP_HOST)
+    && !isPlaceholder(process.env.SMTP_USER)
+    && !isPlaceholder(process.env.SMTP_PASS);
 }
 
 export async function sendMail(input: SendInput) {

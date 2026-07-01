@@ -1,0 +1,62 @@
+name: Broadcast Release Email
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version label"
+        required: true
+        type: string
+      notes:
+        description: "Release notes (one line per bullet)"
+        required: false
+        type: string
+
+jobs:
+  broadcast:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare payload
+        id: payload
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          version = os.environ.get('INPUT_VERSION', 'latest').strip() or 'latest'
+          raw_notes = os.environ.get('INPUT_NOTES', '')
+          notes = [line.strip() for line in raw_notes.splitlines() if line.strip()]
+          payload = json.dumps({"version": version, "notes": notes})
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as fh:
+            fh.write(f"json={payload}\n")
+          PY
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          INPUT_NOTES: ${{ github.event.inputs.notes }}
+
+      - name: Trigger broadcast endpoint
+        shell: bash
+        env:
+          BROADCAST_ENDPOINT_URL: ${{ secrets.BROADCAST_ENDPOINT_URL }}
+          ADMIN_BROADCAST_KEY: ${{ secrets.ADMIN_BROADCAST_KEY }}
+          PAYLOAD: ${{ steps.payload.outputs.json }}
+        run: |
+          if [ -z "$BROADCAST_ENDPOINT_URL" ]; then
+            echo "Missing secret: BROADCAST_ENDPOINT_URL"
+            exit 1
+          fi
+
+          if [ -z "$ADMIN_BROADCAST_KEY" ]; then
+            echo "Missing secret: ADMIN_BROADCAST_KEY"
+            exit 1
+          fi
+
+          echo "Sending broadcast request..."
+          curl --fail --show-error --silent \
+            -X POST "$BROADCAST_ENDPOINT_URL" \
+            -H "content-type: application/json" \
+            -H "x-admin-key: $ADMIN_BROADCAST_KEY" \
+            -d "$PAYLOAD"
+
+          echo ""
+          echo "Broadcast request completed."

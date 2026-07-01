@@ -13,8 +13,8 @@ export default function PrivacyPolicyPage() {
     <main className="policy-page">
       <h1>Privacy Policy</h1>
       <p>
-        This application collects only the information required to process contact requests,
-        feature requests, and notification subscriptions.
+        This application collects only the information required to process feature requests and
+        notification subscriptions.
       </p>
       <h2>Data We Collect</h2>
       <p>Name, email, request metadata, and message content submitted through forms.</p>

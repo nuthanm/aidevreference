@@ -20,7 +20,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { FeedbackForm, ContactForm, NotifyForm } from "@/features/forms/forms";
+import { FeedbackForm, NotifyForm } from "@/features/forms/forms";
 import { useFooterTicker } from "@/hooks/use-footer-ticker";
 import { baseCatalog, type Catalog, type Group, type ToolCatalog } from "@/lib/catalog";
 import type { AgentEntry, HookEntry, SkillEntry, CommandEntry } from "@/lib/catalog";
@@ -36,6 +36,12 @@ type RouteId =
 type ReleaseData = {
   version: string;
   releaseNotes: Array<{ type?: string; title?: string; text?: string }>;
+};
+
+type SubscriberStats = {
+  confirmed: number;
+  pending: number;
+  total: number;
 };
 
 const RELEASE_FALLBACK: ReleaseData = {
@@ -100,6 +106,7 @@ export function ReferenceShell() {
     copilot: "all",
   });
   const [latestVersionData, setLatestVersionData] = useState<ReleaseData>(RELEASE_FALLBACK);
+  const [subscriberStats, setSubscriberStats] = useState<SubscriberStats | null>(null);
   const [pendingVersion, setPendingVersion] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -264,6 +271,18 @@ export function ReferenceShell() {
         if (seen !== json.version) {
           setPendingVersion(json.version);
         }
+      } catch {
+        // silent
+      }
+    })();
+
+    void (async () => {
+      try {
+        const res = await fetch("/api/notify/stats", { cache: "no-store" });
+        if (!res.ok) return;
+        const json = (await res.json()) as { ok?: boolean; stats?: SubscriberStats };
+        if (!json?.ok || !json.stats) return;
+        setSubscriberStats(json.stats);
       } catch {
         // silent
       }
@@ -804,6 +823,14 @@ export function ReferenceShell() {
                         Commands, skills, and subagents for Claude, Cursor, and GitHub Copilot.
                         One searchable reference, always current.
                       </p>
+                      <div className="hero-stats" aria-label="Community stats">
+                        <span className="hero-stat-chip confirmed">
+                          {subscriberStats ? subscriberStats.confirmed.toLocaleString() : "-"} confirmed subscribers
+                        </span>
+                        <span className="hero-stat-chip pending">
+                          {subscriberStats ? subscriberStats.pending.toLocaleString() : "-"} pending confirmations
+                        </span>
+                      </div>
                       <div className="hero-tool-row" aria-label="Included tools">
                         <article className="hero-tool-item claude" aria-label="Claude">
                           <span className="hero-tool-icon">
@@ -913,7 +940,7 @@ export function ReferenceShell() {
               {route === "feedback" ? (
                 <>
                   <section className="feedback-header">
-                    <h1>Share feedback</h1>
+                    <h1>Submit a request</h1>
                     <p className="feedback-sub">
                       Report missing commands, request additions, or suggest improvements for clarity
                       and searchability across Claude, Cursor, and Copilot references.
@@ -926,7 +953,6 @@ export function ReferenceShell() {
                       <p>Get notified when command references and tool mappings are updated.</p>
                       <NotifyForm />
                     </div>
-                    <ContactForm />
                   </section>
                 </>
               ) : null}

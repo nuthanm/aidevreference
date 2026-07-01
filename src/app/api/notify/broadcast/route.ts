@@ -1,22 +1,16 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { isMailerConfigured, sendMail } from "@/lib/mailer";
 import { releaseBroadcastTemplate } from "@/lib/email-templates";
+import { readSubscribers } from "@/lib/subscribers";
 
 export const runtime = "nodejs";
 
-const subscribersPath = path.join(process.cwd(), "data", "subscribers.json");
-
-async function readSubscribers(): Promise<string[]> {
-  try {
-    const raw = await fs.readFile(subscribersPath, "utf8");
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((v) => typeof v === "string");
-  } catch {
-    return [];
+function getBaseUrl(req: NextRequest) {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) {
+    return configured.replace(/\/$/, "");
   }
+  return req.nextUrl.origin;
 }
 
 export async function POST(req: NextRequest) {
@@ -36,16 +30,21 @@ export async function POST(req: NextRequest) {
     const version = typeof body?.version === "string" && body.version.trim() ? body.version.trim() : "latest";
     const notes = Array.isArray(body?.notes) ? body.notes.filter((v: unknown) => typeof v === "string") : [];
 
-    const subscribers = await readSubscribers();
+    const baseUrl = getBaseUrl(req);
+    const subscribers = (await readSubscribers()).filter((record) => record.confirmed);
     if (!subscribers.length) {
       return NextResponse.json({ ok: true, sent: 0, message: "No subscribers" });
     }
 
-    const tpl = releaseBroadcastTemplate(version, notes.length ? notes : ["Catalog and references were refreshed."]);
-
     let sent = 0;
-    for (const email of subscribers) {
-      await sendMail({ to: email, subject: tpl.subject, text: tpl.text, html: tpl.html });
+    for (const subscriber of subscribers) {
+      const unsubscribeUrl = `${baseUrl}/api/notify/unsubscribe?token=${encodeURIComponent(subscriber.unsubscribeToken)}`;
+      const tpl = releaseBroadcastTemplate(
+        version,
+        notes.length ? notes : ["Catalog and references were refreshed."],
+        unsubscribeUrl,
+      );
+      await sendMail({ to: subscriber.email, subject: tpl.subject, text: tpl.text, html: tpl.html });
       sent += 1;
     }
 

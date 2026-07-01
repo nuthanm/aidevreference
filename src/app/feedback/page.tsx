@@ -4,7 +4,7 @@ import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata(
   "Feedback",
-  "Send contact messages, feature requests, and notification signup requests.",
+  "Send feature requests and notification signup requests.",
   "/feedback",
 );
 

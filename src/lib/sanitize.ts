@@ -6,6 +6,23 @@ export function sanitizeMultiline(value: unknown) {
   return sanitizeText(value).replace(/\r\n/g, "\n");
 }
 
+export function hasSuspiciousInput(value: string) {
+  const normalized = value.toLowerCase();
+  const patterns = [
+    /<\s*script\b/,
+    /javascript\s*:/,
+    /onerror\s*=/,
+    /onload\s*=/,
+    /union\s+select/,
+    /drop\s+table/,
+    /xp_cmdshell/,
+    /;\s*--/,
+    /\/\*/,
+    /\*\//,
+  ];
+  return patterns.some((pattern) => pattern.test(normalized));
+}
+
 export function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")

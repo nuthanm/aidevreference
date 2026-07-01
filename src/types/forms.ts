@@ -4,14 +4,6 @@ export type ApiResult = {
   details?: Record<string, string[]>;
 };
 
-export type ContactInput = {
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-  captchaToken?: string;
-};
-
 export type FeedbackInput = {
   name: string;
   email: string;

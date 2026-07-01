@@ -1,33 +1,27 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { notifySchema } from "@/lib/validators";
-import { notifyAdminTemplate, notifyUserTemplate } from "@/lib/email-templates";
+import { notifyAdminTemplate, notifyVerificationTemplate } from "@/lib/email-templates";
+import { isBotLikeSubmission } from "@/lib/anti-bot";
 import { isMailerConfigured, sendMail } from "@/lib/mailer";
 import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
+import {
+  createPendingSubscriber,
+  getSubscriberByEmail,
+  readSubscribers,
+  refreshConfirmToken,
+  writeSubscribers,
+} from "@/lib/subscribers";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { zodErrorToFieldMap } from "@/lib/validators";
 
 export const runtime = "nodejs";
 
-const subscribersPath = path.join(process.cwd(), "data", "subscribers.json");
-
-async function readSubscribers(): Promise<string[]> {
-  try {
-    const raw = await fs.readFile(subscribersPath, "utf8");
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-    return parsed.filter((email) => typeof email === "string");
-  } catch {
-    return [];
+function getBaseUrl(req: NextRequest) {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) {
+    return configured.replace(/\/$/, "");
   }
-}
-
-async function writeSubscribers(emails: string[]) {
-  await fs.mkdir(path.dirname(subscribersPath), { recursive: true });
-  await fs.writeFile(subscribersPath, JSON.stringify(emails, null, 2), "utf8");
+  return req.nextUrl.origin;
 }
 
 export async function POST(req: NextRequest) {
@@ -57,25 +51,54 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "CAPTCHA verification failed" }, { status: 400 });
     }
 
-    const current = await readSubscribers();
-    if (!current.includes(parsed.data.email)) {
-      current.push(parsed.data.email);
-      await writeSubscribers(current);
+    if (captcha.skipped && isBotLikeSubmission(parsed.data.website, parsed.data.formStartedAt)) {
+      return NextResponse.json({ ok: false, error: "Spam detection triggered. Please try again." }, { status: 400 });
     }
 
-    if (isMailerConfigured()) {
-      const adminTo = process.env.MAIL_TO || process.env.SMTP_USER;
-      if (adminTo) {
-        const adminMail = notifyAdminTemplate(parsed.data);
-        await sendMail({ to: adminTo, subject: adminMail.subject, text: adminMail.text, html: adminMail.html });
-      }
-
-      const userMail = notifyUserTemplate();
-      await sendMail({ to: parsed.data.email, subject: userMail.subject, text: userMail.text, html: userMail.html });
+    if (!isMailerConfigured()) {
+      return NextResponse.json(
+        { ok: false, error: "Email service is not configured correctly on the server." },
+        { status: 503 },
+      );
     }
+
+    const baseUrl = getBaseUrl(req);
+
+    const records = await readSubscribers();
+    const existing = getSubscriberByEmail(records, parsed.data.email);
+
+    if (existing?.confirmed) {
+      return NextResponse.json({ ok: true, message: "Already subscribed" });
+    }
+
+    const subscriber = existing
+      ? refreshConfirmToken(existing)
+      : createPendingSubscriber(parsed.data.email);
+
+    const nextRecords = existing
+      ? records.map((record) => (record.email === existing.email ? subscriber : record))
+      : [...records, subscriber];
+    await writeSubscribers(nextRecords);
+
+    const adminTo = process.env.MAIL_TO || process.env.SMTP_USER;
+    if (adminTo) {
+      const adminMail = notifyAdminTemplate(parsed.data);
+      await sendMail({ to: adminTo, subject: adminMail.subject, text: adminMail.text, html: adminMail.html });
+    }
+
+    const confirmUrl = `${baseUrl}/api/notify/confirm?token=${encodeURIComponent(subscriber.confirmToken || "")}`;
+    const verificationMail = notifyVerificationTemplate(confirmUrl);
+    await sendMail({
+      to: parsed.data.email,
+      subject: verificationMail.subject,
+      text: verificationMail.text,
+      html: verificationMail.html,
+    });
 
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ ok: false, error: "Unable to save subscription." }, { status: 500 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unable to save subscription.";
+    const safeMessage = process.env.NODE_ENV === "production" ? "Unable to save subscription." : `Unable to save subscription: ${message}`;
+    return NextResponse.json({ ok: false, error: safeMessage }, { status: 500 });
   }
 }

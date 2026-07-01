@@ -1,38 +1,43 @@
 import { z } from "zod";
-import { sanitizeMultiline, sanitizeText } from "@/lib/sanitize";
+import { hasSuspiciousInput, sanitizeMultiline, sanitizeText } from "@/lib/sanitize";
+
+export const FEEDBACK_MESSAGE_MIN_CHARS = 10;
+export const FEEDBACK_MESSAGE_MAX_CHARS = 500;
+
+function rejectSuspiciousInput(value: string) {
+  return !hasSuspiciousInput(value);
+}
 
 const textField = (max: number) =>
   z
     .string()
     .transform((value) => sanitizeText(value))
-    .pipe(z.string().min(1, "This field is required").max(max));
+    .pipe(z.string().min(1, "This field is required").max(max))
+    .refine(rejectSuspiciousInput, "Suspicious input is not allowed");
 
-const messageField = (max: number) =>
+const messageField = (min: number, max: number) =>
   z
     .string()
     .transform((value) => sanitizeMultiline(value))
-    .pipe(z.string().min(10, "Message must be at least 10 characters").max(max));
-
-export const contactSchema = z.object({
-  name: textField(120).refine((value) => value.length >= 2, "Name must be at least 2 characters"),
-  email: z
-    .string()
-    .transform((value) => sanitizeText(value).toLowerCase())
-    .pipe(z.string().email("Enter a valid email").max(254)),
-  subject: textField(180),
-  message: messageField(5000),
-  captchaToken: z.string().optional(),
-});
+    .pipe(z.string().min(min, `Message must be at least ${min} characters`).max(max, `Message must be at most ${max} characters`))
+    .refine(rejectSuspiciousInput, "Suspicious input is not allowed");
 
 export const feedbackSchema = z.object({
   name: textField(120).refine((value) => value.length >= 2, "Name must be at least 2 characters"),
   email: z
     .string()
     .transform((value) => sanitizeText(value).toLowerCase())
-    .pipe(z.string().email("Enter a valid email").max(254)),
+    .pipe(z.string().email("Enter a valid email").max(254))
+    .refine(rejectSuspiciousInput, "Suspicious input is not allowed"),
   tool: z.enum(["Claude", "Cursor", "Copilot", "General"]),
   type: z.enum(["Bug report", "Missing command", "Content update", "Feature request"]),
-  message: messageField(4000),
+  message: messageField(FEEDBACK_MESSAGE_MIN_CHARS, FEEDBACK_MESSAGE_MAX_CHARS),
+  acceptPolicies: z.boolean().refine((value) => value, "Please accept Privacy Policy and Terms and Conditions"),
+  website: z
+    .string()
+    .transform((value) => sanitizeText(value))
+    .optional(),
+  formStartedAt: z.number().int().positive().optional(),
   captchaToken: z.string().optional(),
 });
 
@@ -40,7 +45,14 @@ export const notifySchema = z.object({
   email: z
     .string()
     .transform((value) => sanitizeText(value).toLowerCase())
-    .pipe(z.string().email("Enter a valid email").max(254)),
+    .pipe(z.string().email("Enter a valid email").max(254))
+    .refine(rejectSuspiciousInput, "Suspicious input is not allowed"),
+  acceptPolicies: z.boolean().refine((value) => value, "Please accept Privacy Policy and Terms and Conditions"),
+  website: z
+    .string()
+    .transform((value) => sanitizeText(value))
+    .optional(),
+  formStartedAt: z.number().int().positive().optional(),
   captchaToken: z.string().optional(),
 });
 
@@ -54,7 +66,5 @@ export function zodErrorToFieldMap(error: z.ZodError) {
     return acc;
   }, {});
 }
-
-export type ContactInput = z.infer<typeof contactSchema>;
 export type FeedbackInput = z.infer<typeof feedbackSchema>;
 export type NotifyInput = z.infer<typeof notifySchema>;

@@ -1,12 +1,15 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { Bot, BrainCircuit, Layers3, Loader2, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Controller } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import {
-  contactSchema,
+  FEEDBACK_MESSAGE_MAX_CHARS,
+  FEEDBACK_MESSAGE_MIN_CHARS,
   feedbackSchema,
   notifySchema,
 } from "@/lib/validators";
@@ -14,7 +17,162 @@ import {
 type ApiResponse = {
   ok: boolean;
   error?: string;
+  message?: string;
 };
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        container: string | HTMLElement,
+        options: {
+          sitekey: string;
+          theme?: "light" | "dark" | "auto";
+          callback?: (token: string) => void;
+          "error-callback"?: () => void;
+          "expired-callback"?: () => void;
+        },
+      ) => string;
+      remove: (widgetId: string) => void;
+    };
+  }
+}
+
+const TURNSTILE_SCRIPT_ID = "cf-turnstile-script";
+const TURNSTILE_SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+const notifyEmailCheckSchema = z.string().trim().email("Enter a valid email");
+
+function isConfiguredTurnstileSiteKey(value?: string) {
+  if (!value) return false;
+  return !value.toLowerCase().includes("replace_with");
+}
+
+function loadTurnstileScript() {
+  if (typeof window === "undefined") {
+    return Promise.resolve();
+  }
+
+  if (window.turnstile) {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const existing = document.getElementById(TURNSTILE_SCRIPT_ID) as HTMLScriptElement | null;
+
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Unable to load CAPTCHA script.")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = TURNSTILE_SCRIPT_ID;
+    script.src = TURNSTILE_SCRIPT_SRC;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Unable to load CAPTCHA script."));
+    document.head.appendChild(script);
+  });
+}
+
+function SelectedToolIcon({ tool }: { tool: "Claude" | "Cursor" | "Copilot" | "General" }) {
+  if (tool === "Claude") return <Bot size={18} strokeWidth={2.25} />;
+  if (tool === "Cursor") return <BrainCircuit size={18} strokeWidth={2.25} />;
+  if (tool === "Copilot") return <Sparkles size={18} strokeWidth={2.25} />;
+  return <Layers3 size={18} strokeWidth={2.25} />;
+}
+
+function TurnstileField({
+  onToken,
+  onLoadError,
+}: {
+  onToken: (token: string) => void;
+  onLoadError: (message: string) => void;
+}) {
+  const rawSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const siteKey = isConfiguredTurnstileSiteKey(rawSiteKey) ? rawSiteKey : undefined;
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const widgetIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!siteKey || !containerRef.current) {
+      return;
+    }
+
+    let active = true;
+
+    void loadTurnstileScript()
+      .then(() => {
+        if (!active || !window.turnstile || !containerRef.current) {
+          return;
+        }
+
+        widgetIdRef.current = window.turnstile.render(containerRef.current, {
+          sitekey: siteKey,
+          theme: "light",
+          callback: (token) => onToken(token),
+          "error-callback": () => {
+            onToken("");
+            onLoadError("CAPTCHA verification failed. Please try again.");
+          },
+          "expired-callback": () => {
+            onToken("");
+          },
+        });
+      })
+      .catch(() => {
+        onLoadError("Unable to load CAPTCHA. Please refresh and try again.");
+      });
+
+    return () => {
+      active = false;
+      if (widgetIdRef.current && window.turnstile) {
+        window.turnstile.remove(widgetIdRef.current);
+      }
+    };
+  }, [onLoadError, onToken, siteKey]);
+
+  if (!siteKey) {
+    return null;
+  }
+
+  return (
+    <div className="captcha-wrap">
+      <div ref={containerRef} />
+    </div>
+  );
+}
+
+type ValidationState = "idle" | "valid" | "invalid";
+
+function getValidationState({
+  valid,
+  touched,
+  dirty,
+  submitted,
+}: {
+  valid: boolean;
+  touched: boolean;
+  dirty: boolean;
+  submitted: boolean;
+}): ValidationState {
+  const engaged = touched || dirty || submitted;
+  if (!engaged) return "idle";
+  return valid ? "valid" : "invalid";
+}
+
+function ValidationMark({ state }: { state: ValidationState }) {
+  if (state === "idle") {
+    return null;
+  }
+
+  return state === "valid" ? (
+    <span className="field-mark valid" aria-label="Valid">Good</span>
+  ) : (
+    <span className="field-mark invalid" aria-label="Invalid">Fix</span>
+  );
+}
 
 async function postJson(url: string, payload: unknown) {
   const response = await fetch(url, {
@@ -26,137 +184,222 @@ async function postJson(url: string, payload: unknown) {
   if (!response.ok || !json.ok) {
     throw new Error(json.error || "Request failed");
   }
-}
-
-type ContactValues = z.infer<typeof contactSchema>;
-
-export function ContactForm() {
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
-  const form = useForm<ContactValues>({
-    resolver: zodResolver(contactSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      subject: "",
-      message: "",
-      captchaToken: "",
-    },
-  });
-
-  return (
-    <form
-      className="panel"
-      onSubmit={form.handleSubmit(async (values) => {
-        setSuccess("");
-        setError("");
-        try {
-          await postJson("/api/contact", values);
-          setSuccess("Message sent. We will get back to you shortly.");
-          form.reset();
-        } catch (err) {
-          setError(err instanceof Error ? err.message : "Unable to submit contact request.");
-        }
-      })}
-    >
-      <h3 style={{ marginTop: 0 }}>Contact</h3>
-      <div className="form-grid">
-        <label className="field">
-          Name
-          <input {...form.register("name")} />
-        </label>
-        <label className="field">
-          Email
-          <input type="email" {...form.register("email")} />
-        </label>
-        <label className="field full">
-          Subject
-          <input {...form.register("subject")} />
-        </label>
-        <label className="field full">
-          Message
-          <textarea {...form.register("message")} />
-        </label>
-      </div>
-      <button className="btn-primary" type="submit" disabled={form.formState.isSubmitting}>
-        {form.formState.isSubmitting ? <Loader2 size={14} className="spin" /> : "Send message"}
-      </button>
-      {success ? <div className="sent" style={{ display: "block" }}>{success}</div> : null}
-      {error ? <div className="error-text">{error}</div> : null}
-    </form>
-  );
+  return json;
 }
 
 type FeedbackValues = z.infer<typeof feedbackSchema>;
 
 export function FeedbackForm() {
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
+  const [statusText, setStatusText] = useState("");
+  const [statusTone, setStatusTone] = useState<"success" | "error" | "info">("info");
+  const requiresCaptcha = isConfiguredTurnstileSiteKey(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   const form = useForm<FeedbackValues>({
     resolver: zodResolver(feedbackSchema),
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: {
       name: "",
       email: "",
       tool: "General",
       type: "Feature request",
       message: "",
+      acceptPolicies: false,
+      website: "",
+      formStartedAt: Date.now(),
       captchaToken: "",
     },
   });
+
+  const selectedTool = form.watch("tool");
+  const hasAcceptedPolicies = form.watch("acceptPolicies") === true;
+  const nameValue = form.watch("name");
+  const emailValue = form.watch("email");
+  const messageValue = form.watch("message");
+  const captchaToken = form.watch("captchaToken");
+  const isFeedbackNameValid = nameValue.trim().length >= 2;
+  const isFeedbackEmailValid = notifyEmailCheckSchema.safeParse(emailValue).success;
+  const isFeedbackMessageValid =
+    messageValue.trim().length >= FEEDBACK_MESSAGE_MIN_CHARS
+    && messageValue.trim().length <= FEEDBACK_MESSAGE_MAX_CHARS;
+  const feedbackMessageLength = messageValue.trim().length;
+  const isFeedbackToolValid = Boolean(form.watch("tool"));
+  const isFeedbackTypeValid = Boolean(form.watch("type"));
+  const isFeedbackCaptchaValid = !requiresCaptcha || Boolean(captchaToken);
+  const canSubmitFeedback =
+    isFeedbackNameValid
+    && isFeedbackEmailValid
+    && isFeedbackMessageValid
+    && hasAcceptedPolicies
+    && isFeedbackCaptchaValid;
+  const feedbackSubmitted = form.formState.submitCount > 0;
+  const feedbackTouched = form.formState.touchedFields;
+  const feedbackDirty = form.formState.dirtyFields;
+
+  const nameMark = getValidationState({
+    valid: isFeedbackNameValid,
+    touched: Boolean(feedbackTouched.name),
+    dirty: Boolean(feedbackDirty.name),
+    submitted: feedbackSubmitted,
+  });
+  const emailMark = getValidationState({
+    valid: isFeedbackEmailValid,
+    touched: Boolean(feedbackTouched.email),
+    dirty: Boolean(feedbackDirty.email),
+    submitted: feedbackSubmitted,
+  });
+  const toolMark = getValidationState({
+    valid: isFeedbackToolValid,
+    touched: Boolean(feedbackTouched.tool),
+    dirty: Boolean(feedbackDirty.tool),
+    submitted: false,
+  });
+  const typeMark = getValidationState({
+    valid: isFeedbackTypeValid,
+    touched: Boolean(feedbackTouched.type),
+    dirty: Boolean(feedbackDirty.type),
+    submitted: false,
+  });
+  const messageMark = getValidationState({
+    valid: isFeedbackMessageValid,
+    touched: Boolean(feedbackTouched.message),
+    dirty: Boolean(feedbackDirty.message),
+    submitted: feedbackSubmitted,
+  });
+
+  const setCaptchaToken = useCallback(
+    (token: string) => {
+      form.setValue("captchaToken", token, { shouldDirty: true, shouldValidate: true });
+    },
+    [form],
+  );
+
+  const onCaptchaError = useCallback(
+    (message: string) => {
+      setStatusTone("error");
+      setStatusText(message);
+    },
+    [],
+  );
 
   return (
     <form
       className="panel"
       onSubmit={form.handleSubmit(async (values) => {
-        setSuccess("");
-        setError("");
+        setStatusTone("info");
+        setStatusText("Submitting your request...");
         try {
           await postJson("/api/feedback", values);
-          setSuccess("Feedback sent. Thank you for helping improve this reference.");
-          form.reset({ ...form.getValues(), message: "" });
+          const msg = "Request submitted. Thank you for helping improve this reference.";
+          setStatusTone("success");
+          setStatusText(msg);
+          form.reset({
+            name: "",
+            email: "",
+            tool: values.tool,
+            type: values.type,
+            message: "",
+            acceptPolicies: false,
+            website: "",
+            formStartedAt: Date.now(),
+            captchaToken: "",
+          });
         } catch (err) {
-          setError(err instanceof Error ? err.message : "Unable to send feedback.");
+          const msg = err instanceof Error ? err.message : "Unable to submit request.";
+          setStatusTone("error");
+          setStatusText(msg);
         }
       })}
     >
-      <h3 style={{ marginTop: 0 }}>Feature request</h3>
+      <div className="panel-heading">
+        <h3 style={{ marginTop: 0, marginBottom: 0 }}>Submit a request</h3>
+        <span className="selected-tool-icon" aria-label={`${selectedTool} selected`}>
+          <SelectedToolIcon tool={selectedTool} />
+        </span>
+      </div>
       <div className="form-grid">
+        <input type="text" tabIndex={-1} autoComplete="off" className="hp-field" {...form.register("website")} />
+        <input type="hidden" {...form.register("formStartedAt", { valueAsNumber: true })} />
+
         <label className="field">
-          Name
-          <input {...form.register("name")} />
+          <span className="field-label-row">Name <ValidationMark state={nameMark} /></span>
+          <input autoComplete="name" {...form.register("name")} />
+          {form.formState.errors.name ? <span className="field-error">{form.formState.errors.name.message}</span> : null}
         </label>
         <label className="field">
-          Email
-          <input type="email" {...form.register("email")} />
+          <span className="field-label-row">Email <ValidationMark state={emailMark} /></span>
+          <input type="email" autoComplete="email" {...form.register("email")} />
+          {form.formState.errors.email ? <span className="field-error">{form.formState.errors.email.message}</span> : null}
         </label>
         <label className="field">
-          Tool
+          <span className="field-label-row">Tool <ValidationMark state={toolMark} /></span>
           <select {...form.register("tool")}>
             <option>Claude</option>
             <option>Cursor</option>
             <option>Copilot</option>
             <option>General</option>
           </select>
+          {form.formState.errors.tool ? <span className="field-error">{form.formState.errors.tool.message}</span> : null}
         </label>
         <label className="field">
-          Type
+          <span className="field-label-row">Type <ValidationMark state={typeMark} /></span>
           <select {...form.register("type")}>
             <option>Bug report</option>
             <option>Missing command</option>
             <option>Content update</option>
             <option>Feature request</option>
           </select>
+          {form.formState.errors.type ? <span className="field-error">{form.formState.errors.type.message}</span> : null}
         </label>
         <label className="field full">
-          Message
-          <textarea {...form.register("message")} />
+          <span className="field-label-row">Message <ValidationMark state={messageMark} /></span>
+          <textarea maxLength={FEEDBACK_MESSAGE_MAX_CHARS} {...form.register("message")} />
+          <span className="field-helper">
+            Minimum {FEEDBACK_MESSAGE_MIN_CHARS} characters. {feedbackMessageLength}/{FEEDBACK_MESSAGE_MAX_CHARS}
+          </span>
+          {form.formState.errors.message ? <span className="field-error">{form.formState.errors.message.message}</span> : null}
         </label>
+
+        {requiresCaptcha ? (
+          <div className="field full">
+            <span className="field-label-row">CAPTCHA</span>
+            <TurnstileField onToken={setCaptchaToken} onLoadError={onCaptchaError} />
+          </div>
+        ) : null}
+
+        <Controller
+          control={form.control}
+          name="acceptPolicies"
+          render={({ field }) => (
+            <label className="consent-row full" htmlFor="feedback-consent">
+              <input
+                id="feedback-consent"
+                type="checkbox"
+                checked={field.value === true}
+                onChange={(event) => field.onChange(event.target.checked)}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+              />
+              <span>
+                I agree to the <Link href="/privacy-policy">Privacy Policy</Link> and <Link href="/terms-and-conditions">Terms and Conditions</Link>.
+              </span>
+            </label>
+          )}
+        />
+        {form.formState.errors.acceptPolicies ? <span className="field-error full">{form.formState.errors.acceptPolicies.message}</span> : null}
       </div>
-      <button className="btn-primary" type="submit" disabled={form.formState.isSubmitting}>
-        {form.formState.isSubmitting ? <Loader2 size={14} className="spin" /> : "Send feedback"}
+      <button
+        className="btn-primary"
+        type="submit"
+        disabled={form.formState.isSubmitting || !canSubmitFeedback}
+      >
+        {form.formState.isSubmitting ? <Loader2 size={14} className="spin" /> : "Submit request"}
       </button>
-      {success ? <div className="sent" style={{ display: "block" }}>{success}</div> : null}
-      {error ? <div className="error-text">{error}</div> : null}
+      {statusText ? (
+        <div className={`inline-toast ${statusTone}`} role="status" aria-live="polite">
+          {statusText}
+        </div>
+      ) : null}
     </form>
   );
 }
@@ -164,37 +407,129 @@ export function FeedbackForm() {
 type NotifyValues = z.infer<typeof notifySchema>;
 
 export function NotifyForm() {
-  const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [statusText, setStatusText] = useState("");
+  const [statusTone, setStatusTone] = useState<"success" | "error" | "info">("info");
+  const requiresCaptcha = isConfiguredTurnstileSiteKey(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   const form = useForm<NotifyValues>({
     resolver: zodResolver(notifySchema),
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: {
       email: "",
+      acceptPolicies: false,
+      website: "",
+      formStartedAt: Date.now(),
       captchaToken: "",
     },
   });
 
+  const emailValue = form.watch("email");
+  const hasAcceptedPolicies = form.watch("acceptPolicies") === true;
+  const captchaToken = form.watch("captchaToken");
+  const isNotifyEmailValid = notifyEmailCheckSchema.safeParse(emailValue).success;
+  const isNotifyCaptchaValid = !requiresCaptcha || Boolean(captchaToken);
+  const canSubmitNotify =
+    isNotifyEmailValid
+    && hasAcceptedPolicies
+    && isNotifyCaptchaValid;
+  const notifySubmitted = form.formState.submitCount > 0;
+  const notifyTouched = form.formState.touchedFields;
+  const notifyDirty = form.formState.dirtyFields;
+  const notifyEmailMark = getValidationState({
+    valid: isNotifyEmailValid,
+    touched: Boolean(notifyTouched.email),
+    dirty: Boolean(notifyDirty.email),
+    submitted: notifySubmitted,
+  });
+
+  const setCaptchaToken = useCallback(
+    (token: string) => {
+      form.setValue("captchaToken", token, { shouldDirty: true, shouldValidate: true });
+    },
+    [form],
+  );
+
+  const onCaptchaError = useCallback(
+    (message: string) => {
+      setError(message);
+    },
+    [setError],
+  );
+
   return (
     <form
       onSubmit={form.handleSubmit(async (values) => {
-        setSuccess("");
         setError("");
+        setStatusTone("info");
+        setStatusText("Submitting your notification request...");
         try {
-          await postJson("/api/notify", values);
-          setSuccess("You are on the list. Updates will land in your inbox.");
-          form.reset();
+          const response = await postJson("/api/notify", values);
+          const msg = response.message || "Check your inbox and confirm your subscription to receive updates.";
+          setStatusTone("success");
+          setStatusText(msg);
+          form.reset({ email: "", acceptPolicies: false, website: "", formStartedAt: Date.now(), captchaToken: "" });
         } catch (err) {
-          setError(err instanceof Error ? err.message : "Unable to register email.");
+          const msg = err instanceof Error ? err.message : "Unable to register email.";
+          setError(msg);
+          setStatusTone("error");
+          setStatusText(msg);
         }
       })}
     >
+      <input type="text" tabIndex={-1} autoComplete="off" className="hp-field" {...form.register("website")} />
+      <input type="hidden" {...form.register("formStartedAt", { valueAsNumber: true })} />
+
+      <div className="field-label-row" style={{ marginBottom: 6 }}>
+        Email <ValidationMark state={notifyEmailMark} />
+      </div>
       <div className="signup-row">
-        <input type="email" placeholder="Email address" {...form.register("email")} />
-        <button className="btn-claude" type="submit" disabled={form.formState.isSubmitting}>
+        <input type="email" placeholder="Email address" autoComplete="email" {...form.register("email")} />
+        <button
+          className="btn-claude"
+          type="submit"
+          disabled={form.formState.isSubmitting || !canSubmitNotify}
+        >
           {form.formState.isSubmitting ? <Loader2 size={14} className="spin" /> : "Notify me"}
         </button>
       </div>
-      {success ? <div className="signup-ok" style={{ display: "block" }}>{success}</div> : null}
+      {form.formState.errors.email ? <div className="error-text">{form.formState.errors.email.message}</div> : null}
+
+      {requiresCaptcha ? (
+        <div className="field" style={{ marginTop: 10 }}>
+          <span className="field-label-row">CAPTCHA</span>
+          <TurnstileField onToken={setCaptchaToken} onLoadError={onCaptchaError} />
+        </div>
+      ) : null}
+
+      <Controller
+        control={form.control}
+        name="acceptPolicies"
+        render={({ field }) => (
+          <label className="consent-row" htmlFor="notify-consent" style={{ marginTop: 8 }}>
+            <input
+              id="notify-consent"
+              type="checkbox"
+              checked={field.value === true}
+              onChange={(event) => field.onChange(event.target.checked)}
+              onBlur={field.onBlur}
+              name={field.name}
+              ref={field.ref}
+            />
+            <span>
+              I agree to the <Link href="/privacy-policy">Privacy Policy</Link> and <Link href="/terms-and-conditions">Terms and Conditions</Link>.
+            </span>
+          </label>
+        )}
+      />
+      {form.formState.errors.acceptPolicies ? <div className="error-text">{form.formState.errors.acceptPolicies.message}</div> : null}
+
+      {statusText ? (
+        <div className={`inline-toast ${statusTone}`} role="status" aria-live="polite">
+          {statusText}
+        </div>
+      ) : null}
+
       {error ? <div className="error-text">{error}</div> : null}
     </form>
   );
