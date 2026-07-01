@@ -460,7 +460,6 @@ export function NotifyForm() {
   return (
     <form
       onSubmit={form.handleSubmit(async (values) => {
-        setError("");
         setStatusTone("info");
         setStatusText("Submitting your notification request...");
         try {
