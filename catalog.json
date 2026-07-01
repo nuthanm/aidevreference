@@ -1,7 +1,9 @@
 {
   "tools": {
     "claude": {
+      "maker": "Anthropic",
       "subtitle": "Remote feed overrides for Claude",
+      "officialDocs": ["https://docs.anthropic.com/en/docs/claude-code"],
       "groups": [
         {
           "id": "remote-claude",
@@ -18,7 +20,9 @@
       ]
     },
     "cursor": {
+      "maker": "Anysphere",
       "subtitle": "Remote feed overrides for Cursor",
+      "officialDocs": ["https://docs.cursor.com"],
       "groups": [
         {
           "id": "remote-cursor",
@@ -35,7 +39,9 @@
       ]
     },
     "copilot": {
+      "maker": "Microsoft/GitHub",
       "subtitle": "Remote feed overrides for Copilot",
+      "officialDocs": ["https://code.visualstudio.com/docs/copilot"],
       "groups": [
         {
           "id": "remote-copilot",

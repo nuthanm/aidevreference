@@ -13,10 +13,13 @@ export type SubscriberRecord = {
 
 const CONFIRM_TOKEN_HOURS = 48;
 const SUBSCRIBERS_TABLE = "subscribers";
+const BROADCAST_STATE_TABLE = "release_broadcast_state";
+const BROADCAST_STATE_ID = "release-feed";
 
 declare global {
   var __aidevrefSql: Sql | undefined;
   var __aidevrefSubscribersTableReady: boolean | undefined;
+  var __aidevrefBroadcastStateTableReady: boolean | undefined;
 }
 
 function nowIso() {
@@ -72,6 +75,26 @@ async function ensureSubscribersTable() {
   globalThis.__aidevrefSubscribersTableReady = true;
 }
 
+async function ensureBroadcastStateTable() {
+  if (globalThis.__aidevrefBroadcastStateTableReady) {
+    return;
+  }
+
+  const sql = getSqlClient();
+  await sql.unsafe(`
+    CREATE TABLE IF NOT EXISTS ${BROADCAST_STATE_TABLE} (
+      id TEXT PRIMARY KEY,
+      last_feed_signature TEXT NOT NULL,
+      last_feed_total INTEGER NOT NULL DEFAULT 0,
+      last_version TEXT NOT NULL,
+      last_sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  globalThis.__aidevrefBroadcastStateTableReady = true;
+}
+
 function toIsoString(value: unknown) {
   if (!value) {
     return undefined;
@@ -95,6 +118,20 @@ type SubscriberRow = {
   unsubscribe_token: string;
 };
 
+type BroadcastStateRow = {
+  last_feed_signature: string;
+  last_feed_total: number;
+  last_version: string;
+  last_sent_at: string | Date;
+};
+
+export type BroadcastStateRecord = {
+  lastFeedSignature: string;
+  lastFeedTotal: number;
+  lastVersion: string;
+  lastSentAt: string;
+};
+
 function fromRow(row: SubscriberRow): SubscriberRecord {
   return {
     email: row.email,
@@ -104,6 +141,15 @@ function fromRow(row: SubscriberRow): SubscriberRecord {
     confirmToken: row.confirm_token || undefined,
     confirmExpiresAt: toIsoString(row.confirm_expires_at),
     unsubscribeToken: row.unsubscribe_token,
+  };
+}
+
+function broadcastStateFromRow(row: BroadcastStateRow): BroadcastStateRecord {
+  return {
+    lastFeedSignature: row.last_feed_signature,
+    lastFeedTotal: Number(row.last_feed_total || 0),
+    lastVersion: row.last_version,
+    lastSentAt: toIsoString(row.last_sent_at) || nowIso(),
   };
 }
 
@@ -303,6 +349,60 @@ export async function getSubscriberStats() {
     pending: total - confirmed,
     total,
   };
+}
+
+export async function getBroadcastStateStored() {
+  await ensureBroadcastStateTable();
+  const sql = getSqlClient();
+  const rows = await sql<BroadcastStateRow[]>`
+    SELECT
+      last_feed_signature,
+      last_feed_total,
+      last_version,
+      last_sent_at
+    FROM release_broadcast_state
+    WHERE id = ${BROADCAST_STATE_ID}
+    LIMIT 1
+  `;
+
+  return rows[0] ? broadcastStateFromRow(rows[0]) : undefined;
+}
+
+export async function upsertBroadcastStateStored(input: {
+  feedSignature: string;
+  feedTotal: number;
+  version: string;
+}) {
+  await ensureBroadcastStateTable();
+  const sql = getSqlClient();
+
+  await sql`
+    INSERT INTO release_broadcast_state (
+      id,
+      last_feed_signature,
+      last_feed_total,
+      last_version,
+      last_sent_at,
+      updated_at
+    )
+    VALUES (
+      ${BROADCAST_STATE_ID},
+      ${input.feedSignature},
+      ${input.feedTotal},
+      ${input.version},
+      NOW(),
+      NOW()
+    )
+    ON CONFLICT (id)
+    DO UPDATE SET
+      last_feed_signature = EXCLUDED.last_feed_signature,
+      last_feed_total = EXCLUDED.last_feed_total,
+      last_version = EXCLUDED.last_version,
+      last_sent_at = NOW(),
+      updated_at = NOW()
+  `;
+
+  return getBroadcastStateStored();
 }
 
 export function getSubscriberByEmail(records: SubscriberRecord[], email: string) {

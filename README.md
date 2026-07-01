@@ -65,12 +65,14 @@ See [.env.example](.env.example) for all variables.
 ## API Endpoints
 
 - `GET /api/catalog`: merged catalog from base data + remote feeds
+- `GET /api/releases`: combined GitHub releases + feed update timeline and state
 - `POST /api/feedback`: validated feature/issue request submission
 - `POST /api/notify`: validated update subscription (sends confirmation email)
 - `GET /api/notify/confirm?token=...`: confirms subscription token
 - `GET /api/notify/unsubscribe?token=...`: unsubscribes recipient
 - `GET /api/notify/stats`: public-safe subscription counters (confirmed, pending, total)
 - `POST /api/notify/broadcast`: sends release notification to subscribers (requires `x-admin-key` header)
+- `POST /api/notify/auto-broadcast`: scheduler endpoint, sends feed updates only when new entries appear since last successful broadcast
 
 ## Routes
 
@@ -123,6 +125,11 @@ Required GitHub repository secrets:
 - `BROADCAST_ENDPOINT_URL` (example: `https://your-domain.com/api/notify/broadcast`)
 - `ADMIN_BROADCAST_KEY` (must match server env value)
 
+Optional for scheduled auto-broadcast:
+
+- `CRON_BROADCAST_KEY` (must match server env value)
+- `AUTO_BROADCAST_ENDPOINT_URL` (example: `https://your-domain.com/api/notify/auto-broadcast`)
+
 How to trigger:
 
 1. Open **Actions** tab in GitHub.
@@ -131,3 +138,22 @@ How to trigger:
 4. Enter version and release notes (one note per line).
 
 Only confirmed subscribers receive broadcast emails.
+
+## Automatic Feed Broadcast (Scheduler)
+
+Trigger endpoint:
+
+```bash
+POST /api/notify/auto-broadcast
+x-cron-key: your_cron_broadcast_key
+```
+
+Behavior:
+
+- Sends emails only when feed updates are new since the last successful send.
+- If any recipient delivery fails, state is not advanced and manual retry remains available in Release Notes.
+
+GitHub Actions workflow:
+
+- [.github/workflows/auto-broadcast-feed-updates.yml](.github/workflows/auto-broadcast-feed-updates.yml)
+- Runs every 6 hours and supports manual trigger via `workflow_dispatch`.

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isMailerConfigured, sendMail } from "@/lib/mailer";
-import { releaseBroadcastTemplate } from "@/lib/email-templates";
-import { readConfirmedSubscribers } from "@/lib/subscribers";
+import { sendReleaseBroadcast } from "@/lib/release-broadcast";
+import { upsertBroadcastStateStored } from "@/lib/subscribers";
 
 export const runtime = "nodejs";
 
@@ -17,38 +16,36 @@ export async function POST(req: NextRequest) {
   try {
     const adminKey = process.env.ADMIN_BROADCAST_KEY;
     const authHeader = req.headers.get("x-admin-key");
+    const allowWithoutKey = process.env.NODE_ENV !== "production" && !adminKey;
 
-    if (!adminKey || authHeader !== adminKey) {
+    if (!allowWithoutKey && (!adminKey || authHeader !== adminKey)) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (!isMailerConfigured()) {
-      return NextResponse.json({ ok: false, error: "Mailer not configured" }, { status: 503 });
     }
 
     const body = await req.json();
     const version = typeof body?.version === "string" && body.version.trim() ? body.version.trim() : "latest";
     const notes = Array.isArray(body?.notes) ? body.notes.filter((v: unknown) => typeof v === "string") : [];
+    const feedSignature = typeof body?.feedSignature === "string" ? body.feedSignature.trim() : "";
+    const feedTotal = typeof body?.feedTotal === "number" && Number.isFinite(body.feedTotal)
+      ? Math.max(0, Math.trunc(body.feedTotal))
+      : 0;
 
     const baseUrl = getBaseUrl(req);
-    const subscribers = await readConfirmedSubscribers();
-    if (!subscribers.length) {
-      return NextResponse.json({ ok: true, sent: 0, message: "No subscribers" });
-    }
+    const result = await sendReleaseBroadcast({ baseUrl, version, notes });
 
-    let sent = 0;
-    for (const subscriber of subscribers) {
-      const unsubscribeUrl = `${baseUrl}/api/notify/unsubscribe?token=${encodeURIComponent(subscriber.unsubscribeToken)}`;
-      const tpl = releaseBroadcastTemplate(
+    if (result.ok && feedSignature) {
+      await upsertBroadcastStateStored({
+        feedSignature,
+        feedTotal,
         version,
-        notes.length ? notes : ["Catalog and references were refreshed."],
-        unsubscribeUrl,
-      );
-      await sendMail({ to: subscriber.email, subject: tpl.subject, text: tpl.text, html: tpl.html });
-      sent += 1;
+      }).catch(() => undefined);
     }
 
-    return NextResponse.json({ ok: true, sent });
+    if (!result.ok && result.error) {
+      return NextResponse.json(result, { status: 503 });
+    }
+
+    return NextResponse.json(result);
   } catch {
     return NextResponse.json({ ok: false, error: "Unable to send broadcast" }, { status: 500 });
   }

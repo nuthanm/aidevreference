@@ -248,6 +248,49 @@ function mergeCatalog(base: Catalog, incoming: Partial<Catalog>) {
   }
 }
 
+export function collectCatalogValidationWarnings(catalog: Catalog) {
+  const warnings: string[] = [];
+  const tools = ["claude", "cursor", "copilot"] as const;
+
+  for (const tool of tools) {
+    const conf = catalog.tools[tool];
+    if (!conf) {
+      warnings.push(`tools.${tool} is missing`);
+      continue;
+    }
+
+    if (!conf.maker?.trim()) warnings.push(`tools.${tool}.maker is missing`);
+    if (!conf.subtitle?.trim()) warnings.push(`tools.${tool}.subtitle is missing`);
+    if (!Array.isArray(conf.officialDocs) || conf.officialDocs.length === 0) {
+      warnings.push(`tools.${tool}.officialDocs is missing or empty`);
+    }
+
+    if (!Array.isArray(conf.groups) || conf.groups.length === 0) {
+      warnings.push(`tools.${tool}.groups is missing or empty`);
+      continue;
+    }
+
+    conf.groups.forEach((group, groupIndex) => {
+      const groupLabel = group.id || `group-${groupIndex}`;
+      if (!group.id?.trim()) warnings.push(`tools.${tool}.groups[${groupIndex}].id is missing`);
+      if (!group.label?.trim()) warnings.push(`tools.${tool}.groups[${groupIndex}].label is missing`);
+      if (!Array.isArray(group.entries) || group.entries.length === 0) {
+        warnings.push(`tools.${tool}.groups.${groupLabel}.entries is missing or empty`);
+        return;
+      }
+
+      group.entries.forEach((entry, entryIndex) => {
+        if (!entry.cmd?.trim()) warnings.push(`tools.${tool}.groups.${groupLabel}.entries[${entryIndex}].cmd is missing`);
+        if (!entry.name?.trim()) warnings.push(`tools.${tool}.groups.${groupLabel}.entries[${entryIndex}].name is missing`);
+        if (!entry.desc?.trim()) warnings.push(`tools.${tool}.groups.${groupLabel}.entries[${entryIndex}].desc is missing`);
+        if (!entry.ex?.trim()) warnings.push(`tools.${tool}.groups.${groupLabel}.entries[${entryIndex}].ex is missing`);
+      });
+    });
+  }
+
+  return warnings;
+}
+
 export async function getMergedCatalog(): Promise<Catalog> {
   const merged: Catalog = JSON.parse(JSON.stringify(baseCatalog));
   const envFeeds = process.env.CATALOG_FEEDS?.split(",")
@@ -255,7 +298,7 @@ export async function getMergedCatalog(): Promise<Catalog> {
     .filter(Boolean);
 
   const feeds = envFeeds?.length ? envFeeds : baseCatalog.sourceFeeds;
-  merged.sourceFeeds = feeds;
+  merged.sourceFeeds = [...feeds];
 
   for (const feed of feeds) {
     try {
@@ -274,5 +317,13 @@ export async function getMergedCatalog(): Promise<Catalog> {
   }
 
   merged.generatedAt = new Date().toISOString();
+
+  if (process.env.NODE_ENV !== "production") {
+    const warnings = collectCatalogValidationWarnings(merged);
+    if (warnings.length) {
+      console.warn("[catalog] completeness warnings:\n- " + warnings.join("\n- "));
+    }
+  }
+
   return merged;
 }
