@@ -407,7 +407,6 @@ export function FeedbackForm() {
 type NotifyValues = z.infer<typeof notifySchema>;
 
 export function NotifyForm() {
-  const [error, setError] = useState("");
   const [statusText, setStatusText] = useState("");
   const [statusTone, setStatusTone] = useState<"success" | "error" | "info">("info");
   const requiresCaptcha = isConfiguredTurnstileSiteKey(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
@@ -452,9 +451,10 @@ export function NotifyForm() {
 
   const onCaptchaError = useCallback(
     (message: string) => {
-      setError(message);
+      setStatusTone("error");
+      setStatusText(message);
     },
-    [setError],
+    [],
   );
 
   return (
@@ -471,7 +471,6 @@ export function NotifyForm() {
           form.reset({ email: "", acceptPolicies: false, website: "", formStartedAt: Date.now(), captchaToken: "" });
         } catch (err) {
           const msg = err instanceof Error ? err.message : "Unable to register email.";
-          setError(msg);
           setStatusTone("error");
           setStatusText(msg);
         }
@@ -530,7 +529,6 @@ export function NotifyForm() {
         </div>
       ) : null}
 
-      {error ? <div className="error-text">{error}</div> : null}
     </form>
   );
 }
