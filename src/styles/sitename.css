@@ -1938,6 +1938,11 @@
     }
 
     @media (max-width: 768px) {
+      html,
+      body {
+        overflow-x: hidden;
+      }
+
       .hero-surface {
         border-radius: 20px;
         padding: 18px 12px 22px;
@@ -1950,6 +1955,7 @@
         gap: 10px;
         align-items: flex-start;
         flex-wrap: wrap;
+        position: fixed;
       }
 
       .mobile-menu-btn {
@@ -1957,14 +1963,21 @@
       }
 
       .brand {
-        flex: 0 1 auto;
+        order: 1;
+        flex: 1 1 auto;
+        width: auto;
+        justify-content: flex-start;
+        padding: 0;
         min-width: 0;
         font-size: 13px;
       }
 
       .brand-quick-actions {
-        order: 1;
+        order: 2;
+        width: auto;
         margin-left: auto;
+        justify-content: flex-end;
+        flex: 0 0 auto;
         gap: 6px;
       }
 
@@ -1982,9 +1995,15 @@
       }
 
       .top-actions {
-        order: 2;
+        order: 3;
         width: 100%;
         margin-left: 0;
+      }
+
+      .mobile-menu-btn {
+        order: 0;
+        position: static;
+        z-index: auto;
       }
 
       .search-wrap,
@@ -1995,11 +2014,7 @@
       }
 
       .disclaimer {
-        top: calc(104px + env(safe-area-inset-top));
-        padding: 8px 12px;
-        gap: 4px;
-        grid-template-columns: 1fr;
-        align-items: start;
+        display: none;
       }
 
       .disclaimer-text {
@@ -2012,23 +2027,23 @@
       }
 
       .update-banner {
-        top: calc(148px + env(safe-area-inset-top));
+        top: calc(104px + env(safe-area-inset-top));
       }
 
       .layout {
-        margin-top: calc(148px + env(safe-area-inset-top));
+        margin-top: calc(104px + env(safe-area-inset-top));
       }
 
       body.has-update .layout {
-        margin-top: calc(190px + env(safe-area-inset-top));
+        margin-top: calc(146px + env(safe-area-inset-top));
       }
 
       .sidebar {
         position: fixed;
-        top: calc(148px + env(safe-area-inset-top));
+        top: calc(104px + env(safe-area-inset-top));
         left: 0;
         width: min(86vw, 320px);
-        height: calc(100dvh - (148px + env(safe-area-inset-top)));
+        height: calc(100dvh - (104px + env(safe-area-inset-top)));
         max-height: none;
         border-right: 1px solid var(--border);
         border-bottom: 0;
@@ -2081,7 +2096,7 @@
 
       .sidebar-overlay {
         position: fixed;
-        inset: calc(148px + env(safe-area-inset-top)) 0 0;
+        inset: calc(104px + env(safe-area-inset-top)) 0 0;
         border: 0;
         background: rgba(24, 24, 42, 0.24);
         backdrop-filter: blur(1px);
@@ -2098,12 +2113,12 @@
       }
 
       body.has-update .sidebar {
-        top: calc(190px + env(safe-area-inset-top));
-        height: calc(100dvh - (190px + env(safe-area-inset-top)));
+        top: calc(146px + env(safe-area-inset-top));
+        height: calc(100dvh - (146px + env(safe-area-inset-top)));
       }
 
       body.has-update .sidebar-overlay {
-        inset: calc(190px + env(safe-area-inset-top)) 0 0;
+        inset: calc(146px + env(safe-area-inset-top)) 0 0;
       }
 
       .content {
@@ -2118,11 +2133,18 @@
 
       .footer {
         margin-left: 0;
+        width: 100%;
+        max-width: none;
         text-align: center;
         grid-template-columns: 1fr;
         grid-template-areas: "left" "center" "right" "legal" "social";
         gap: 6px;
         padding: 10px 14px;
+      }
+
+      .layout.sidebar-collapsed + .footer {
+        margin-left: 0;
+        width: 100%;
       }
 
       .f-left,
@@ -2132,6 +2154,18 @@
         justify-items: center;
       }
 
+      .f-left,
+      .f-center,
+      .f-right,
+      .f-legal,
+      .f-social {
+        width: 100%;
+      }
+
+      .f-left {
+        display: none;
+      }
+
       .f-center {
         text-align: center;
         justify-items: center;
@@ -2139,6 +2173,8 @@
 
       .f-legal {
         justify-content: center;
+        flex-wrap: wrap;
+        row-gap: 4px;
       }
 
       .f-link-row {
@@ -2147,6 +2183,14 @@
 
       .f-social {
         justify-content: center;
+      }
+
+      .f-main {
+        font-weight: 600;
+      }
+
+      .f-sub {
+        font-weight: 500;
       }
 
       .hero-tool-row {
@@ -2226,16 +2270,15 @@
       }
 
       .mobile-menu-btn {
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        z-index: 2;
+        order: 0;
+        position: static;
+        z-index: auto;
       }
 
       .brand {
-        width: 100%;
-        justify-content: center;
-        padding: 0 42px;
+        width: auto;
+        justify-content: flex-start;
+        padding: 0;
         font-size: 12.5px;
       }
 
