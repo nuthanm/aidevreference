@@ -31,9 +31,13 @@ export async function verifyTurnstileToken(token?: string, ip?: string | null) {
       return { ok: false, skipped: false };
     }
 
-    const json = (await res.json()) as { success?: boolean };
+    const json = (await res.json()) as { success?: boolean; "error-codes"?: string[] };
     return { ok: Boolean(json.success), skipped: false };
-  } catch {
-    return { ok: false, skipped: false };
+  } catch (err) {
+    // Network-level failure reaching Cloudflare (e.g. DNS resolution error).
+    // Log and treat as skipped so a bot-detection fallback is applied instead
+    // of hard-blocking legitimate users.
+    console.error("[turnstile] verification network error:", err instanceof Error ? err.message : String(err));
+    return { ok: true, skipped: true };
   }
 }
