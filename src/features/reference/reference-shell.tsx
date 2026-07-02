@@ -646,7 +646,7 @@ export function ReferenceShell() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-route={route}>
       <header className="topbar">
         <button
           className="mobile-menu-btn"
@@ -1022,9 +1022,6 @@ export function ReferenceShell() {
                           Mark as reviewed
                         </button>
                       ) : null}
-                      <button className="btn-ghost" type="button" onClick={() => navigate("landing")}>
-                        <X size={14} /> Close
-                      </button>
                     </div>
                   </div>
 
