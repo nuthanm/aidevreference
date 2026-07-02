@@ -14,7 +14,7 @@ export async function getMergedCatalog(): Promise<Catalog> {
       merged.sourceFeeds = ["database-snapshot"];
     }
   } catch {
-    // Fallback to JSON cache/base catalog when DB is unavailable.
+    // Fallback to in-code base catalog when DB is unavailable.
   }
 
   if (!merged.generatedAt) {

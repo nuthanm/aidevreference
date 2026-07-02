@@ -4,7 +4,7 @@ import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata(
   "Release Notes",
-  "Latest updates for AI Developer Tools Reference.",
+  "Latest catalog updates for AI Dev Reference.",
   "/release-notes",
 );
 

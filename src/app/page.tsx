@@ -3,8 +3,8 @@ import { ReferenceShell } from "@/features/reference/reference-shell";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata(
-  "AI Developer Tools Reference",
-  "Searchable command, skills, subagent, and hooks reference for Claude, Cursor, and Copilot.",
+  "Home",
+  "Searchable commands, skills, agents, and hooks for Claude, Cursor, and GitHub Copilot.",
   "/",
 );
 

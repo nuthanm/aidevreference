@@ -22,6 +22,11 @@ import {
 } from "lucide-react";
 import { FeedbackForm, NotifyForm } from "@/features/forms/forms";
 import { useFooterTicker } from "@/hooks/use-footer-ticker";
+import {
+  markAllUnseenReviewed,
+  syncCatalogUpdates,
+  type ReleaseLogEntry,
+} from "@/lib/catalog-updates-client";
 import { baseCatalog, type Catalog, type Group, type ToolCatalog } from "@/lib/catalog";
 import type { AgentEntry, HookEntry, SkillEntry, CommandEntry } from "@/lib/catalog";
 
@@ -39,12 +44,12 @@ type SubscriberStats = {
   total: number;
 };
 
-type CatalogUpdateRow = {
-  key: string;
-  tool: "claude" | "cursor" | "copilot";
-  kind: "command" | "skill" | "agent" | "hook";
-  title: string;
-  details: string;
+type ReleaseDisplayMode = "new" | "history" | "empty";
+
+type ReleaseDisplay = {
+  entries: ReleaseLogEntry[];
+  mode: ReleaseDisplayMode;
+  unseenCount: number;
 };
 
 const PATH_TO_ROUTE: Record<string, RouteId> = {
@@ -73,60 +78,25 @@ function badgeLabel(v?: string) {
   return "";
 }
 
+function countCommands(tool: ToolCatalog) {
+  return tool.groups.reduce((sum, group) => sum + group.entries.length, 0);
+}
+
 function toCatalogTools() {
   return JSON.parse(JSON.stringify(baseCatalog.tools)) as Catalog["tools"];
 }
 
-function extractCatalogRows(tools: Catalog["tools"]): CatalogUpdateRow[] {
-  const rows: CatalogUpdateRow[] = [];
+const TOOL_ORDER = ["claude", "cursor", "copilot"] as const;
+const TOOL_LABELS: Record<(typeof TOOL_ORDER)[number], string> = {
+  claude: "Claude",
+  cursor: "Cursor",
+  copilot: "Copilot",
+};
 
-  for (const tool of ["claude", "cursor", "copilot"] as const) {
-    const conf = tools[tool];
-
-    for (const group of conf.groups) {
-      for (const entry of group.entries) {
-        rows.push({
-          key: `${tool}|command|${group.id}|${entry.cmd}|${entry.name}`,
-          tool,
-          kind: "command",
-          title: `${entry.cmd} ${entry.name}`.trim(),
-          details: entry.desc || "Command entry",
-        });
-      }
-    }
-
-    for (const skill of conf.skills || []) {
-      rows.push({
-        key: `${tool}|skill|${skill.cmd}|${skill.name}`,
-        tool,
-        kind: "skill",
-        title: `${skill.cmd} ${skill.name}`.trim(),
-        details: skill.desc || "Skill entry",
-      });
-    }
-
-    for (const agent of conf.agents || []) {
-      rows.push({
-        key: `${tool}|agent|${agent.name}`,
-        tool,
-        kind: "agent",
-        title: agent.name,
-        details: agent.desc || "Agent entry",
-      });
-    }
-
-    for (const hook of conf.hooks || []) {
-      rows.push({
-        key: `${tool}|hook|${hook.cmd}|${hook.name}`,
-        tool,
-        kind: "hook",
-        title: `${hook.cmd} ${hook.name}`.trim(),
-        details: hook.desc || "Hook entry",
-      });
-    }
-  }
-
-  return rows;
+function formatReleaseDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Recently added";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
 export function ReferenceShell() {
@@ -141,8 +111,11 @@ export function ReferenceShell() {
   });
   const [subscriberStats, setSubscriberStats] = useState<SubscriberStats | null>(null);
   const [catalogUpdateCount, setCatalogUpdateCount] = useState(0);
-  const [catalogUpdateRows, setCatalogUpdateRows] = useState<CatalogUpdateRow[]>([]);
-  const [catalogUpdatesPage, setCatalogUpdatesPage] = useState(1);
+  const [releaseDisplay, setReleaseDisplay] = useState<ReleaseDisplay>({
+    entries: [],
+    mode: "empty",
+    unseenCount: 0,
+  });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -240,12 +213,19 @@ export function ReferenceShell() {
 
   const showSearchSuggestions = Boolean(searchFocused && search.trim());
 
-  const catalogUpdatesPageSize = 10;
-  const catalogUpdatesTotalPages = Math.max(1, Math.ceil(catalogUpdateRows.length / catalogUpdatesPageSize));
-  const visibleCatalogUpdates = useMemo(() => {
-    const start = (catalogUpdatesPage - 1) * catalogUpdatesPageSize;
-    return catalogUpdateRows.slice(start, start + catalogUpdatesPageSize);
-  }, [catalogUpdateRows, catalogUpdatesPage]);
+  const groupedReleaseEntries = useMemo(() => {
+    const grouped: Record<(typeof TOOL_ORDER)[number], ReleaseLogEntry[]> = {
+      claude: [],
+      cursor: [],
+      copilot: [],
+    };
+
+    for (const entry of releaseDisplay.entries) {
+      grouped[entry.tool].push(entry);
+    }
+
+    return grouped;
+  }, [releaseDisplay.entries]);
 
   const totalEntries = useMemo(() => {
     return Object.values(data).reduce((sum, tool) => {
@@ -311,45 +291,49 @@ export function ReferenceShell() {
   }, [activeTool]);
 
   useEffect(() => {
-    const storageKey = "aidevref-catalog-seen-keys-v1";
-    const rows = extractCatalogRows(data);
-    const currentKeys = rows.map((row) => row.key);
-    const seenRaw = localStorage.getItem(storageKey);
-
-    if (!seenRaw) {
-      localStorage.setItem(storageKey, JSON.stringify(currentKeys));
-      setCatalogUpdateCount(0);
-      setCatalogUpdateRows([]);
-      return;
-    }
-
-    let seenKeys = new Set<string>();
-    try {
-      const parsed = JSON.parse(seenRaw) as string[];
-      seenKeys = new Set(Array.isArray(parsed) ? parsed : []);
-    } catch {
-      seenKeys = new Set<string>();
-    }
-
-    const unseenRows = rows.filter((row) => !seenKeys.has(row.key));
+    const synced = syncCatalogUpdates(data);
 
     if (route === "release-notes") {
-      setCatalogUpdateRows(unseenRows);
+      if (synced.unseenEntries.length > 0) {
+        setReleaseDisplay({
+          entries: synced.unseenEntries,
+          mode: "new",
+          unseenCount: synced.unseenEntries.length,
+        });
+      } else if (synced.releaseLog.length > 0) {
+        setReleaseDisplay({
+          entries: synced.releaseLog.slice(0, 20),
+          mode: "history",
+          unseenCount: 0,
+        });
+      } else {
+        setReleaseDisplay({ entries: [], mode: "empty", unseenCount: 0 });
+      }
       setCatalogUpdateCount(0);
-      setCatalogUpdatesPage(1);
-      localStorage.setItem(storageKey, JSON.stringify(currentKeys));
       return;
     }
 
-    setCatalogUpdateRows([]);
-    setCatalogUpdateCount(unseenRows.length);
+    setCatalogUpdateCount(synced.badgeCount);
   }, [data, route]);
 
-  useEffect(() => {
-    if (catalogUpdatesPage > catalogUpdatesTotalPages) {
-      setCatalogUpdatesPage(catalogUpdatesTotalPages);
+  function handleMarkUpdatesReviewed() {
+    const synced = syncCatalogUpdates(data);
+    if (!synced.unseenEntries.length) return;
+
+    markAllUnseenReviewed(synced.unseenEntries.map((entry) => entry.key));
+    const after = syncCatalogUpdates(data);
+
+    if (after.releaseLog.length > 0) {
+      setReleaseDisplay({
+        entries: after.releaseLog.slice(0, 20),
+        mode: "history",
+        unseenCount: 0,
+      });
+    } else {
+      setReleaseDisplay({ entries: [], mode: "empty", unseenCount: 0 });
     }
-  }, [catalogUpdatesPage, catalogUpdatesTotalPages]);
+    setCatalogUpdateCount(0);
+  }
 
   useEffect(() => {
     void (async () => {
@@ -624,18 +608,19 @@ export function ReferenceShell() {
   function toolNav(tool: "claude" | "cursor" | "copilot", label: string, icon: React.ReactNode) {
     const active = route === tool;
     return (
-      <div className={active ? "tool-open" : ""}>
+      <div className={`tool-nav-item ${active ? "tool-open" : ""}`}>
         <button
-          className={`nav-btn has-tooltip ${active ? "active" : ""}`}
+          className={`nav-btn has-tooltip tool-${tool} ${active ? "active" : ""}`}
           onClick={() => navigate(tool)}
           data-tooltip={label}
           aria-label={label}
           title={label}
+          aria-expanded={active}
         >
           <span className="nav-icon-wrap">{icon}</span>
           <span className="nav-label">{label}</span>
         </button>
-        <div className="sub-nav">
+        <div className={`sub-nav sub-nav-${tool}`}>
           {active ? (
             <>
               <button
@@ -661,7 +646,7 @@ export function ReferenceShell() {
   }
 
   return (
-    <>
+    <div className="app-shell">
       <header className="topbar">
         <button
           className="mobile-menu-btn"
@@ -899,7 +884,7 @@ export function ReferenceShell() {
                           </span>
                           <span className="hero-tool-name">Claude</span>
                           <span className="hero-tool-meta">
-                            {data.claude.groups.reduce((sum, g) => sum + g.entries.length, 0)} commands
+                            {countCommands(data.claude)} commands
                           </span>
                         </article>
                         <article className="hero-tool-item cursor" aria-label="Cursor">
@@ -908,7 +893,7 @@ export function ReferenceShell() {
                           </span>
                           <span className="hero-tool-name">Cursor</span>
                           <span className="hero-tool-meta">
-                            {data.cursor.groups.reduce((sum, g) => sum + g.entries.length, 0)} commands
+                            {countCommands(data.cursor)} commands
                           </span>
                         </article>
                         <article className="hero-tool-item copilot" aria-label="Copilot">
@@ -917,7 +902,7 @@ export function ReferenceShell() {
                           </span>
                           <span className="hero-tool-name">Copilot</span>
                           <span className="hero-tool-meta">
-                            {data.copilot.groups.reduce((sum, g) => sum + g.entries.length, 0)} commands
+                            {countCommands(data.copilot)} commands
                           </span>
                         </article>
                       </div>
@@ -980,7 +965,7 @@ export function ReferenceShell() {
                   <section className="compare-wrap">
                     <table>
                       <tbody>
-                        <tr><th>Built-in commands count</th><td>Claude: 28+</td><td>Cursor: 20+</td><td>Copilot: 22+</td></tr>
+                        <tr><th>Built-in commands count</th><td>Claude: {countCommands(data.claude)}</td><td>Cursor: {countCommands(data.cursor)}</td><td>Copilot: {countCommands(data.copilot)}</td></tr>
                         <tr><th>Bundled skills/agents</th><td>Skills + subagents</td><td>Command packs + context tools</td><td>Modes + integrations</td></tr>
                         <tr><th>Parallel execution</th><td>Supported in tool pipelines</td><td>Supported in IDE workflows</td><td>Supported in terminal/task flows</td></tr>
                         <tr><th>Context management</th><td>Memory tiers + agent context</td><td>Workspace-aware context windows</td><td>Chat + repo context + policies</td></tr>
@@ -1023,69 +1008,85 @@ export function ReferenceShell() {
                   <div className="catalog-updates-hero">
                     <div>
                       <h1>Catalog Updates</h1>
-                      <p>Integrated in the main design. Shows newly added catalog items only.</p>
+                      <p>
+                        {releaseDisplay.mode === "new"
+                          ? `${releaseDisplay.unseenCount} new ${releaseDisplay.unseenCount === 1 ? "entry" : "entries"} since your last review.`
+                          : releaseDisplay.mode === "history"
+                            ? "Recent catalog history. You are up to date."
+                            : "New commands, skills, agents, and hooks will appear here when the catalog grows."}
+                      </p>
                     </div>
-                    <button className="btn-ghost" type="button" onClick={() => navigate("landing")}>
-                      <X size={14} /> Close
-                    </button>
+                    <div className="catalog-updates-actions">
+                      {releaseDisplay.mode === "new" ? (
+                        <button className="btn-primary catalog-mark-read" type="button" onClick={handleMarkUpdatesReviewed}>
+                          Mark as reviewed
+                        </button>
+                      ) : null}
+                      <button className="btn-ghost" type="button" onClick={() => navigate("landing")}>
+                        <X size={14} /> Close
+                      </button>
+                    </div>
                   </div>
 
                   <section className="catalog-updates-shell">
                     <div className="catalog-updates-head">
-                      <div className="catalog-chip">{catalogUpdateRows.length} new</div>
+                      {releaseDisplay.mode === "new" ? (
+                        <div className="catalog-chip catalog-chip-new">{releaseDisplay.unseenCount} new</div>
+                      ) : null}
+                      {releaseDisplay.mode === "history" ? (
+                        <div className="catalog-chip">Recent updates</div>
+                      ) : null}
                       <div className="catalog-chip">Total catalog items: {totalEntries}</div>
                     </div>
 
-                    <div className="catalog-updates-table-wrap">
-                      <table className="catalog-updates-table">
-                        <thead>
-                          <tr>
-                            <th>Updated/Inserted Item</th>
-                            <th>Tool</th>
-                            <th>Type</th>
-                            <th>Details</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {visibleCatalogUpdates.length ? (
-                            visibleCatalogUpdates.map((item) => (
-                              <tr key={item.key}>
-                                <td>{item.title}</td>
-                                <td><span className="catalog-tool-tag">{item.tool.toUpperCase()}</span></td>
-                                <td>{item.kind}</td>
-                                <td>{item.details}</td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan={4} className="catalog-empty">No new catalog updates.</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                    {releaseDisplay.entries.length ? (
+                      <div className="update-feed">
+                        {TOOL_ORDER.map((tool) => {
+                          const items = groupedReleaseEntries[tool];
+                          if (!items.length) return null;
 
-                    {catalogUpdatesTotalPages > 1 ? (
-                      <div className="catalog-pagination">
-                        <button
-                          type="button"
-                          className="btn-ghost"
-                          disabled={catalogUpdatesPage === 1}
-                          onClick={() => setCatalogUpdatesPage((prev) => Math.max(1, prev - 1))}
-                        >
-                          Previous
-                        </button>
-                        <span className="catalog-page-info">Page {catalogUpdatesPage} of {catalogUpdatesTotalPages}</span>
-                        <button
-                          type="button"
-                          className="btn-ghost"
-                          disabled={catalogUpdatesPage === catalogUpdatesTotalPages}
-                          onClick={() => setCatalogUpdatesPage((prev) => Math.min(catalogUpdatesTotalPages, prev + 1))}
-                        >
-                          Next
-                        </button>
+                          return (
+                            <section className={`update-group update-group-${tool}`} key={tool}>
+                              <div className="update-group-head">
+                                <h2>{TOOL_LABELS[tool]}</h2>
+                                <span className="update-group-count">{items.length}</span>
+                              </div>
+                              <div className="update-card-list">
+                                {items.map((item) => (
+                                  <article
+                                    className={`update-card ${tool} ${releaseDisplay.mode === "new" ? "is-new" : "is-history"}`}
+                                    key={item.key}
+                                  >
+                                    <div className="update-card-top">
+                                      <span className={`update-kind ${item.kind}`}>{item.kind}</span>
+                                      <time className="update-date" dateTime={item.addedAt}>
+                                        {formatReleaseDate(item.addedAt)}
+                                      </time>
+                                    </div>
+                                    <h3 className="update-title">{item.title}</h3>
+                                    <p className="update-details">{item.details}</p>
+                                    <button
+                                      className={`update-open tool-link-${tool}`}
+                                      type="button"
+                                      onClick={() => navigate(tool)}
+                                    >
+                                      Open in {TOOL_LABELS[tool]} reference
+                                    </button>
+                                  </article>
+                                ))}
+                              </div>
+                            </section>
+                          );
+                        })}
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="catalog-empty-panel">
+                        <strong>No catalog updates yet</strong>
+                        <p>
+                          When new commands, skills, agents, or hooks are published, they will show up here and on the sidebar badge.
+                        </p>
+                      </div>
+                    )}
                   </section>
                 </section>
               ) : null}
@@ -1095,48 +1096,56 @@ export function ReferenceShell() {
       </div>
 
       <footer className="footer">
-        <div className="f-left">
-          <div className="f-kicker">
-            <span className="k-sym">{ticker.symbol}</span>
-            <span className="k-word">{ticker.word}</span>
+        <div className="footer-inner">
+          <div className="footer-row footer-row-primary">
+            <div className="f-left">
+              <div className="f-kicker">
+                <span className="k-sym">{ticker.symbol}</span>
+                <span className="k-word">{ticker.word}</span>
+              </div>
+            </div>
+            <div className="f-center">
+              <div className="f-main">
+                Crafted with <span className="heart">♥</span> by <span className="name">Nuthan Murarysetty</span>
+              </div>
+              <div className="f-sub">
+                Community-maintained reference · Not affiliated with Anthropic, Cursor, or Microsoft
+              </div>
+            </div>
+            <div className="f-right">
+              <div className="f-link-row docs-row">
+                <Link className="doc-link claude" href="https://docs.anthropic.com/" target="_blank" rel="noreferrer">Claude Docs</Link>
+                <Link className="doc-link cursor" href="https://docs.cursor.com/" target="_blank" rel="noreferrer">Cursor Docs</Link>
+                <Link className="doc-link copilot" href="https://code.visualstudio.com/docs/copilot" target="_blank" rel="noreferrer">Copilot Docs</Link>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="f-center">
-          <div className="f-main">
-            Crafted with <span className="heart">♥</span> by <span className="name">Nuthan Murarysetty</span>
+          <div className="footer-row footer-row-secondary">
+            <div className="f-legal">
+              <Link href="/privacy-policy">Privacy Policy</Link>
+              <Link href="/terms-and-conditions">Terms and Conditions</Link>
+            </div>
+            <div className="f-social">
+              <Link className="social-link" href="https://github.com/nuthanm" target="_blank" rel="noreferrer" aria-label="GitHub" title="GitHub">
+                <Github size={14} />
+                <span className="sr-only">GitHub</span>
+              </Link>
+              <Link className="social-link" href="https://www.linkedin.com/in/nuthanm/?skipRedirect=true" target="_blank" rel="noreferrer" aria-label="LinkedIn" title="LinkedIn">
+                <Linkedin size={14} />
+                <span className="sr-only">LinkedIn</span>
+              </Link>
+              <Link className="social-link" href="https://x.com/nuthanmurari" target="_blank" rel="noreferrer" aria-label="X" title="X">
+                <X size={14} />
+                <span className="sr-only">X</span>
+              </Link>
+              <Link className="social-link" href="https://nuthanmurarysetty.medium.com/" target="_blank" rel="noreferrer" aria-label="Medium" title="Medium">
+                <BookOpen size={14} />
+                <span className="sr-only">Medium</span>
+              </Link>
+            </div>
           </div>
-          <div className="f-sub">Independent educational reference for Claude, Cursor, and Copilot</div>
-        </div>
-        <div className="f-right">
-          <div className="f-link-row docs-row">
-            <Link className="doc-link claude" href="https://docs.anthropic.com/" target="_blank" rel="noreferrer">Claude Docs</Link>
-            <Link className="doc-link cursor" href="https://docs.cursor.com/" target="_blank" rel="noreferrer">Cursor Docs</Link>
-            <Link className="doc-link copilot" href="https://code.visualstudio.com/docs/copilot" target="_blank" rel="noreferrer">Copilot Docs</Link>
-          </div>
-        </div>
-        <div className="f-legal">
-          <Link href="/privacy-policy">Privacy Policy</Link>
-          <Link href="/terms-and-conditions">Terms and Conditions</Link>
-        </div>
-        <div className="f-social">
-          <Link className="social-link" href="https://github.com/nuthanm" target="_blank" rel="noreferrer" aria-label="GitHub" title="GitHub">
-            <Github size={14} />
-            <span className="sr-only">GitHub</span>
-          </Link>
-          <Link className="social-link" href="https://www.linkedin.com/in/nuthanm/?skipRedirect=true" target="_blank" rel="noreferrer" aria-label="LinkedIn" title="LinkedIn">
-            <Linkedin size={14} />
-            <span className="sr-only">LinkedIn</span>
-          </Link>
-          <Link className="social-link" href="https://x.com/nuthanmurari" target="_blank" rel="noreferrer" aria-label="X" title="X">
-            <X size={14} />
-            <span className="sr-only">X</span>
-          </Link>
-          <Link className="social-link" href="https://nuthanmurarysetty.medium.com/" target="_blank" rel="noreferrer" aria-label="Medium" title="Medium">
-            <BookOpen size={14} />
-            <span className="sr-only">Medium</span>
-          </Link>
         </div>
       </footer>
-    </>
+    </div>
   );
 }
