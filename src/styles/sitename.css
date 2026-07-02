@@ -2062,27 +2062,48 @@
       min-height: 16px;
     }
 
-    .field-mark {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-      border-radius: 999px;
-      padding: 2px 7px;
-      font: 700 10px Inter, sans-serif;
-      letter-spacing: 0.01em;
+    .field-control.is-valid {
+      border-color: #86efac !important;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.08);
     }
 
-    .field-mark.valid {
+    .field-control.is-invalid {
+      border-color: #fca5a5 !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+    }
+
+    .field-helper.is-valid {
       color: #166534;
-      background: #DCFCE7;
-      border: 1px solid #86EFAC;
     }
 
-    .field-mark.invalid {
-      color: #B91C1C;
-      background: #FEE2E2;
-      border: 1px solid #FCA5A5;
+    .form-progress {
+      display: grid;
+      gap: 6px;
+      margin: 4px 0 10px;
+    }
+
+    .form-progress-track {
+      height: 6px;
+      border-radius: 999px;
+      background: #eceffd;
+      overflow: hidden;
+    }
+
+    .form-progress-fill {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--claude), var(--cursor), var(--copilot));
+      transition: width 180ms ease;
+    }
+
+    .form-progress-label {
+      font: 600 11px Inter, sans-serif;
+      color: var(--text-2);
+    }
+
+    .form-progress.is-ready .form-progress-label {
+      color: #166534;
     }
 
     .field.full {

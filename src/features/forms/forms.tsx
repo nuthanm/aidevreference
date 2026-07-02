@@ -162,15 +162,31 @@ function getValidationState({
   return valid ? "valid" : "invalid";
 }
 
-function ValidationMark({ state }: { state: ValidationState }) {
-  if (state === "idle") {
-    return null;
-  }
+function fieldControlClass(state: ValidationState) {
+  if (state === "valid") return "field-control is-valid";
+  if (state === "invalid") return "field-control is-invalid";
+  return "field-control";
+}
 
-  return state === "valid" ? (
-    <span className="field-mark valid" aria-label="Valid">Good</span>
-  ) : (
-    <span className="field-mark invalid" aria-label="Invalid">Fix</span>
+function FormProgress({
+  complete,
+  total,
+}: {
+  complete: number;
+  total: number;
+}) {
+  const percent = total > 0 ? Math.round((complete / total) * 100) : 0;
+  const ready = complete >= total;
+
+  return (
+    <div className={`form-progress ${ready ? "is-ready" : ""}`} aria-live="polite">
+      <div className="form-progress-track" aria-hidden="true">
+        <span className="form-progress-fill" style={{ width: `${percent}%` }} />
+      </div>
+      <span className="form-progress-label">
+        {ready ? "Ready to submit" : `${complete} of ${total} required fields complete`}
+      </span>
+    </div>
   );
 }
 
@@ -225,12 +241,16 @@ export function FeedbackForm() {
   const isFeedbackToolValid = Boolean(form.watch("tool"));
   const isFeedbackTypeValid = Boolean(form.watch("type"));
   const isFeedbackCaptchaValid = !requiresCaptcha || Boolean(captchaToken);
-  const canSubmitFeedback =
-    isFeedbackNameValid
-    && isFeedbackEmailValid
-    && isFeedbackMessageValid
-    && hasAcceptedPolicies
-    && isFeedbackCaptchaValid;
+  const feedbackRequiredTotal = 6 + (requiresCaptcha ? 1 : 0);
+  const feedbackRequiredComplete =
+    Number(isFeedbackNameValid)
+    + Number(isFeedbackEmailValid)
+    + Number(isFeedbackToolValid)
+    + Number(isFeedbackTypeValid)
+    + Number(isFeedbackMessageValid)
+    + Number(hasAcceptedPolicies)
+    + Number(isFeedbackCaptchaValid);
+  const canSubmitFeedback = feedbackRequiredComplete >= feedbackRequiredTotal;
   const feedbackSubmitted = form.formState.submitCount > 0;
   const feedbackTouched = form.formState.touchedFields;
   const feedbackDirty = form.formState.dirtyFields;
@@ -321,18 +341,18 @@ export function FeedbackForm() {
         <input type="hidden" {...form.register("formStartedAt", { valueAsNumber: true })} />
 
         <label className="field">
-          <span className="field-label-row">Name <ValidationMark state={nameMark} /></span>
-          <input autoComplete="name" {...form.register("name")} />
+          <span className="field-label-row">Name</span>
+          <input autoComplete="name" className={fieldControlClass(nameMark)} {...form.register("name")} />
           {form.formState.errors.name ? <span className="field-error">{form.formState.errors.name.message}</span> : null}
         </label>
         <label className="field">
-          <span className="field-label-row">Email <ValidationMark state={emailMark} /></span>
-          <input type="email" autoComplete="email" {...form.register("email")} />
+          <span className="field-label-row">Email</span>
+          <input type="email" autoComplete="email" className={fieldControlClass(emailMark)} {...form.register("email")} />
           {form.formState.errors.email ? <span className="field-error">{form.formState.errors.email.message}</span> : null}
         </label>
         <label className="field">
-          <span className="field-label-row">Tool <ValidationMark state={toolMark} /></span>
-          <select {...form.register("tool")}>
+          <span className="field-label-row">Tool</span>
+          <select className={fieldControlClass(toolMark)} {...form.register("tool")}>
             <option>Claude</option>
             <option>Cursor</option>
             <option>Copilot</option>
@@ -341,8 +361,8 @@ export function FeedbackForm() {
           {form.formState.errors.tool ? <span className="field-error">{form.formState.errors.tool.message}</span> : null}
         </label>
         <label className="field">
-          <span className="field-label-row">Type <ValidationMark state={typeMark} /></span>
-          <select {...form.register("type")}>
+          <span className="field-label-row">Type</span>
+          <select className={fieldControlClass(typeMark)} {...form.register("type")}>
             <option>Bug report</option>
             <option>Missing command</option>
             <option>Content update</option>
@@ -351,9 +371,9 @@ export function FeedbackForm() {
           {form.formState.errors.type ? <span className="field-error">{form.formState.errors.type.message}</span> : null}
         </label>
         <label className="field full">
-          <span className="field-label-row">Message <ValidationMark state={messageMark} /></span>
-          <textarea maxLength={FEEDBACK_MESSAGE_MAX_CHARS} {...form.register("message")} />
-          <span className="field-helper">
+          <span className="field-label-row">Message</span>
+          <textarea className={fieldControlClass(messageMark)} maxLength={FEEDBACK_MESSAGE_MAX_CHARS} {...form.register("message")} />
+          <span className={`field-helper ${messageMark === "valid" ? "is-valid" : ""}`}>
             Minimum {FEEDBACK_MESSAGE_MIN_CHARS} characters. {feedbackMessageLength}/{FEEDBACK_MESSAGE_MAX_CHARS}
           </span>
           {form.formState.errors.message ? <span className="field-error">{form.formState.errors.message.message}</span> : null}
@@ -388,6 +408,7 @@ export function FeedbackForm() {
         />
         {form.formState.errors.acceptPolicies ? <span className="field-error full">{form.formState.errors.acceptPolicies.message}</span> : null}
       </div>
+      <FormProgress complete={feedbackRequiredComplete} total={feedbackRequiredTotal} />
       <button
         className="btn-primary"
         type="submit"
@@ -429,10 +450,12 @@ export function NotifyForm() {
   const captchaToken = form.watch("captchaToken");
   const isNotifyEmailValid = notifyEmailCheckSchema.safeParse(emailValue).success;
   const isNotifyCaptchaValid = !requiresCaptcha || Boolean(captchaToken);
-  const canSubmitNotify =
-    isNotifyEmailValid
-    && hasAcceptedPolicies
-    && isNotifyCaptchaValid;
+  const notifyRequiredTotal = 2 + (requiresCaptcha ? 1 : 0);
+  const notifyRequiredComplete =
+    Number(isNotifyEmailValid)
+    + Number(hasAcceptedPolicies)
+    + Number(isNotifyCaptchaValid);
+  const canSubmitNotify = notifyRequiredComplete >= notifyRequiredTotal;
   const notifySubmitted = form.formState.submitCount > 0;
   const notifyTouched = form.formState.touchedFields;
   const notifyDirty = form.formState.dirtyFields;
@@ -483,10 +506,16 @@ export function NotifyForm() {
       <input type="hidden" {...form.register("formStartedAt", { valueAsNumber: true })} />
 
       <div className="field-label-row" style={{ marginBottom: 6 }}>
-        Email <ValidationMark state={notifyEmailMark} />
+        Email
       </div>
       <div className="signup-row">
-        <input type="email" placeholder="Email address" autoComplete="email" {...form.register("email")} />
+        <input
+          type="email"
+          placeholder="Email address"
+          autoComplete="email"
+          className={fieldControlClass(notifyEmailMark)}
+          {...form.register("email")}
+        />
         <button
           className="btn-claude"
           type="submit"
@@ -525,6 +554,8 @@ export function NotifyForm() {
         )}
       />
       {form.formState.errors.acceptPolicies ? <div className="error-text">{form.formState.errors.acceptPolicies.message}</div> : null}
+
+      <FormProgress complete={notifyRequiredComplete} total={notifyRequiredTotal} />
 
       {statusText ? (
         <div className={`inline-toast ${statusTone}`} role="status" aria-live="polite">
