@@ -4,7 +4,7 @@ import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata(
   "Privacy Policy",
-  "Privacy policy for AI Developer Tools Reference.",
+  "Privacy policy for AI Dev Reference.",
   "/privacy-policy",
 );
 

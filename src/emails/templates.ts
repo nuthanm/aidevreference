@@ -20,7 +20,7 @@ const signature = `
   <hr style="border:none;border-top:1px solid ${shell.border};margin:20px 0 12px;" />
   <p style="${shell.font}font-size:12px;color:${shell.body};margin:0;line-height:1.55;">
     Made with <span style="color:#F43F5E;">♥</span> <strong style="color:${shell.ink};">Nuthan Murarysetty</strong><br />
-    AI Developer Tools Reference · Educational reference
+    AI Dev Reference · Community-maintained · Not affiliated with Anthropic, Cursor, or Microsoft
   </p>
 `;
 

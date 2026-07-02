@@ -11,7 +11,7 @@ export function pageMetadata(title: string, description: string, path: string): 
       title,
       description,
       url,
-      siteName: "AI Developer Tools Reference",
+      siteName: "AI Dev Reference",
       type: "website",
     },
     twitter: {

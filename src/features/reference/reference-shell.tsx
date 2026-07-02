@@ -73,6 +73,10 @@ function badgeLabel(v?: string) {
   return "";
 }
 
+function countCommands(tool: ToolCatalog) {
+  return tool.groups.reduce((sum, group) => sum + group.entries.length, 0);
+}
+
 function toCatalogTools() {
   return JSON.parse(JSON.stringify(baseCatalog.tools)) as Catalog["tools"];
 }
@@ -899,7 +903,7 @@ export function ReferenceShell() {
                           </span>
                           <span className="hero-tool-name">Claude</span>
                           <span className="hero-tool-meta">
-                            {data.claude.groups.reduce((sum, g) => sum + g.entries.length, 0)} commands
+                            {countCommands(data.claude)} commands
                           </span>
                         </article>
                         <article className="hero-tool-item cursor" aria-label="Cursor">
@@ -908,7 +912,7 @@ export function ReferenceShell() {
                           </span>
                           <span className="hero-tool-name">Cursor</span>
                           <span className="hero-tool-meta">
-                            {data.cursor.groups.reduce((sum, g) => sum + g.entries.length, 0)} commands
+                            {countCommands(data.cursor)} commands
                           </span>
                         </article>
                         <article className="hero-tool-item copilot" aria-label="Copilot">
@@ -917,7 +921,7 @@ export function ReferenceShell() {
                           </span>
                           <span className="hero-tool-name">Copilot</span>
                           <span className="hero-tool-meta">
-                            {data.copilot.groups.reduce((sum, g) => sum + g.entries.length, 0)} commands
+                            {countCommands(data.copilot)} commands
                           </span>
                         </article>
                       </div>
@@ -980,7 +984,7 @@ export function ReferenceShell() {
                   <section className="compare-wrap">
                     <table>
                       <tbody>
-                        <tr><th>Built-in commands count</th><td>Claude: 28+</td><td>Cursor: 20+</td><td>Copilot: 22+</td></tr>
+                        <tr><th>Built-in commands count</th><td>Claude: {countCommands(data.claude)}</td><td>Cursor: {countCommands(data.cursor)}</td><td>Copilot: {countCommands(data.copilot)}</td></tr>
                         <tr><th>Bundled skills/agents</th><td>Skills + subagents</td><td>Command packs + context tools</td><td>Modes + integrations</td></tr>
                         <tr><th>Parallel execution</th><td>Supported in tool pipelines</td><td>Supported in IDE workflows</td><td>Supported in terminal/task flows</td></tr>
                         <tr><th>Context management</th><td>Memory tiers + agent context</td><td>Workspace-aware context windows</td><td>Chat + repo context + policies</td></tr>
@@ -1105,7 +1109,9 @@ export function ReferenceShell() {
           <div className="f-main">
             Crafted with <span className="heart">♥</span> by <span className="name">Nuthan Murarysetty</span>
           </div>
-          <div className="f-sub">Independent educational reference for Claude, Cursor, and Copilot</div>
+          <div className="f-sub">
+            Community-maintained reference · Not affiliated with Anthropic, Cursor, or Microsoft
+          </div>
         </div>
         <div className="f-right">
           <div className="f-link-row docs-row">

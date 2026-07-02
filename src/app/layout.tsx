@@ -21,19 +21,24 @@ const instrumentSerif = Instrument_Serif({
 
 export const metadata: Metadata = {
   icons: { icon: "/favicon.svg" },
-  title: "AI Developer Tools Reference",
-  description: "Searchable command, skills, subagent, and hooks reference for Claude, Cursor, and Copilot.",
+  title: {
+    default: "AI Dev Reference",
+    template: "%s · AI Dev Reference",
+  },
+  description:
+    "Searchable commands, skills, agents, and hooks for Claude, Cursor, and GitHub Copilot. Community-maintained reference.",
   openGraph: {
-    title: "AI Developer Tools Reference",
+    title: "AI Dev Reference",
     description:
-      "Searchable command, skills, subagent, and hooks reference for Claude, Cursor, and Copilot.",
+      "Searchable commands, skills, agents, and hooks for Claude, Cursor, and GitHub Copilot.",
     type: "website",
+    siteName: "AI Dev Reference",
   },
   twitter: {
     card: "summary_large_image",
-    title: "AI Developer Tools Reference",
+    title: "AI Dev Reference",
     description:
-      "Searchable command, skills, subagent, and hooks reference for Claude, Cursor, and Copilot.",
+      "Searchable commands, skills, agents, and hooks for Claude, Cursor, and GitHub Copilot.",
   },
 };
 

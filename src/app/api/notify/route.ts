@@ -66,7 +66,10 @@ export async function POST(req: NextRequest) {
     const existing = await getSubscriberByEmailStored(parsed.data.email);
 
     if (existing?.confirmed) {
-      return NextResponse.json({ ok: true, message: "Already subscribed" });
+      return NextResponse.json({
+        ok: true,
+        message: "If this email is not yet confirmed, check your inbox for a confirmation link.",
+      });
     }
 
     const subscriber = existing
