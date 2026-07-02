@@ -665,7 +665,7 @@ export function ReferenceShell() {
   }
 
   return (
-    <>
+    <div className="app-shell">
       <header className="topbar">
         <button
           className="mobile-menu-btn"
@@ -1027,7 +1027,7 @@ export function ReferenceShell() {
                   <div className="catalog-updates-hero">
                     <div>
                       <h1>Catalog Updates</h1>
-                      <p>Integrated in the main design. Shows newly added catalog items only.</p>
+                      <p>Newly added commands, skills, agents, and hooks since your last visit.</p>
                     </div>
                     <button className="btn-ghost" type="button" onClick={() => navigate("landing")}>
                       <X size={14} /> Close
@@ -1041,32 +1041,35 @@ export function ReferenceShell() {
                     </div>
 
                     <div className="catalog-updates-table-wrap">
-                      <table className="catalog-updates-table">
-                        <thead>
-                          <tr>
-                            <th>Updated/Inserted Item</th>
-                            <th>Tool</th>
-                            <th>Type</th>
-                            <th>Details</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {visibleCatalogUpdates.length ? (
-                            visibleCatalogUpdates.map((item) => (
+                      {visibleCatalogUpdates.length ? (
+                        <table className="catalog-updates-table">
+                          <thead>
+                            <tr>
+                              <th>Updated/Inserted Item</th>
+                              <th>Tool</th>
+                              <th>Type</th>
+                              <th>Details</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {visibleCatalogUpdates.map((item) => (
                               <tr key={item.key}>
                                 <td>{item.title}</td>
                                 <td><span className="catalog-tool-tag">{item.tool.toUpperCase()}</span></td>
                                 <td>{item.kind}</td>
                                 <td>{item.details}</td>
                               </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan={4} className="catalog-empty">No new catalog updates.</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div className="catalog-empty-panel">
+                          <strong>No new catalog updates yet</strong>
+                          <p>
+                            You are up to date. New commands, skills, agents, and hooks will appear here after they are published.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {catalogUpdatesTotalPages > 1 ? (
@@ -1099,50 +1102,56 @@ export function ReferenceShell() {
       </div>
 
       <footer className="footer">
-        <div className="f-left">
-          <div className="f-kicker">
-            <span className="k-sym">{ticker.symbol}</span>
-            <span className="k-word">{ticker.word}</span>
+        <div className="footer-inner">
+          <div className="footer-row footer-row-primary">
+            <div className="f-left">
+              <div className="f-kicker">
+                <span className="k-sym">{ticker.symbol}</span>
+                <span className="k-word">{ticker.word}</span>
+              </div>
+            </div>
+            <div className="f-center">
+              <div className="f-main">
+                Crafted with <span className="heart">♥</span> by <span className="name">Nuthan Murarysetty</span>
+              </div>
+              <div className="f-sub">
+                Community-maintained reference · Not affiliated with Anthropic, Cursor, or Microsoft
+              </div>
+            </div>
+            <div className="f-right">
+              <div className="f-link-row docs-row">
+                <Link className="doc-link claude" href="https://docs.anthropic.com/" target="_blank" rel="noreferrer">Claude Docs</Link>
+                <Link className="doc-link cursor" href="https://docs.cursor.com/" target="_blank" rel="noreferrer">Cursor Docs</Link>
+                <Link className="doc-link copilot" href="https://code.visualstudio.com/docs/copilot" target="_blank" rel="noreferrer">Copilot Docs</Link>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="f-center">
-          <div className="f-main">
-            Crafted with <span className="heart">♥</span> by <span className="name">Nuthan Murarysetty</span>
+          <div className="footer-row footer-row-secondary">
+            <div className="f-legal">
+              <Link href="/privacy-policy">Privacy Policy</Link>
+              <Link href="/terms-and-conditions">Terms and Conditions</Link>
+            </div>
+            <div className="f-social">
+              <Link className="social-link" href="https://github.com/nuthanm" target="_blank" rel="noreferrer" aria-label="GitHub" title="GitHub">
+                <Github size={14} />
+                <span className="sr-only">GitHub</span>
+              </Link>
+              <Link className="social-link" href="https://www.linkedin.com/in/nuthanm/?skipRedirect=true" target="_blank" rel="noreferrer" aria-label="LinkedIn" title="LinkedIn">
+                <Linkedin size={14} />
+                <span className="sr-only">LinkedIn</span>
+              </Link>
+              <Link className="social-link" href="https://x.com/nuthanmurari" target="_blank" rel="noreferrer" aria-label="X" title="X">
+                <X size={14} />
+                <span className="sr-only">X</span>
+              </Link>
+              <Link className="social-link" href="https://nuthanmurarysetty.medium.com/" target="_blank" rel="noreferrer" aria-label="Medium" title="Medium">
+                <BookOpen size={14} />
+                <span className="sr-only">Medium</span>
+              </Link>
+            </div>
           </div>
-          <div className="f-sub">
-            Community-maintained reference · Not affiliated with Anthropic, Cursor, or Microsoft
-          </div>
-        </div>
-        <div className="f-right">
-          <div className="f-link-row docs-row">
-            <Link className="doc-link claude" href="https://docs.anthropic.com/" target="_blank" rel="noreferrer">Claude Docs</Link>
-            <Link className="doc-link cursor" href="https://docs.cursor.com/" target="_blank" rel="noreferrer">Cursor Docs</Link>
-            <Link className="doc-link copilot" href="https://code.visualstudio.com/docs/copilot" target="_blank" rel="noreferrer">Copilot Docs</Link>
-          </div>
-        </div>
-        <div className="f-legal">
-          <Link href="/privacy-policy">Privacy Policy</Link>
-          <Link href="/terms-and-conditions">Terms and Conditions</Link>
-        </div>
-        <div className="f-social">
-          <Link className="social-link" href="https://github.com/nuthanm" target="_blank" rel="noreferrer" aria-label="GitHub" title="GitHub">
-            <Github size={14} />
-            <span className="sr-only">GitHub</span>
-          </Link>
-          <Link className="social-link" href="https://www.linkedin.com/in/nuthanm/?skipRedirect=true" target="_blank" rel="noreferrer" aria-label="LinkedIn" title="LinkedIn">
-            <Linkedin size={14} />
-            <span className="sr-only">LinkedIn</span>
-          </Link>
-          <Link className="social-link" href="https://x.com/nuthanmurari" target="_blank" rel="noreferrer" aria-label="X" title="X">
-            <X size={14} />
-            <span className="sr-only">X</span>
-          </Link>
-          <Link className="social-link" href="https://nuthanmurarysetty.medium.com/" target="_blank" rel="noreferrer" aria-label="Medium" title="Medium">
-            <BookOpen size={14} />
-            <span className="sr-only">Medium</span>
-          </Link>
         </div>
       </footer>
-    </>
+    </div>
   );
 }
