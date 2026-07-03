@@ -3,8 +3,8 @@ import { ReferenceShell } from "@/features/reference/reference-shell";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata(
-  "Release Notes",
-  "Latest catalog updates for AI Dev Reference.",
+  "What's New",
+  "See the latest commands, skills, agents, and hooks added to AI Dev Reference.",
   "/release-notes",
 );
 

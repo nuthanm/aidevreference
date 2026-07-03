@@ -787,14 +787,14 @@ export function ReferenceShell() {
             <button
               className={`nav-btn has-tooltip ${route === "release-notes" ? "active" : ""}`}
               onClick={() => navigate("release-notes")}
-              data-tooltip="Release notes"
-              aria-label="Release notes"
-              title="Release notes"
+              data-tooltip="What's new"
+              aria-label="What's new"
+              title="What's new"
             >
               <span className="nav-icon-wrap">
                 <FileText size={15} className="nav-icon" />
               </span>
-              <span className="nav-label">Release notes</span>
+              <span className="nav-label">What&apos;s new</span>
               {route !== "release-notes" && catalogUpdateCount > 0 ? (
                 <span className="nav-count" aria-label={`${catalogUpdateCount} new catalog updates`}>
                   {catalogUpdateCount}
@@ -1005,7 +1005,7 @@ export function ReferenceShell() {
                 <section className="catalog-updates-page">
                   <div className="catalog-updates-hero">
                     <div>
-                      <h1>Catalog Updates</h1>
+                      <h1>What&apos;s new</h1>
                       <p>
                         {releaseDisplay.mode === "new"
                           ? `${releaseDisplay.unseenCount} new ${releaseDisplay.unseenCount === 1 ? "entry" : "entries"} since your last review.`
