@@ -3,13 +3,13 @@ type CursorIconProps = {
   className?: string;
 };
 
-/** Cursor brand mark (from cursor.com/brand/logo.svg), simplified for small sizes. */
+/** Cursor brand cube mark (canonical path from simple-icons / cursor.com brand). */
 export function CursorIcon({ size = 18, className }: CursorIconProps) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 28 28"
+      viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
@@ -17,7 +17,7 @@ export function CursorIcon({ size = 18, className }: CursorIconProps) {
     >
       <path
         fill="currentColor"
-        d="M22.842 1.387a.83.83 0 0 1 1.288.744l-1.497 23.335a.622.622 0 0 1-1.117.336l-6.505-8.562a1.04 1.04 0 0 0-.695-.402L3.648 15.486a.622.622 0 0 1-.267-1.135z"
+        d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"
       />
     </svg>
   );

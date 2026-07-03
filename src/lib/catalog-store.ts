@@ -105,3 +105,11 @@ export async function upsertCatalogSnapshotStored(catalog: Catalog, incrementVer
 
   return getCatalogSnapshotStored();
 }
+
+export async function closeCatalogStore() {
+  if (globalThis.__aidevrefCatalogSql) {
+    await globalThis.__aidevrefCatalogSql.end({ timeout: 5 });
+    globalThis.__aidevrefCatalogSql = undefined;
+    globalThis.__aidevrefCatalogTableReady = undefined;
+  }
+}

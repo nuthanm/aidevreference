@@ -5,7 +5,10 @@
  */
 import "./load-env";
 import { baseCatalog, collectCatalogValidationWarnings } from "../src/lib/catalog";
-import { getCatalogSnapshotStored, upsertCatalogSnapshotStored } from "../src/lib/catalog-store";
+import { clearPendingCatalogEntries } from "../src/lib/catalog-sync";
+import { getCatalogSnapshotStored, upsertCatalogSnapshotStored, closeCatalogStore } from "../src/lib/catalog-store";
+
+const keepPending = process.argv.includes("--keep-pending");
 
 async function main() {
   const warnings = collectCatalogValidationWarnings(baseCatalog);
@@ -34,6 +37,15 @@ async function main() {
       `  ${tool}: ${commands} commands, ${conf.skills?.length ?? 0} skills, ${conf.agents?.length ?? 0} agents, ${conf.hooks?.length ?? 0} hooks`,
     );
   }
+
+  if (!keepPending) {
+    await clearPendingCatalogEntries();
+    console.log("  pending: reset data/catalog.pending.json to empty template");
+  } else {
+    console.log("  pending: kept (--keep-pending)");
+  }
+
+  await closeCatalogStore();
 }
 
 main().catch((err) => {

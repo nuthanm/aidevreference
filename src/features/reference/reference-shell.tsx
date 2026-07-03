@@ -12,11 +12,15 @@ import {
   FileText,
   Github,
   Home,
+  LayoutGrid,
   Linkedin,
   Lightbulb,
+  List,
   Menu,
   X,
 } from "lucide-react";
+import { CopyButton } from "@/components/copy-button";
+import { DetailModal } from "@/components/detail-modal";
 import { ToolIcon } from "@/components/tool-icon";
 import { FeedbackForm, NotifyForm } from "@/features/forms/forms";
 import { useFooterTicker } from "@/hooks/use-footer-ticker";
@@ -25,7 +29,7 @@ import {
   syncCatalogUpdates,
   type ReleaseLogEntry,
 } from "@/lib/catalog-updates-client";
-import { baseCatalog, type Catalog, type Group, type ToolCatalog } from "@/lib/catalog";
+import { baseCatalog, type Catalog, type Group, type ToolCatalog, type Badge } from "@/lib/catalog";
 import type { AgentEntry, HookEntry, SkillEntry, CommandEntry } from "@/lib/catalog";
 
 type RouteId =
@@ -68,22 +72,54 @@ const ROUTE_TO_PATH: Record<RouteId, string> = {
   "whats-new": "/whats-new",
 };
 
+type BadgeFilter = "all" | Badge;
+type ViewMode = "tiles" | "list";
+type DetailTarget = { title: string; content: string } | null;
+
+const BADGE_FILTERS: Array<{ value: BadgeFilter; label: string }> = [
+  { value: "all", label: "All types" },
+  { value: "chat", label: "Chat" },
+  { value: "skill", label: "Skill" },
+  { value: "ide", label: "IDE" },
+  { value: "wf", label: "Workflow" },
+  { value: "other", label: "Other" },
+];
+
+const BADGE_LEGEND: Array<{ badge: Badge; label: string; hint: string }> = [
+  { badge: "chat", label: "Chat", hint: "Conversation and context commands" },
+  { badge: "skill", label: "Skill", hint: "Skill discovery and invocation" },
+  { badge: "ide", label: "IDE", hint: "Editor, MCP, and tooling integrations" },
+  { badge: "wf", label: "Workflow", hint: "Multi-step planning and review flows" },
+  { badge: "other", label: "Other", hint: "Commands without a primary category" },
+];
+
 function badgeLabel(v?: string) {
   if (v === "skill") return "Skill";
   if (v === "wf") return "Workflow";
   if (v === "chat") return "Chat";
   if (v === "ide") return "IDE";
   if (v === "other") return "Other";
-  return "Other";
+  return "";
 }
 
-const BADGE_LEGEND = [
-  { id: "chat", label: "CHAT", desc: "Conversation and context commands." },
-  { id: "skill", label: "SKILL", desc: "Skill discovery and invocation." },
-  { id: "ide", label: "IDE", desc: "Editor, MCP, and tooling integrations." },
-  { id: "wf", label: "WORKFLOW", desc: "Multi-step planning and review flows." },
-  { id: "other", label: "OTHER", desc: "Commands without a primary category." },
-] as const;
+function entryBadge(entry: CommandEntry): Badge | undefined {
+  return entry.badge ?? "other";
+}
+
+function exampleAddsValue(cmd: string, ex: string) {
+  const normalizedCmd = cmd.trim();
+  const normalizedEx = ex.trim();
+  if (!normalizedEx) return false;
+  if (normalizedEx === normalizedCmd) return false;
+  if (normalizedEx.startsWith(normalizedCmd) && normalizedEx.slice(normalizedCmd.length).trim().length > 0) {
+    return true;
+  }
+  return normalizedEx !== normalizedCmd;
+}
+
+function copyTextForCommand(entry: CommandEntry) {
+  return exampleAddsValue(entry.cmd, entry.ex) ? entry.ex : entry.cmd;
+}
 
 function commandUsage(cmd: string, ex: string, usage?: string) {
   if (usage) return usage;
@@ -91,9 +127,37 @@ function commandUsage(cmd: string, ex: string, usage?: string) {
   return `${cmd} <Add_What_you_want>`;
 }
 
+function matchesBadgeFilter(entry: CommandEntry, filter: BadgeFilter) {
+  if (filter === "all") return true;
+  return entryBadge(entry) === filter;
+}
+
 function countCommands(tool: ToolCatalog) {
   return tool.groups.reduce((sum, group) => sum + group.entries.length, 0);
 }
+
+function countMeta(tool: ToolCatalog) {
+  return {
+    skills: Array.isArray(tool.skills) ? tool.skills.length : 0,
+    agents: Array.isArray(tool.agents) ? tool.agents.length : 0,
+    hooks: Array.isArray(tool.hooks) ? tool.hooks.length : 0,
+  };
+}
+
+function formatMetaBreakdown(tool: ToolCatalog) {
+  const meta = countMeta(tool);
+  const parts: string[] = [];
+  if (meta.skills) parts.push(`${meta.skills} skill${meta.skills === 1 ? "" : "s"}`);
+  if (meta.agents) parts.push(`${meta.agents} agent${meta.agents === 1 ? "" : "s"}`);
+  if (meta.hooks) parts.push(`${meta.hooks} hook${meta.hooks === 1 ? "" : "s"}`);
+  return parts.length ? parts.join(" · ") : "—";
+}
+
+const CONFIG_PATHS: Record<"claude" | "cursor" | "copilot", string> = {
+  claude: ".claude/settings.json, .claude/skills/, .claude/agents/",
+  cursor: ".cursor/rules, .cursor/skills/, .cursor/hooks.json",
+  copilot: ".github/copilot-instructions.md, .github/prompts/",
+};
 
 function countToolEntries(tool: ToolCatalog) {
   const commands = countCommands(tool);
@@ -130,6 +194,13 @@ export function ReferenceShell() {
     cursor: "all",
     copilot: "all",
   });
+  const [badgeFilter, setBadgeFilter] = useState<Record<"claude" | "cursor" | "copilot", BadgeFilter>>({
+    claude: "all",
+    cursor: "all",
+    copilot: "all",
+  });
+  const [viewMode, setViewMode] = useState<ViewMode>("tiles");
+  const [detailTarget, setDetailTarget] = useState<DetailTarget>(null);
   const [subscriberStats, setSubscriberStats] = useState<SubscriberStats | null>(null);
   const [catalogUpdateCount, setCatalogUpdateCount] = useState(0);
   const [releaseDisplay, setReleaseDisplay] = useState<ReleaseDisplay>({
@@ -263,7 +334,15 @@ export function ReferenceShell() {
     if (stored !== null) {
       setSidebarCollapsed(stored === "1");
     }
+    const storedView = localStorage.getItem("aidevref-view-mode");
+    if (storedView === "tiles" || storedView === "list") {
+      setViewMode(storedView);
+    }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("aidevref-view-mode", viewMode);
+  }, [viewMode]);
 
   useEffect(() => {
     localStorage.setItem("aidevref-sidebar-collapsed", sidebarCollapsed ? "1" : "0");
@@ -384,9 +463,9 @@ export function ReferenceShell() {
         <p className="badge-legend-title">Legend</p>
         <ul className="badge-legend-list">
           {BADGE_LEGEND.map((item) => (
-            <li className="badge-legend-item" key={item.id}>
-              <span className={`badge ${item.id}`}>{item.label}</span>
-              <span className="badge-legend-desc">{item.desc}</span>
+            <li className="badge-legend-aside-item" key={item.badge}>
+              <span className={`badge ${item.badge}`}>{item.label}</span>
+              <span className="badge-legend-desc">{item.hint}</span>
             </li>
           ))}
         </ul>
@@ -394,43 +473,149 @@ export function ReferenceShell() {
     );
   }
 
-  function renderCommandCard(tool: "claude" | "cursor" | "copilot", entry: CommandEntry) {
-    const usage = commandUsage(entry.cmd, entry.ex, entry.usage);
-    const badgeKind = entry.badge || "other";
-    const badge = <span className={`badge ${badgeKind}`}>{badgeLabel(badgeKind)}</span>;
+  function renderViewToolbar(tool: "claude" | "cursor" | "copilot", showTypeFilter: boolean) {
+    return (
+      <div className="ref-toolbar">
+        {showTypeFilter ? (
+          <label className="ref-toolbar-field">
+            <span className="ref-toolbar-label">Type</span>
+            <select
+              className="ref-type-select"
+              value={badgeFilter[tool]}
+              onChange={(event) => {
+                const value = event.target.value as BadgeFilter;
+                setBadgeFilter((prev) => ({ ...prev, [tool]: value }));
+              }}
+            >
+              {BADGE_FILTERS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <span className="ref-toolbar-spacer" />
+        )}
+        <div className="view-mode-toggle" role="group" aria-label="Display mode">
+          <button
+            type="button"
+            className={`view-mode-btn ${viewMode === "tiles" ? "active" : ""}`}
+            onClick={() => setViewMode("tiles")}
+            aria-pressed={viewMode === "tiles"}
+          >
+            <LayoutGrid size={14} />
+            Tiles
+          </button>
+          <button
+            type="button"
+            className={`view-mode-btn ${viewMode === "list" ? "active" : ""}`}
+            onClick={() => setViewMode("list")}
+            aria-pressed={viewMode === "list"}
+          >
+            <List size={14} />
+            List
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  function renderConfigBlock(configPath?: string, configExample?: string) {
+    if (!configPath && !configExample) return null;
 
     return (
-      <article className={`cmd-card ${tool}`} key={`${entry.cmd}-${entry.name}`}>
+      <div className="config-block">
+        {configPath ? (
+          <div className="config-path">
+            <strong>Configure in:</strong> <code>{configPath}</code>
+          </div>
+        ) : null}
+        {configExample ? (
+          <div className="config-example-wrap">
+            <div className="config-example-head">
+              <span className="ex-label">Example config</span>
+              <CopyButton text={configExample} label="Copy config example" />
+            </div>
+            <pre className="config-example">{configExample}</pre>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  function renderReadMoreButton(title: string, detail?: string, fallback?: string) {
+    const content = detail || fallback;
+    if (!content) return null;
+    if (!detail && content.length < 120) return null;
+
+    return (
+      <button
+        type="button"
+        className="read-more-btn"
+        onClick={() => setDetailTarget({ title, content })}
+      >
+        Read more
+      </button>
+    );
+  }
+
+  function renderCommandCard(tool: "claude" | "cursor" | "copilot", entry: CommandEntry) {
+    const badgeValue = entryBadge(entry);
+    const badge = <span className={`badge ${badgeValue}`}>{badgeLabel(badgeValue)}</span>;
+    const usage = commandUsage(entry.cmd, entry.ex, entry.usage);
+    const copyValue = copyTextForCommand(entry);
+
+    return (
+      <article
+        className={`cmd-card ${tool} ${viewMode === "list" ? "cmd-card-list" : ""}`}
+        key={`${entry.cmd}-${entry.name}`}
+      >
         <div className="cmd-top">
           <span className={`cmd ${tool}`}>{entry.cmd}</span>
-          {badge}
+          <div className="cmd-top-actions">
+            {badge}
+            <CopyButton text={copyValue} label={`Copy ${entry.cmd}`} />
+          </div>
         </div>
         <div className="cmd-name">{entry.name}</div>
         <div className="cmd-desc">{entry.desc}</div>
-        <div className="ex-label">Command</div>
+        <div className="ex-label-row">
+          <span className="ex-label">Command</span>
+          <CopyButton text={usage} label="Copy command pattern" />
+        </div>
         <pre className={`ex ${tool} cmd-usage`}>{usage}</pre>
-        <div className="ex-label">Example</div>
+        <div className="ex-label-row">
+          <span className="ex-label">Example</span>
+          <CopyButton text={entry.ex} label="Copy example" />
+        </div>
         <pre className={`ex ${tool}`}>{entry.ex}</pre>
       </article>
     );
   }
 
-  function renderSkillsSection(skills: SkillEntry[] = []) {
+  function renderSkillsSection(skills: SkillEntry[] = [], tool: "claude" | "cursor" | "copilot" = "claude") {
+    const title = tool === "claude" ? "Bundled Skills" : "Skills";
+
     return (
       <section>
-        <div className="group-label" id="claude-skills">
-          <h3>Bundled Skills</h3>
+        <div className="group-label" id={`${tool}-skills`}>
+          <h3>{title}</h3>
           <div className="line" />
         </div>
         <div className="info-box info-skill">
-          Claude can auto-invoke skills based on request intent. User-only skills are available when
-          invoked explicitly.
+          {tool === "claude"
+            ? "Claude can auto-invoke skills based on request intent. User-only skills are available when invoked explicitly. Configure custom skills in .claude/skills/<name>/SKILL.md."
+            : "Agent skills extend Cursor with reusable workflows. Configure in .cursor/skills/ or via /create-skill."}
         </div>
-        <div className="skills-list">
+        <div className={`skills-list ${viewMode === "list" ? "skills-list-compact" : ""}`}>
           {skills.map((s) => (
-            <article className="skill-row" key={`${s.cmd}-${s.name}`}>
+            <article className={`skill-row ${viewMode === "list" ? "skill-row-list" : ""}`} key={`${s.cmd}-${s.name}`}>
               <div className="skill-left">
-                <div className="skill-cmd">{s.cmd}</div>
+                <div className="skill-cmd-row">
+                  <div className="skill-cmd">{s.cmd}</div>
+                  <CopyButton text={s.ex} label={`Copy ${s.cmd}`} />
+                </div>
                 <div className="skill-auto">{s.auto ? "auto-invoked" : "user-only"}</div>
               </div>
               <div className="skill-right">
@@ -439,10 +624,18 @@ export function ReferenceShell() {
                 <div className="skill-trigger">
                   <strong>Trigger:</strong> {s.trigger}
                 </div>
-                <div className="ex-label">Command</div>
+                {renderConfigBlock(s.configPath, s.configExample)}
+                <div className="ex-label-row">
+                  <span className="ex-label">Command</span>
+                  <CopyButton text={commandUsage(s.cmd, s.ex)} label="Copy command pattern" />
+                </div>
                 <pre className="skill-ex cmd-usage">{commandUsage(s.cmd, s.ex)}</pre>
-                <div className="ex-label">Example</div>
+                <div className="ex-label-row">
+                  <span className="ex-label">Example</span>
+                  <CopyButton text={s.ex} label="Copy example" />
+                </div>
                 <pre className="skill-ex">{s.ex}</pre>
+                {renderReadMoreButton(s.name, s.detail, [s.desc, s.trigger, s.configPath, s.configExample].filter(Boolean).join("\n\n"))}
               </div>
             </article>
           ))}
@@ -451,32 +644,45 @@ export function ReferenceShell() {
     );
   }
 
-  function renderAgentsSection(agents: AgentEntry[] = []) {
+  function renderAgentsSection(agents: AgentEntry[] = [], tool: "claude" | "cursor" | "copilot" = "claude") {
     return (
       <section>
-        <div className="group-label" id="claude-agents">
+        <div className="group-label" id={`${tool}-agents`}>
           <h3>Subagents</h3>
           <div className="line" />
         </div>
         <div className="info-box info-agent">
-          Subagents run focused tasks with tuned tools, model choices, and invocation patterns.
+          {tool === "claude"
+            ? "Subagents run focused tasks with tuned tools, model choices, and invocation patterns. Define custom agents in .claude/agents/<name>.md."
+            : "Subagents delegate specialized tasks. Configure in .cursor/agents/ or via /create-subagent."}
         </div>
-        <div className="agent-grid">
+        <div className={`agent-grid ${viewMode === "list" ? "agent-grid-list" : ""}`}>
           {agents.map((a) => (
-            <article className="agent-card" style={{ borderLeftColor: a.color }} key={a.name}>
+            <article className={`agent-card ${viewMode === "list" ? "agent-card-list" : ""}`} style={{ borderLeftColor: a.color }} key={a.name}>
               <div className="agent-top">
                 <div className="agent-name">{a.name}</div>
-                <span className="agent-badge">{a.badge}</span>
+                <div className="agent-top-actions">
+                  <span className="agent-badge">{a.badge}</span>
+                  <CopyButton text={a.invoke} label={`Copy invoke pattern for ${a.name}`} />
+                </div>
               </div>
               <div className="agent-desc">{a.desc}</div>
               <div className="agent-when">
                 <strong>When used:</strong> {a.when}
               </div>
+              {renderConfigBlock(a.configPath, a.configExample)}
               <div className="meta-pills">
                 <span className="meta-pill">Tools: {a.tools}</span>
                 <span className="meta-pill">Model: {a.model}</span>
                 <span className="meta-pill">Invoke: {a.invoke}</span>
               </div>
+              {renderReadMoreButton(
+                a.name,
+                a.detail,
+                [a.desc, `When: ${a.when}`, `Tools: ${a.tools}`, `Model: ${a.model}`, `Invoke: ${a.invoke}`, a.configPath, a.configExample]
+                  .filter(Boolean)
+                  .join("\n\n"),
+              )}
             </article>
           ))}
         </div>
@@ -484,7 +690,7 @@ export function ReferenceShell() {
     );
   }
 
-  function renderHooksSection(hooks: HookEntry[] = []) {
+  function renderHooksSection(hooks: HookEntry[] = [], tool: "claude" | "cursor" | "copilot" = "claude") {
     return (
       <section>
         <div className="group-label">
@@ -492,13 +698,18 @@ export function ReferenceShell() {
           <div className="line" />
         </div>
         <div className="info-box info-skill">
-          Lifecycle hooks and automation triggers available in this tool environment.
+          {tool === "claude"
+            ? "Lifecycle hooks automate Claude Code sessions. Configure in .claude/settings.json under the hooks key, or globally in ~/.claude/settings.json."
+            : "Lifecycle hooks automate agent behavior. Configure in .cursor/hooks.json or via /create-hook."}
         </div>
-        <div className="skills-list">
+        <div className={`skills-list ${viewMode === "list" ? "skills-list-compact" : ""}`}>
           {hooks.map((h) => (
-            <article className="skill-row" key={`${h.cmd}-${h.name}`}>
+            <article className={`skill-row ${viewMode === "list" ? "skill-row-list" : ""}`} key={`${h.cmd}-${h.name}`}>
               <div className="skill-left">
-                <div className="skill-cmd">{h.cmd}</div>
+                <div className="skill-cmd-row">
+                  <div className="skill-cmd">{h.cmd}</div>
+                  <CopyButton text={h.ex} label={`Copy ${h.cmd} example`} />
+                </div>
                 <div className="skill-auto">{h.auto ? "auto-invoked" : "user-only"}</div>
               </div>
               <div className="skill-right">
@@ -507,10 +718,18 @@ export function ReferenceShell() {
                 <div className="skill-trigger">
                   <strong>Trigger:</strong> {h.trigger}
                 </div>
-                <div className="ex-label">Command</div>
+                {renderConfigBlock(h.configPath, h.configExample)}
+                <div className="ex-label-row">
+                  <span className="ex-label">Command</span>
+                  <CopyButton text={commandUsage(h.cmd, h.ex)} label="Copy command pattern" />
+                </div>
                 <pre className="skill-ex cmd-usage">{commandUsage(h.cmd, h.ex)}</pre>
-                <div className="ex-label">Example</div>
+                <div className="ex-label-row">
+                  <span className="ex-label">Example</span>
+                  <CopyButton text={h.ex} label="Copy example" />
+                </div>
                 <pre className="skill-ex">{h.ex}</pre>
+                {renderReadMoreButton(h.name, h.detail, [h.desc, h.trigger, h.configPath, h.configExample, h.ex].filter(Boolean).join("\n\n"))}
               </div>
             </article>
           ))}
@@ -522,8 +741,10 @@ export function ReferenceShell() {
   function renderToolPage(tool: "claude" | "cursor" | "copilot") {
     const conf = data[tool] as ToolCatalog;
     const groupValue = activeGroup[tool];
+    const typeFilter = badgeFilter[tool];
     const q = search.trim().toLowerCase();
     const commandGroups = groupValue === "all" ? conf.groups : conf.groups.filter((g) => g.id === groupValue);
+    const showingCommandGroups = !["skills", "agents", "hooks-meta"].includes(groupValue);
 
     const pills = [
       <button
@@ -544,21 +765,24 @@ export function ReferenceShell() {
       )),
     ];
 
-    if (tool === "claude") {
+    if (conf.skills?.length) {
       pills.push(
         <button
           key="skills"
-          className={`pill claude ${groupValue === "skills" ? "active" : ""}`}
-          onClick={() => setActiveGroup((prev) => ({ ...prev, claude: "skills" }))}
+          className={`pill ${tool} ${groupValue === "skills" ? "active" : ""}`}
+          onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "skills" }))}
         >
           Skills
         </button>,
       );
+    }
+
+    if (conf.agents?.length) {
       pills.push(
         <button
           key="agents"
-          className={`pill claude ${groupValue === "agents" ? "active" : ""}`}
-          onClick={() => setActiveGroup((prev) => ({ ...prev, claude: "agents" }))}
+          className={`pill ${tool} ${groupValue === "agents" ? "active" : ""}`}
+          onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "agents" }))}
         >
           Agents
         </button>,
@@ -579,18 +803,21 @@ export function ReferenceShell() {
 
     const sections: React.ReactNode[] = [];
 
-    if (groupValue === "skills" && tool === "claude") {
-      sections.push(renderSkillsSection(conf.skills));
-    } else if (groupValue === "agents" && tool === "claude") {
-      sections.push(renderAgentsSection(conf.agents));
+    if (groupValue === "skills" && conf.skills?.length) {
+      sections.push(renderSkillsSection(conf.skills, tool));
+    } else if (groupValue === "agents" && conf.agents?.length) {
+      sections.push(renderAgentsSection(conf.agents, tool));
     } else if (groupValue === "hooks-meta" && conf.hooks) {
-      sections.push(renderHooksSection(conf.hooks));
+      sections.push(renderHooksSection(conf.hooks, tool));
     } else {
       for (const g of commandGroups) {
         const filtered = g.entries.filter((e) => {
+          if (!matchesBadgeFilter(e, typeFilter)) return false;
           if (!q) return true;
           return [e.cmd, e.name, e.desc].join(" ").toLowerCase().includes(q);
         });
+
+        if (!filtered.length && (q || typeFilter !== "all")) continue;
 
         sections.push(
           <section key={g.id}>
@@ -598,25 +825,30 @@ export function ReferenceShell() {
               <h3>{g.label}</h3>
               <div className="line" />
             </div>
-            <div className="cmd-grid">
+            <div className={`cmd-grid ${viewMode === "list" ? "cmd-grid-list" : ""}`}>
               {filtered.length ? (
                 filtered.map((e) => renderCommandCard(tool, e))
               ) : (
-                <div className="empty">No results for {search}</div>
+                <div className="empty">
+                  {q
+                    ? `No results for "${search}"`
+                    : `No commands match the "${badgeLabel(typeFilter) || "selected"}" type filter.`}
+                </div>
               )}
             </div>
           </section>,
         );
       }
-    }
 
-    if (groupValue === "all" && tool === "claude" && !q) {
-      sections.push(renderSkillsSection(conf.skills));
-      sections.push(renderAgentsSection(conf.agents));
-    }
-
-    if (groupValue === "all" && conf.hooks?.length && !q) {
-      sections.push(renderHooksSection(conf.hooks));
+      if (!sections.length && showingCommandGroups) {
+        sections.push(
+          <div className="empty" key="no-matches">
+            {q
+              ? `No results for "${search}"`
+              : `No commands match the "${badgeLabel(typeFilter) || "selected"}" type filter.`}
+          </div>,
+        );
+      }
     }
 
     return (
@@ -638,6 +870,7 @@ export function ReferenceShell() {
         <div className="tool-content-layout">
           <div className="tool-content-main">
             <nav className="pill-nav">{pills}</nav>
+            {showingCommandGroups ? renderViewToolbar(tool, true) : renderViewToolbar(tool, false)}
             {sections}
           </div>
           {renderBadgeLegend()}
@@ -690,6 +923,13 @@ export function ReferenceShell() {
 
   return (
     <div className="app-shell" data-route={route}>
+      {detailTarget ? (
+        <DetailModal
+          title={detailTarget.title}
+          content={detailTarget.content}
+          onClose={() => setDetailTarget(null)}
+        />
+      ) : null}
       <header className="topbar">
         <button
           className="mobile-menu-btn"
@@ -988,6 +1228,7 @@ export function ReferenceShell() {
                             <div className="maker">
                               by {card.maker} · {countToolEntries(data[card.id])} entries
                             </div>
+                            <div className="maker-meta">{formatMetaBreakdown(data[card.id])}</div>
                           </div>
                         </div>
                         <div className="tool-strip-body">
@@ -1012,9 +1253,10 @@ export function ReferenceShell() {
                   <section className="compare-wrap">
                     <table>
                       <tbody>
-                        <tr><th>Catalog entries</th><td>Claude: {countToolEntries(data.claude)}</td><td>Cursor: {countToolEntries(data.cursor)}</td><td>Copilot: {countToolEntries(data.copilot)}</td></tr>
+                        <tr><th>Catalog entries</th><td>{countToolEntries(data.claude)}</td><td>{countToolEntries(data.cursor)}</td><td>{countToolEntries(data.copilot)}</td></tr>
                         <tr><th>Slash commands</th><td>{countCommands(data.claude)}</td><td>{countCommands(data.cursor)}</td><td>{countCommands(data.copilot)}</td></tr>
-                        <tr><th>Bundled skills/agents</th><td>Skills + subagents</td><td>Command packs + context tools</td><td>Modes + integrations</td></tr>
+                        <tr><th>Skills / agents / hooks</th><td>{formatMetaBreakdown(data.claude)}</td><td>{formatMetaBreakdown(data.cursor)}</td><td>{formatMetaBreakdown(data.copilot)}</td></tr>
+                        <tr><th>Configure in</th><td><code>{CONFIG_PATHS.claude}</code></td><td><code>{CONFIG_PATHS.cursor}</code></td><td><code>{CONFIG_PATHS.copilot}</code></td></tr>
                         <tr><th>Parallel execution</th><td>Supported in tool pipelines</td><td>Supported in IDE workflows</td><td>Supported in terminal/task flows</td></tr>
                         <tr><th>Context management</th><td>Memory tiers + agent context</td><td>Workspace-aware context windows</td><td>Chat + repo context + policies</td></tr>
                         <tr><th>MCP support</th><td>Yes</td><td>Yes</td><td>Yes</td></tr>
@@ -1038,8 +1280,8 @@ export function ReferenceShell() {
                     <p className="feedback-sub">
                       Report missing commands, request additions, or suggest improvements for clarity
                       and searchability across Claude, Cursor, and Copilot references. For anything else
-                      — including privacy or data requests — select <strong>General</strong> and type{" "}
-                      <strong>Other</strong>.
+                      — including privacy or data requests — select <strong>General</strong> and choose{" "}
+                      <strong>I want to contact</strong> or <strong>Other</strong>.
                     </p>
                   </section>
                   <section className="feedback-wrap">

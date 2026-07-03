@@ -11,6 +11,8 @@ import { ToolIcon } from "@/components/tool-icon";
 import {
   FEEDBACK_MESSAGE_MAX_CHARS,
   FEEDBACK_MESSAGE_MIN_CHARS,
+  FEEDBACK_TYPES,
+  GENERAL_CONTACT_TYPE,
   feedbackSchema,
   notifySchema,
 } from "@/lib/validators";
@@ -228,6 +230,18 @@ export function FeedbackForm() {
   });
 
   const selectedTool = form.watch("tool");
+  const selectedType = form.watch("type");
+  const typeOptions =
+    selectedTool === "General"
+      ? [GENERAL_CONTACT_TYPE, ...FEEDBACK_TYPES]
+      : [...FEEDBACK_TYPES];
+
+  useEffect(() => {
+    if (selectedTool !== "General" && selectedType === GENERAL_CONTACT_TYPE) {
+      form.setValue("type", "Feature request", { shouldValidate: true });
+    }
+  }, [selectedTool, selectedType, form]);
+
   const hasAcceptedPolicies = form.watch("acceptPolicies") === true;
   const nameValue = form.watch("name");
   const emailValue = form.watch("email");
@@ -364,11 +378,9 @@ export function FeedbackForm() {
         <label className="field">
           <span className="field-label-row">Type</span>
           <select className={fieldControlClass(typeMark)} {...form.register("type")}>
-            <option>Bug report</option>
-            <option>Missing command</option>
-            <option>Content update</option>
-            <option>Feature request</option>
-            <option>Other</option>
+            {typeOptions.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
           </select>
           {form.formState.errors.type ? <span className="field-error">{form.formState.errors.type.message}</span> : null}
         </label>
