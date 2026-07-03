@@ -29,7 +29,7 @@ import { ScrollNav } from "@/components/scroll-nav";
 import { buildCommandRunPreview, commandEntryKey } from "@/lib/command-run-preview";
 import { ToolIcon } from "@/components/tool-icon";
 import { FeedbackForm, NotifyForm } from "@/features/forms/forms";
-import { PrivacyContent, TermsContent } from "@/features/policy/policy-pages";
+import { AboutContent, PrivacyContent, TermsContent } from "@/features/policy/policy-pages";
 import { useFooterTicker } from "@/hooks/use-footer-ticker";
 import {
   markAllUnseenReviewed,
@@ -46,6 +46,7 @@ type RouteId =
   | "copilot"
   | "feedback"
   | "whats-new"
+  | "about"
   | "terms"
   | "privacy";
 
@@ -70,6 +71,7 @@ const PATH_TO_ROUTE: Record<string, RouteId> = {
   "/copilot": "copilot",
   "/feedback": "feedback",
   "/whats-new": "whats-new",
+  "/about": "about",
   "/terms-and-conditions": "terms",
   "/privacy-policy": "privacy",
 };
@@ -81,6 +83,7 @@ const ROUTE_TO_PATH: Record<RouteId, string> = {
   copilot: "/copilot",
   feedback: "/feedback",
   "whats-new": "/whats-new",
+  about: "/about",
   terms: "/terms-and-conditions",
   privacy: "/privacy-policy",
 };
@@ -1352,6 +1355,7 @@ export function ReferenceShell() {
                 </>
               ) : null}
 
+              {route === "about" ? <AboutContent /> : null}
               {route === "terms" ? <TermsContent /> : null}
               {route === "privacy" ? <PrivacyContent /> : null}
 
@@ -1455,6 +1459,8 @@ export function ReferenceShell() {
           <div className="footer-row footer-row-secondary">
             <div className="f-legal">
               <span className="f-copyright">© 2026 AI Dev Reference</span>
+              <span className="dot" aria-hidden="true">·</span>
+              <Link href="/about">About</Link>
               <span className="dot" aria-hidden="true">·</span>
               <Link href="/privacy-policy">Privacy Policy</Link>
               <span className="dot" aria-hidden="true">·</span>

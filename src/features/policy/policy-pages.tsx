@@ -1,5 +1,58 @@
 import Link from "next/link";
 
+export function AboutContent() {
+  return (
+    <section className="policy-page">
+      <h1>About AI Dev Reference</h1>
+      <p>
+        AI Dev Reference is a free, searchable guide to commands, skills, agents, and hooks for{" "}
+        <strong>Claude</strong>, <strong>Cursor</strong>, and <strong>GitHub Copilot</strong>. Every
+        entry includes a short description and a copy-paste example so you can use it without digging
+        through scattered docs.
+      </p>
+      <h2>Why this site exists</h2>
+      <p>
+        AI coding tools ship new slash commands, skills, and workflows often. Official documentation
+        is spread across vendor sites and changes frequently. This reference brings the essentials
+        into one place — with search, side-by-side comparison, and update notifications when the
+        catalog grows.
+      </p>
+      <h2>Who maintains it</h2>
+      <p>
+        The site is built and maintained by{" "}
+        <Link href="https://www.linkedin.com/in/nuthanm/?skipRedirect=true" target="_blank" rel="noreferrer">
+          Nuthan Murarysetty
+        </Link>
+        . It is a community project, not official product documentation. Suggestions and corrections
+        from readers help keep entries accurate and up to date.
+      </p>
+      <h2>Not affiliated with vendors</h2>
+      <p>
+        AI Dev Reference is independent. It is not affiliated with, endorsed by, or operated by
+        Anthropic, Anysphere (Cursor), Microsoft, or GitHub. Product names and trademarks belong to
+        their respective owners and are used here for identification and educational purposes only.
+      </p>
+      <h2>How the catalog stays current</h2>
+      <p>
+        Entries are curated from official vendor documentation and community feedback. When commands
+        change upstream, the catalog is updated and subscribers can be notified via email. See{" "}
+        <Link href="/whats-new">What&apos;s new</Link> for recently added entries.
+      </p>
+      <h2>Contribute or get in touch</h2>
+      <p>
+        Missing a command or spotted an error? Use the{" "}
+        <Link href="/feedback">feedback form</Link> to request additions or report issues. For general
+        questions, select <strong>General</strong> as the tool and <strong>I want to contact</strong>{" "}
+        as the type.
+      </p>
+      <p className="policy-nav-links">
+        <Link href="/">Back to home</Link> · <Link href="/privacy-policy">Privacy Policy</Link> ·{" "}
+        <Link href="/terms-and-conditions">Terms and Conditions</Link>
+      </p>
+    </section>
+  );
+}
+
 export function TermsContent() {
   return (
     <section className="policy-page">
@@ -35,7 +88,8 @@ export function TermsContent() {
         and <strong>I want to contact</strong> as the type.
       </p>
       <p className="policy-nav-links">
-        <Link href="/">Back to home</Link> · <Link href="/privacy-policy">Privacy Policy</Link>
+        <Link href="/">Back to home</Link> · <Link href="/about">About</Link> ·{" "}
+        <Link href="/privacy-policy">Privacy Policy</Link>
       </p>
     </section>
   );
@@ -74,7 +128,8 @@ export function PrivacyContent() {
         details in the message.
       </p>
       <p className="policy-nav-links">
-        <Link href="/">Back to home</Link> · <Link href="/terms-and-conditions">Terms and Conditions</Link>
+        <Link href="/">Back to home</Link> · <Link href="/about">About</Link> ·{" "}
+        <Link href="/terms-and-conditions">Terms and Conditions</Link>
       </p>
     </section>
   );

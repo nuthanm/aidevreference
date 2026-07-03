@@ -8,6 +8,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/cursor",
     "/copilot",
     "/feedback",
+    "/about",
     "/privacy-policy",
     "/terms-and-conditions",
     "/whats-new",

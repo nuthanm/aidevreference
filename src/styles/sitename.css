@@ -4335,6 +4335,7 @@
       font-weight: 600;
     }
 
+    .app-shell[data-route="about"],
     .app-shell[data-route="terms"],
     .app-shell[data-route="privacy"] {
       --mobile-header-offset: 112px;
