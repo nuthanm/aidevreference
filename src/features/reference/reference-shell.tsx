@@ -42,7 +42,7 @@ type SubscriberStats = {
   total: number;
 };
 
-type ReleaseDisplayMode = "new" | "history" | "empty";
+type ReleaseDisplayMode = "new" | "empty";
 
 type ReleaseDisplay = {
   entries: ReleaseLogEntry[];
@@ -73,7 +73,22 @@ function badgeLabel(v?: string) {
   if (v === "wf") return "Workflow";
   if (v === "chat") return "Chat";
   if (v === "ide") return "IDE";
-  return "";
+  if (v === "other") return "Other";
+  return "Other";
+}
+
+const BADGE_LEGEND = [
+  { id: "chat", label: "CHAT", desc: "Conversation and context commands." },
+  { id: "skill", label: "SKILL", desc: "Skill discovery and invocation." },
+  { id: "ide", label: "IDE", desc: "Editor, MCP, and tooling integrations." },
+  { id: "wf", label: "WORKFLOW", desc: "Multi-step planning and review flows." },
+  { id: "other", label: "OTHER", desc: "Commands without a primary category." },
+] as const;
+
+function commandUsage(cmd: string, ex: string, usage?: string) {
+  if (usage) return usage;
+  if (ex === cmd) return cmd;
+  return `${cmd} <Add_What_you_want>`;
 }
 
 function countCommands(tool: ToolCatalog) {
@@ -306,12 +321,6 @@ export function ReferenceShell() {
           mode: "new",
           unseenCount: synced.unseenEntries.length,
         });
-      } else if (synced.releaseLog.length > 0) {
-        setReleaseDisplay({
-          entries: synced.releaseLog.slice(0, 20),
-          mode: "history",
-          unseenCount: 0,
-        });
       } else {
         setReleaseDisplay({ entries: [], mode: "empty", unseenCount: 0 });
       }
@@ -322,23 +331,20 @@ export function ReferenceShell() {
     setCatalogUpdateCount(synced.badgeCount);
   }, [data, route]);
 
+  useEffect(() => {
+    if (route === "whats-new" && releaseDisplay.mode !== "new") {
+      router.replace("/");
+    }
+  }, [route, releaseDisplay.mode, router]);
+
   function handleMarkUpdatesReviewed() {
     const synced = syncCatalogUpdates(data);
     if (!synced.unseenEntries.length) return;
 
     markAllUnseenReviewed(synced.unseenEntries.map((entry) => entry.key));
-    const after = syncCatalogUpdates(data);
-
-    if (after.releaseLog.length > 0) {
-      setReleaseDisplay({
-        entries: after.releaseLog.slice(0, 20),
-        mode: "history",
-        unseenCount: 0,
-      });
-    } else {
-      setReleaseDisplay({ entries: [], mode: "empty", unseenCount: 0 });
-    }
+    setReleaseDisplay({ entries: [], mode: "empty", unseenCount: 0 });
     setCatalogUpdateCount(0);
+    router.replace("/");
   }
 
   useEffect(() => {
@@ -372,8 +378,26 @@ export function ReferenceShell() {
     return <ToolIcon tool={tool} size={size} />;
   }
 
+  function renderBadgeLegend() {
+    return (
+      <aside className="badge-legend-aside" aria-label="Category legend">
+        <p className="badge-legend-title">Legend</p>
+        <ul className="badge-legend-list">
+          {BADGE_LEGEND.map((item) => (
+            <li className="badge-legend-item" key={item.id}>
+              <span className={`badge ${item.id}`}>{item.label}</span>
+              <span className="badge-legend-desc">{item.desc}</span>
+            </li>
+          ))}
+        </ul>
+      </aside>
+    );
+  }
+
   function renderCommandCard(tool: "claude" | "cursor" | "copilot", entry: CommandEntry) {
-    const badge = entry.badge ? <span className={`badge ${entry.badge}`}>{badgeLabel(entry.badge)}</span> : null;
+    const usage = commandUsage(entry.cmd, entry.ex, entry.usage);
+    const badgeKind = entry.badge || "other";
+    const badge = <span className={`badge ${badgeKind}`}>{badgeLabel(badgeKind)}</span>;
 
     return (
       <article className={`cmd-card ${tool}`} key={`${entry.cmd}-${entry.name}`}>
@@ -383,6 +407,8 @@ export function ReferenceShell() {
         </div>
         <div className="cmd-name">{entry.name}</div>
         <div className="cmd-desc">{entry.desc}</div>
+        <div className="ex-label">Command</div>
+        <pre className={`ex ${tool} cmd-usage`}>{usage}</pre>
         <div className="ex-label">Example</div>
         <pre className={`ex ${tool}`}>{entry.ex}</pre>
       </article>
@@ -413,6 +439,9 @@ export function ReferenceShell() {
                 <div className="skill-trigger">
                   <strong>Trigger:</strong> {s.trigger}
                 </div>
+                <div className="ex-label">Command</div>
+                <pre className="skill-ex cmd-usage">{commandUsage(s.cmd, s.ex)}</pre>
+                <div className="ex-label">Example</div>
                 <pre className="skill-ex">{s.ex}</pre>
               </div>
             </article>
@@ -478,6 +507,9 @@ export function ReferenceShell() {
                 <div className="skill-trigger">
                   <strong>Trigger:</strong> {h.trigger}
                 </div>
+                <div className="ex-label">Command</div>
+                <pre className="skill-ex cmd-usage">{commandUsage(h.cmd, h.ex)}</pre>
+                <div className="ex-label">Example</div>
                 <pre className="skill-ex">{h.ex}</pre>
               </div>
             </article>
@@ -603,8 +635,13 @@ export function ReferenceShell() {
             ← Back
           </button>
         </section>
-        <nav className="pill-nav">{pills}</nav>
-        {sections}
+        <div className="tool-content-layout">
+          <div className="tool-content-main">
+            <nav className="pill-nav">{pills}</nav>
+            {sections}
+          </div>
+          {renderBadgeLegend()}
+        </div>
       </>
     );
   }
@@ -792,23 +829,25 @@ export function ReferenceShell() {
               </span>
               <span className="nav-label">Request a feature</span>
             </button>
-            <button
-              className={`nav-btn has-tooltip ${route === "whats-new" ? "active" : ""}`}
-              onClick={() => navigate("whats-new")}
-              data-tooltip="What's new"
-              aria-label="What's new"
-              title="What's new"
-            >
-              <span className="nav-icon-wrap">
-                <FileText size={15} className="nav-icon" />
-              </span>
-              <span className="nav-label">What&apos;s new</span>
-              {route !== "whats-new" && catalogUpdateCount > 0 ? (
-                <span className="nav-count" aria-label={`${catalogUpdateCount} new catalog updates`}>
-                  {catalogUpdateCount}
+            {catalogUpdateCount > 0 ? (
+              <button
+                className={`nav-btn has-tooltip ${route === "whats-new" ? "active" : ""}`}
+                onClick={() => navigate("whats-new")}
+                data-tooltip="What's new"
+                aria-label="What's new"
+                title="What's new"
+              >
+                <span className="nav-icon-wrap">
+                  <FileText size={15} className="nav-icon" />
                 </span>
-              ) : null}
-            </button>
+                <span className="nav-label">What&apos;s new</span>
+                {route !== "whats-new" ? (
+                  <span className="nav-count" aria-label={`${catalogUpdateCount} new catalog updates`}>
+                    {catalogUpdateCount}
+                  </span>
+                ) : null}
+              </button>
+            ) : null}
             <div className="sidebar-tools">
               <p className="nav-title">Tools</p>
               {toolNav("claude", "Claude")}
@@ -998,7 +1037,9 @@ export function ReferenceShell() {
                     <h1>Submit a request</h1>
                     <p className="feedback-sub">
                       Report missing commands, request additions, or suggest improvements for clarity
-                      and searchability across Claude, Cursor, and Copilot references.
+                      and searchability across Claude, Cursor, and Copilot references. For anything else
+                      — including privacy or data requests — select <strong>General</strong> and type{" "}
+                      <strong>Other</strong>.
                     </p>
                   </section>
                   <section className="feedback-wrap">
@@ -1012,87 +1053,66 @@ export function ReferenceShell() {
                 </>
               ) : null}
 
-              {route === "whats-new" ? (
+              {route === "whats-new" && releaseDisplay.mode === "new" ? (
                 <section className="catalog-updates-page">
                   <div className="catalog-updates-hero">
                     <div>
                       <h1>What&apos;s new</h1>
                       <p>
-                        {releaseDisplay.mode === "new"
-                          ? `${releaseDisplay.unseenCount} new ${releaseDisplay.unseenCount === 1 ? "entry" : "entries"} since your last review.`
-                          : releaseDisplay.mode === "history"
-                            ? "Recent catalog history. You are up to date."
-                            : "New commands, skills, agents, and hooks will appear here when the catalog grows."}
+                        {releaseDisplay.unseenCount} new {releaseDisplay.unseenCount === 1 ? "entry" : "entries"} since your last review.
                       </p>
                     </div>
                     <div className="catalog-updates-actions">
-                      {releaseDisplay.mode === "new" ? (
-                        <button className="btn-primary catalog-mark-read" type="button" onClick={handleMarkUpdatesReviewed}>
-                          Mark as reviewed
-                        </button>
-                      ) : null}
+                      <button className="btn-primary catalog-mark-read" type="button" onClick={handleMarkUpdatesReviewed}>
+                        Mark as reviewed
+                      </button>
                     </div>
                   </div>
 
                   <section className="catalog-updates-shell">
                     <div className="catalog-updates-head">
-                      {releaseDisplay.mode === "new" ? (
-                        <div className="catalog-chip catalog-chip-new">{releaseDisplay.unseenCount} new</div>
-                      ) : null}
-                      {releaseDisplay.mode === "history" ? (
-                        <div className="catalog-chip">Recent updates</div>
-                      ) : null}
-                      <div className="catalog-chip">Total catalog items: {totalEntries}</div>
+                      <div className="catalog-chip catalog-chip-new">{releaseDisplay.unseenCount} new</div>
                     </div>
 
-                    {releaseDisplay.entries.length ? (
-                      <div className="update-feed">
-                        {TOOL_ORDER.map((tool) => {
-                          const items = groupedReleaseEntries[tool];
-                          if (!items.length) return null;
+                    <div className="update-feed">
+                      {TOOL_ORDER.map((tool) => {
+                        const items = groupedReleaseEntries[tool];
+                        if (!items.length) return null;
 
-                          return (
-                            <section className={`update-group update-group-${tool}`} key={tool}>
-                              <div className="update-group-head">
-                                <h2>{TOOL_LABELS[tool]}</h2>
-                                <span className="update-group-count">{items.length}</span>
-                              </div>
-                              <div className="update-card-list">
-                                {items.map((item) => (
-                                  <article
-                                    className={`update-card ${tool} ${releaseDisplay.mode === "new" ? "is-new" : "is-history"}`}
-                                    key={item.key}
+                        return (
+                          <section className={`update-group update-group-${tool}`} key={tool}>
+                            <div className="update-group-head">
+                              <h2>{TOOL_LABELS[tool]}</h2>
+                              <span className="update-group-count">{items.length}</span>
+                            </div>
+                            <div className="update-card-list">
+                              {items.map((item) => (
+                                <article
+                                  className={`update-card ${tool} is-new`}
+                                  key={item.key}
+                                >
+                                  <div className="update-card-top">
+                                    <span className={`update-kind ${item.kind}`}>{item.kind}</span>
+                                    <time className="update-date" dateTime={item.addedAt}>
+                                      {formatReleaseDate(item.addedAt)}
+                                    </time>
+                                  </div>
+                                  <h3 className="update-title">{item.title}</h3>
+                                  <p className="update-details">{item.details}</p>
+                                  <button
+                                    className={`update-open tool-link-${tool}`}
+                                    type="button"
+                                    onClick={() => navigate(tool)}
                                   >
-                                    <div className="update-card-top">
-                                      <span className={`update-kind ${item.kind}`}>{item.kind}</span>
-                                      <time className="update-date" dateTime={item.addedAt}>
-                                        {formatReleaseDate(item.addedAt)}
-                                      </time>
-                                    </div>
-                                    <h3 className="update-title">{item.title}</h3>
-                                    <p className="update-details">{item.details}</p>
-                                    <button
-                                      className={`update-open tool-link-${tool}`}
-                                      type="button"
-                                      onClick={() => navigate(tool)}
-                                    >
-                                      Open in {TOOL_LABELS[tool]} reference
-                                    </button>
-                                  </article>
-                                ))}
-                              </div>
-                            </section>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="catalog-empty-panel">
-                        <strong>No catalog updates yet</strong>
-                        <p>
-                          When new commands, skills, agents, or hooks are published, they will show up here and on the sidebar badge.
-                        </p>
-                      </div>
-                    )}
+                                    Open in {TOOL_LABELS[tool]} reference
+                                  </button>
+                                </article>
+                              ))}
+                            </div>
+                          </section>
+                        );
+                      })}
+                    </div>
                   </section>
                 </section>
               ) : null}

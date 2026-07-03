@@ -8,7 +8,7 @@ export type FeedbackInput = {
   name: string;
   email: string;
   tool: "Claude" | "Cursor" | "Copilot" | "General";
-  type: "Bug report" | "Missing command" | "Content update" | "Feature request";
+  type: "Bug report" | "Missing command" | "Content update" | "Feature request" | "Other";
   message: string;
   captchaToken?: string;
 };

@@ -30,7 +30,7 @@ export const feedbackSchema = z.object({
     .pipe(z.string().email("Enter a valid email").max(254))
     .refine(rejectSuspiciousInput, "Suspicious input is not allowed"),
   tool: z.enum(["Claude", "Cursor", "Copilot", "General"]),
-  type: z.enum(["Bug report", "Missing command", "Content update", "Feature request"]),
+  type: z.enum(["Bug report", "Missing command", "Content update", "Feature request", "Other"]),
   message: messageField(FEEDBACK_MESSAGE_MIN_CHARS, FEEDBACK_MESSAGE_MAX_CHARS),
   acceptPolicies: z.boolean().refine((value) => value, "Please accept Privacy Policy and Terms and Conditions"),
   website: z

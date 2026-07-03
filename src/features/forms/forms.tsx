@@ -368,6 +368,7 @@ export function FeedbackForm() {
             <option>Missing command</option>
             <option>Content update</option>
             <option>Feature request</option>
+            <option>Other</option>
           </select>
           {form.formState.errors.type ? <span className="field-error">{form.formState.errors.type.message}</span> : null}
         </label>

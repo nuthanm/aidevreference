@@ -5,6 +5,7 @@ export type CommandEntry = {
   name: string;
   desc: string;
   ex: string;
+  usage?: string;
   badge?: Badge;
   officialUrl?: string;
 };

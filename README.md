@@ -261,6 +261,7 @@ db/
 docs/
   OPERATIONS.md          # Maintainer handbook (sync, broadcast, deploy)
   CATALOG_SETUP_GUIDE.md # Step-by-step catalog population runbook
+  USER_TESTING.md        # UX observations and user-testing suggestions
 ```
 
 ---
@@ -303,6 +304,7 @@ openssl rand -base64 48
 - **Missing a command?** Use the [feedback form](/feedback) on the live site or open an issue.
 - **Want to add catalog data?** Open a PR with entries in `data/catalog.pending.json` following [docs/OPERATIONS.md](docs/OPERATIONS.md).
 - **Operator runbook:** [docs/CATALOG_SETUP_GUIDE.md](docs/CATALOG_SETUP_GUIDE.md)
+- **UX / user testing notes:** [docs/USER_TESTING.md](docs/USER_TESTING.md)
 
 ---
 
