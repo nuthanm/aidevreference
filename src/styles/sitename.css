@@ -40,7 +40,7 @@
 
     .app-shell[data-route="landing"],
     .app-shell[data-route="feedback"],
-    .app-shell[data-route="release-notes"] {
+    .app-shell[data-route="whats-new"] {
       --mobile-header-offset: 112px;
     }
 
@@ -2857,7 +2857,7 @@
 
       .app-shell[data-route="landing"] .top-actions,
       .app-shell[data-route="feedback"] .top-actions,
-      .app-shell[data-route="release-notes"] .top-actions {
+      .app-shell[data-route="whats-new"] .top-actions {
         display: none;
       }
 

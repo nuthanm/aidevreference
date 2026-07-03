@@ -34,7 +34,7 @@ type RouteId =
   | "cursor"
   | "copilot"
   | "feedback"
-  | "release-notes";
+  | "whats-new";
 
 type SubscriberStats = {
   confirmed: number;
@@ -56,7 +56,7 @@ const PATH_TO_ROUTE: Record<string, RouteId> = {
   "/cursor": "cursor",
   "/copilot": "copilot",
   "/feedback": "feedback",
-  "/release-notes": "release-notes",
+  "/whats-new": "whats-new",
 };
 
 const ROUTE_TO_PATH: Record<RouteId, string> = {
@@ -65,7 +65,7 @@ const ROUTE_TO_PATH: Record<RouteId, string> = {
   cursor: "/cursor",
   copilot: "/copilot",
   feedback: "/feedback",
-  "release-notes": "/release-notes",
+  "whats-new": "/whats-new",
 };
 
 function badgeLabel(v?: string) {
@@ -291,7 +291,7 @@ export function ReferenceShell() {
   useEffect(() => {
     const synced = syncCatalogUpdates(data);
 
-    if (route === "release-notes") {
+    if (route === "whats-new") {
       if (synced.unseenEntries.length > 0) {
         setReleaseDisplay({
           entries: synced.unseenEntries,
@@ -785,8 +785,8 @@ export function ReferenceShell() {
               <span className="nav-label">Request a feature</span>
             </button>
             <button
-              className={`nav-btn has-tooltip ${route === "release-notes" ? "active" : ""}`}
-              onClick={() => navigate("release-notes")}
+              className={`nav-btn has-tooltip ${route === "whats-new" ? "active" : ""}`}
+              onClick={() => navigate("whats-new")}
               data-tooltip="What's new"
               aria-label="What's new"
               title="What's new"
@@ -795,7 +795,7 @@ export function ReferenceShell() {
                 <FileText size={15} className="nav-icon" />
               </span>
               <span className="nav-label">What&apos;s new</span>
-              {route !== "release-notes" && catalogUpdateCount > 0 ? (
+              {route !== "whats-new" && catalogUpdateCount > 0 ? (
                 <span className="nav-count" aria-label={`${catalogUpdateCount} new catalog updates`}>
                   {catalogUpdateCount}
                 </span>
@@ -1001,7 +1001,7 @@ export function ReferenceShell() {
                 </>
               ) : null}
 
-              {route === "release-notes" ? (
+              {route === "whats-new" ? (
                 <section className="catalog-updates-page">
                   <div className="catalog-updates-hero">
                     <div>

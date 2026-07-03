@@ -5,9 +5,9 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata: Metadata = pageMetadata(
   "What's New",
   "See the latest commands, skills, agents, and hooks added to AI Dev Reference.",
-  "/release-notes",
+  "/whats-new",
 );
 
-export default function ReleaseNotesPage() {
+export default function WhatsNewPage() {
   return <ReferenceShell />;
 }
