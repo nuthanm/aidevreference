@@ -155,6 +155,8 @@ This updates `src/lib/catalog.ts` (`baseCatalog`) so the site works without a da
 
 ### Step 3d — Sync to database (production)
 
+Scripts load variables from `.env.local` automatically (same as `next dev`).
+
 **Option A — API sync** (merges pending → DB, clears pending file):
 
 ```bash
