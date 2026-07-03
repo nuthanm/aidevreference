@@ -684,6 +684,9 @@ export const baseCatalog: Catalog = {
           desc: "Walk through creating a new Agent Skill with SKILL.md structure.",
           ex: "/create-skill for API endpoint testing",
           trigger: "When user wants to add a reusable agent workflow",
+          configPath: ".cursor/skills/<skill-name>/SKILL.md",
+          configExample: "---\nname: api-testing\ndescription: Test API endpoints with fixtures\n---\n\n## Steps\n1. Read route handlers\n2. Generate test cases",
+          detail: "Run /create-skill to scaffold a new skill, or manually create .cursor/skills/<name>/SKILL.md.\n\nSkills are reusable agent workflows invoked by name or matched by intent.",
           officialUrl: "https://cursor.com/docs/skills"
         },
         {
@@ -693,6 +696,9 @@ export const baseCatalog: Catalog = {
           auto: false,
           ex: "/create-rule enforce TypeScript strict mode",
           trigger: "When user wants persistent project conventions",
+          configPath: ".cursor/rules/*.mdc or AGENTS.md",
+          configExample: "---\ndescription: TypeScript strict mode\nglobs: **/*.{ts,tsx}\n---\n\nAlways enable strict null checks.",
+          detail: "Rules persist project conventions. Store in .cursor/rules/ as .mdc files or use AGENTS.md for repo-wide guidance.",
           officialUrl: "https://cursor.com/docs/context/rules"
         },
         {
@@ -702,6 +708,9 @@ export const baseCatalog: Catalog = {
           desc: "Create lifecycle hooks and update hooks.json for agent events.",
           ex: "/create-hook format files after edits",
           trigger: "When automating agent lifecycle behavior",
+          configPath: ".cursor/hooks.json",
+          configExample: '{\n  "version": 1,\n  "hooks": {\n    "afterFileEdit": [\n      { "command": "prettier --write $FILE" }\n    ]\n  }\n}',
+          detail: "Hooks fire on agent lifecycle events (sessionStart, preToolUse, afterFileEdit, etc.).\n\nDefine in .cursor/hooks.json at project or user level.",
           officialUrl: "https://cursor.com/docs/hooks"
         },
         {
@@ -711,6 +720,9 @@ export const baseCatalog: Catalog = {
           desc: "Create custom subagents with focused roles and delegation rules.",
           ex: "/create-subagent for security reviews",
           trigger: "When delegating specialized tasks to subagents",
+          configPath: ".cursor/agents/<agent-name>.md",
+          configExample: "---\nname: security-reviewer\ntools: Read, Grep\ndescription: Read-only security audit subagent\n---\n\nReview changes for OWASP risks.",
+          detail: "Subagents are specialized delegates with their own tools and prompts.\n\nCreate .cursor/agents/<name>.md with frontmatter for name, tools, and instructions.",
           officialUrl: "https://cursor.com/docs/agent/subagents"
         },
         {
@@ -771,6 +783,9 @@ export const baseCatalog: Catalog = {
           model: "Composer",
           invoke: "Automatic",
           when: "When broad context gathering is needed before changes",
+          configPath: ".cursor/agents/explore.md (optional)",
+          configExample: "---\nname: Explore\ntools: Read, Grep, Glob\ndescription: Read-only codebase search\n---",
+          detail: "Built-in subagent for fast read-only exploration.\n\nCustomize via .cursor/agents/explore.md with YAML frontmatter.",
           officialUrl: "https://cursor.com/docs/agent/subagents"
         },
         {
@@ -822,6 +837,9 @@ export const baseCatalog: Catalog = {
           desc: "Validate or block tool calls before the agent executes them.",
           ex: "deny writes outside src/ on preToolUse",
           trigger: "Fires before any agent tool call",
+          configPath: ".cursor/hooks.json → hooks.preToolUse",
+          configExample: '{\n  "hooks": {\n    "preToolUse": [\n      { "command": "bash .cursor/hooks/validate-write.sh" }\n    ]\n  }\n}',
+          detail: "preToolUse hooks run before each agent tool call.\n\nUse to block dangerous operations or enforce workspace policies.",
           officialUrl: "https://cursor.com/docs/hooks"
         },
         {
@@ -831,6 +849,9 @@ export const baseCatalog: Catalog = {
           desc: "Observe or react after a tool call completes successfully.",
           ex: "log tool usage on postToolUse",
           trigger: "Fires after successful tool execution",
+          configPath: ".cursor/hooks.json → hooks.postToolUse",
+          configExample: '{\n  "hooks": {\n    "postToolUse": [\n      { "command": "bash .cursor/hooks/log-tool.sh" }\n    ]\n  }\n}',
+          detail: "postToolUse hooks run after a successful tool call.\n\nUse for logging, metrics, or follow-up automation.",
           officialUrl: "https://cursor.com/docs/hooks"
         },
         {
@@ -840,6 +861,9 @@ export const baseCatalog: Catalog = {
           desc: "Run formatters or linters after the agent edits a file.",
           ex: ".cursor/hooks/format.sh on afterFileEdit",
           trigger: "Fires after agent file modifications",
+          configPath: ".cursor/hooks.json → hooks.afterFileEdit",
+          configExample: '{\n  "hooks": {\n    "afterFileEdit": [\n      { "command": "prettier --write $FILE" }\n    ]\n  }\n}',
+          detail: "afterFileEdit hooks run when the agent modifies a file.\n\nCommon use: auto-format with prettier or eslint --fix.",
           officialUrl: "https://cursor.com/docs/hooks"
         },
         {
@@ -1019,6 +1043,9 @@ export const baseCatalog: Catalog = {
           desc: "Save a reusable prompt to .github/prompts as a .prompt.md file.",
           ex: "/savePrompt",
           trigger: "When capturing a workflow prompt for reuse",
+          configPath: ".github/prompts/<name>.prompt.md",
+          configExample: "---\nname: review-pr\ndescription: Review pull request changes\n---\n\nReview the diff for bugs and style issues.",
+          detail: "Reusable prompts live in .github/prompts/ as .prompt.md files.\n\nRun /savePrompt to capture the current conversation as a prompt template.",
           officialUrl: "https://learn.microsoft.com/en-us/visualstudio/ide/copilot-chat-context"
         },
         {
@@ -1052,6 +1079,9 @@ export const baseCatalog: Catalog = {
           model: "Copilot Agent",
           invoke: "On demand",
           when: "When implementing features across multiple files",
+          configPath: ".github/copilot-instructions.md",
+          configExample: "# Copilot instructions\n\n- Use TypeScript strict mode\n- Run tests before completing tasks",
+          detail: "The Coding Agent works across your workspace with edit and terminal access.\n\nGuide behavior via .github/copilot-instructions.md or VS Code custom instructions.",
           officialUrl: "https://code.visualstudio.com/docs/copilot/copilot-coding-agent"
         },
         {

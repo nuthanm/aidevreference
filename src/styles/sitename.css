@@ -1563,6 +1563,16 @@
     .tool-mini.cursor svg,
     .logo-52.cursor svg {
       color: var(--cursor);
+      display: block;
+      width: 82%;
+      height: 82%;
+    }
+
+    .hero-tool-item.cursor .hero-tool-icon svg,
+    .nav-icon-wrap-cursor svg {
+      display: block;
+      width: 78%;
+      height: 78%;
     }
 
     .tool-mini.copilot svg,
@@ -1583,6 +1593,12 @@
       color: var(--text-3);
       font: 500 11px Inter, sans-serif;
       margin-top: 2px;
+    }
+
+    .maker-meta {
+      margin-top: 2px;
+      color: var(--text-3);
+      font: 600 10px Inter, sans-serif;
     }
 
     .tool-desc {
@@ -1664,6 +1680,12 @@
       font: 500 12px Inter, sans-serif;
       color: var(--text-2);
       vertical-align: top;
+    }
+
+    .compare-wrap code {
+      font: 600 10px "JetBrains Mono", monospace;
+      color: var(--text-2);
+      word-break: break-word;
     }
 
     th {

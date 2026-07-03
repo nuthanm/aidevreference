@@ -130,6 +130,29 @@ function countCommands(tool: ToolCatalog) {
   return tool.groups.reduce((sum, group) => sum + group.entries.length, 0);
 }
 
+function countMeta(tool: ToolCatalog) {
+  return {
+    skills: Array.isArray(tool.skills) ? tool.skills.length : 0,
+    agents: Array.isArray(tool.agents) ? tool.agents.length : 0,
+    hooks: Array.isArray(tool.hooks) ? tool.hooks.length : 0,
+  };
+}
+
+function formatMetaBreakdown(tool: ToolCatalog) {
+  const meta = countMeta(tool);
+  const parts: string[] = [];
+  if (meta.skills) parts.push(`${meta.skills} skill${meta.skills === 1 ? "" : "s"}`);
+  if (meta.agents) parts.push(`${meta.agents} agent${meta.agents === 1 ? "" : "s"}`);
+  if (meta.hooks) parts.push(`${meta.hooks} hook${meta.hooks === 1 ? "" : "s"}`);
+  return parts.length ? parts.join(" · ") : "—";
+}
+
+const CONFIG_PATHS: Record<"claude" | "cursor" | "copilot", string> = {
+  claude: ".claude/settings.json, .claude/skills/, .claude/agents/",
+  cursor: ".cursor/rules, .cursor/skills/, .cursor/hooks.json",
+  copilot: ".github/copilot-instructions.md, .github/prompts/",
+};
+
 function countToolEntries(tool: ToolCatalog) {
   const commands = countCommands(tool);
   const skills = Array.isArray(tool.skills) ? tool.skills.length : 0;
@@ -741,21 +764,24 @@ export function ReferenceShell() {
       )),
     ];
 
-    if (tool === "claude") {
+    if (conf.skills?.length) {
       pills.push(
         <button
           key="skills"
-          className={`pill claude ${groupValue === "skills" ? "active" : ""}`}
-          onClick={() => setActiveGroup((prev) => ({ ...prev, claude: "skills" }))}
+          className={`pill ${tool} ${groupValue === "skills" ? "active" : ""}`}
+          onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "skills" }))}
         >
           Skills
         </button>,
       );
+    }
+
+    if (conf.agents?.length) {
       pills.push(
         <button
           key="agents"
-          className={`pill claude ${groupValue === "agents" ? "active" : ""}`}
-          onClick={() => setActiveGroup((prev) => ({ ...prev, claude: "agents" }))}
+          className={`pill ${tool} ${groupValue === "agents" ? "active" : ""}`}
+          onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "agents" }))}
         >
           Agents
         </button>,
@@ -776,9 +802,9 @@ export function ReferenceShell() {
 
     const sections: React.ReactNode[] = [];
 
-    if (groupValue === "skills" && tool === "claude") {
+    if (groupValue === "skills" && conf.skills?.length) {
       sections.push(renderSkillsSection(conf.skills, tool));
-    } else if (groupValue === "agents" && tool === "claude") {
+    } else if (groupValue === "agents" && conf.agents?.length) {
       sections.push(renderAgentsSection(conf.agents, tool));
     } else if (groupValue === "hooks-meta" && conf.hooks) {
       sections.push(renderHooksSection(conf.hooks, tool));
@@ -1201,6 +1227,7 @@ export function ReferenceShell() {
                             <div className="maker">
                               by {card.maker} · {countToolEntries(data[card.id])} entries
                             </div>
+                            <div className="maker-meta">{formatMetaBreakdown(data[card.id])}</div>
                           </div>
                         </div>
                         <div className="tool-strip-body">
@@ -1225,9 +1252,10 @@ export function ReferenceShell() {
                   <section className="compare-wrap">
                     <table>
                       <tbody>
-                        <tr><th>Catalog entries</th><td>Claude: {countToolEntries(data.claude)}</td><td>Cursor: {countToolEntries(data.cursor)}</td><td>Copilot: {countToolEntries(data.copilot)}</td></tr>
+                        <tr><th>Catalog entries</th><td>{countToolEntries(data.claude)}</td><td>{countToolEntries(data.cursor)}</td><td>{countToolEntries(data.copilot)}</td></tr>
                         <tr><th>Slash commands</th><td>{countCommands(data.claude)}</td><td>{countCommands(data.cursor)}</td><td>{countCommands(data.copilot)}</td></tr>
-                        <tr><th>Bundled skills/agents</th><td>Skills + subagents</td><td>Command packs + context tools</td><td>Modes + integrations</td></tr>
+                        <tr><th>Skills / agents / hooks</th><td>{formatMetaBreakdown(data.claude)}</td><td>{formatMetaBreakdown(data.cursor)}</td><td>{formatMetaBreakdown(data.copilot)}</td></tr>
+                        <tr><th>Configure in</th><td><code>{CONFIG_PATHS.claude}</code></td><td><code>{CONFIG_PATHS.cursor}</code></td><td><code>{CONFIG_PATHS.copilot}</code></td></tr>
                         <tr><th>Parallel execution</th><td>Supported in tool pipelines</td><td>Supported in IDE workflows</td><td>Supported in terminal/task flows</td></tr>
                         <tr><th>Context management</th><td>Memory tiers + agent context</td><td>Workspace-aware context windows</td><td>Chat + repo context + policies</td></tr>
                         <tr><th>MCP support</th><td>Yes</td><td>Yes</td><td>Yes</td></tr>
