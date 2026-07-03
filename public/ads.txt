@@ -1,0 +1,5 @@
+# AI Dev Reference — ads.txt
+# After Google AdSense approval, replace the line below with your publisher ID:
+# google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+#
+# Leave this file at https://www.aidevreference.com/ads.txt (site root).

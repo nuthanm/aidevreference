@@ -1462,6 +1462,8 @@ export function ReferenceShell() {
               <span className="dot" aria-hidden="true">·</span>
               <Link href="/about">About</Link>
               <span className="dot" aria-hidden="true">·</span>
+              <Link href="/feedback">Contact</Link>
+              <span className="dot" aria-hidden="true">·</span>
               <Link href="/privacy-policy">Privacy Policy</Link>
               <span className="dot" aria-hidden="true">·</span>
               <Link href="/terms-and-conditions">Terms and Conditions</Link>
