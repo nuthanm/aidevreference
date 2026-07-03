@@ -3,6 +3,7 @@
  * Seed the active catalog snapshot in PostgreSQL from baseCatalog.
  * Use for first-time production setup when pending entries are already merged.
  */
+import "./load-env";
 import { baseCatalog, collectCatalogValidationWarnings } from "../src/lib/catalog";
 import { getCatalogSnapshotStored, upsertCatalogSnapshotStored } from "../src/lib/catalog-store";
 
