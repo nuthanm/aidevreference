@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
+  Bot,
   Bug,
   ChevronDown,
   ChevronLeft,
@@ -17,6 +18,8 @@ import {
   Lightbulb,
   List,
   Menu,
+  Plug,
+  Sparkles,
   Terminal,
   X,
 } from "lucide-react";
@@ -833,9 +836,10 @@ export function ReferenceShell() {
       metaPills.push(
         <button
           key="skills"
-          className={`pill pill-meta ${tool} ${groupValue === "skills" ? "active" : ""}`}
+          className={`pill pill-meta pill-meta-skills ${tool} ${groupValue === "skills" ? "active" : ""}`}
           onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "skills" }))}
         >
+          <Sparkles size={12} aria-hidden />
           Skills
         </button>,
       );
@@ -845,9 +849,10 @@ export function ReferenceShell() {
       metaPills.push(
         <button
           key="agents"
-          className={`pill pill-meta ${tool} ${groupValue === "agents" ? "active" : ""}`}
+          className={`pill pill-meta pill-meta-agents ${tool} ${groupValue === "agents" ? "active" : ""}`}
           onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "agents" }))}
         >
+          <Bot size={12} aria-hidden />
           Agents
         </button>,
       );
@@ -857,9 +862,10 @@ export function ReferenceShell() {
       metaPills.push(
         <button
           key="hooks-meta"
-          className={`pill pill-meta ${tool} ${groupValue === "hooks-meta" ? "active" : ""}`}
+          className={`pill pill-meta pill-meta-hooks ${tool} ${groupValue === "hooks-meta" ? "active" : ""}`}
           onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "hooks-meta" }))}
         >
+          <Plug size={12} aria-hidden />
           Hooks
         </button>,
       );
@@ -933,12 +939,15 @@ export function ReferenceShell() {
         </section>
         <div className="tool-content-layout">
           <div className="tool-content-main">
-            <nav className="pill-nav">{commandPills}</nav>
-            {metaPills.length ? (
-              <nav className="pill-nav pill-nav-meta" aria-label="Skills, agents, and hooks">
-                {metaPills}
-              </nav>
-            ) : null}
+            <nav className="pill-nav" aria-label="Command groups and extensions">
+              {commandPills}
+              {metaPills.length ? (
+                <span className="pill-nav-meta-group">
+                  <span className="pill-nav-divider" aria-hidden="true" />
+                  {metaPills}
+                </span>
+              ) : null}
+            </nav>
             {showingCommandGroups ? renderViewToolbar(tool, true) : null}
             {sections}
           </div>

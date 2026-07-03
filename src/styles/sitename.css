@@ -1824,24 +1824,25 @@
     .pill-nav {
       display: flex;
       flex-wrap: wrap;
+      align-items: center;
       gap: 8px;
       margin-bottom: 18px;
     }
 
-    .pill-nav-meta {
-      flex-direction: column;
-      flex-wrap: nowrap;
-      align-items: stretch;
-      gap: 6px;
-      margin-top: -10px;
-      margin-bottom: 18px;
-      max-width: 220px;
+    .pill-nav-divider {
+      width: 1px;
+      height: 22px;
+      background: var(--border-hover);
+      margin: 0 2px;
+      flex-shrink: 0;
     }
 
-    .pill-nav-meta .pill-meta {
-      width: 100%;
-      text-align: left;
-      white-space: normal;
+    .pill-nav-meta-group {
+      display: inline-flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      flex-shrink: 0;
     }
 
     .pill {
@@ -1852,7 +1853,55 @@
       font: 600 11px Inter, sans-serif;
       color: var(--text-2);
       cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
+
+    .pill-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 11px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .pill-meta-skills {
+      background: #FFFBEB;
+      border-color: #FDE68A;
+      color: #B45309;
+    }
+
+    .pill-meta-agents {
+      background: #FCE7F3;
+      border-color: #F9A8D4;
+      color: #9D174D;
+    }
+
+    .pill-meta-hooks {
+      background: #ECFDF5;
+      border-color: #A7F3D0;
+      color: #047857;
+    }
+
+    .pill-meta-skills:hover {
+      border-color: #FCD34D;
+      background: #FEF3C7;
+    }
+
+    .pill-meta-agents:hover {
+      border-color: #F472B6;
+      background: #FBCFE8;
+    }
+
+    .pill-meta-hooks:hover {
+      border-color: #6EE7B7;
+      background: #D1FAE5;
+    }
+
+    .pill-meta.active.claude { background: var(--claude-p); border-color: var(--claude-m); color: var(--claude); }
+    .pill-meta.active.cursor { background: var(--cursor-p); border-color: var(--cursor-m); color: var(--cursor); }
+    .pill-meta.active.copilot { background: var(--copilot-p); border-color: var(--copilot-m); color: var(--copilot); }
 
     .pill.active.claude { background: var(--claude-p); border-color: var(--claude-m); color: var(--claude); }
     .pill.active.cursor { background: var(--cursor-p); border-color: var(--cursor-m); color: var(--cursor); }
