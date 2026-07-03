@@ -4,7 +4,7 @@ AI Dev Reference takes security reports seriously. If you believe you have found
 
 ## How to report
 
-**Preferred:** Open a [GitHub Security Advisory](https://github.com/nuthan-murarysetty/ai-dev-ref/security/advisories/new) (private disclosure).
+**Preferred:** Open a [GitHub Security Advisory](https://github.com/nuthanm/aidevreference/security/advisories/new) (private disclosure).
 
 **Alternative:** Use the [feedback form](https://aidevreference.vercel.app/feedback) on the live site. Select **General** as the tool and **I want to contact** as the type. Include **Security report** in the subject or message so it is routed correctly.
 
@@ -102,8 +102,18 @@ We do not operate a paid bug bounty program at this time. We appreciate responsi
 
 Security fixes are applied to the latest version on the default branch and deployed to production. Older deployments are not supported.
 
+## Verification (maintainers)
+
+Before merging security fixes to `main`, run the checks in [Security verification guide](docs/SECURITY_VERIFICATION.md):
+
+1. **Baseline** — confirm secure behavior on staging.
+2. **Replication** — attempt the in-scope exploit with test data you control.
+3. **Fix** — apply changes on a feature branch (not `main`).
+4. **Revalidation** — repeat the same steps and confirm the issue is resolved.
+
 ## Related documentation
 
+- [Security verification guide](docs/SECURITY_VERIFICATION.md)
 - [Environment variables and keys](docs/flows/10-environment-and-keys.md)
 - [Operations handbook](docs/OPERATIONS.md)
 - [Terms and Conditions](https://aidevreference.vercel.app/terms-and-conditions)

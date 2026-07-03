@@ -60,6 +60,13 @@ export function AboutContent() {
         </Link>
         .
       </p>
+      <p>
+        To report a security vulnerability, see our{" "}
+        <Link href="https://github.com/nuthanm/aidevreference/blob/main/SECURITY.md" target="_blank" rel="noreferrer">
+          security policy
+        </Link>
+        . Do not use the public feedback form for sensitive exploit details unless private advisory access is unavailable.
+      </p>
       <p className="policy-nav-links">
         <Link href="/">Back to home</Link> · <Link href="/privacy-policy">Privacy Policy</Link> ·{" "}
         <Link href="/terms-and-conditions">Terms and Conditions</Link>

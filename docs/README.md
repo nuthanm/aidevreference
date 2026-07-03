@@ -34,6 +34,13 @@ Start here for focused guides. Each document has **flow diagrams** and step-by-s
 | [Environment & keys](flows/10-environment-and-keys.md) | Env vars, key generation, Vercel ↔ GitHub alignment |
 | [Operations handbook](OPERATIONS.md) | API reference, pending JSON examples, deploy notes |
 
+## Security
+
+| Guide | What it covers |
+|-------|----------------|
+| [Security policy](../SECURITY.md) | How to report issues, in-scope / out-of-scope categories |
+| [Security verification](SECURITY_VERIFICATION.md) | Staging replication steps and revalidation checklist |
+
 ## Other
 
 | Guide | What it covers |
