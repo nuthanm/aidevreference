@@ -33,7 +33,7 @@ Developers switch between Claude Code, Cursor, and Copilot — but slash command
 - **Compare tools** side-by-side on the landing page
 - **Submit feedback** — report missing commands or suggest improvements (`/feedback`)
 - **Subscribe for updates** — double opt-in email when new catalog entries are published
-- **Release notes** — see what was added recently (`/release-notes`)
+- **What's new** — see what was added recently (`/whats-new`)
 
 ## Screenshots
 

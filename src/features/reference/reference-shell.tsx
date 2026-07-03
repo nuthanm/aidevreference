@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Bot,
   BookOpen,
   Bug,
   ChevronLeft,
@@ -16,10 +15,9 @@ import {
   Linkedin,
   Lightbulb,
   Menu,
-  MousePointer2,
-  Sparkles,
   X,
 } from "lucide-react";
+import { ToolIcon } from "@/components/tool-icon";
 import { FeedbackForm, NotifyForm } from "@/features/forms/forms";
 import { useFooterTicker } from "@/hooks/use-footer-ticker";
 import {
@@ -36,7 +34,7 @@ type RouteId =
   | "cursor"
   | "copilot"
   | "feedback"
-  | "release-notes";
+  | "whats-new";
 
 type SubscriberStats = {
   confirmed: number;
@@ -58,7 +56,7 @@ const PATH_TO_ROUTE: Record<string, RouteId> = {
   "/cursor": "cursor",
   "/copilot": "copilot",
   "/feedback": "feedback",
-  "/release-notes": "release-notes",
+  "/whats-new": "whats-new",
 };
 
 const ROUTE_TO_PATH: Record<RouteId, string> = {
@@ -67,7 +65,7 @@ const ROUTE_TO_PATH: Record<RouteId, string> = {
   cursor: "/cursor",
   copilot: "/copilot",
   feedback: "/feedback",
-  "release-notes": "/release-notes",
+  "whats-new": "/whats-new",
 };
 
 function badgeLabel(v?: string) {
@@ -293,7 +291,7 @@ export function ReferenceShell() {
   useEffect(() => {
     const synced = syncCatalogUpdates(data);
 
-    if (route === "release-notes") {
+    if (route === "whats-new") {
       if (synced.unseenEntries.length > 0) {
         setReleaseDisplay({
           entries: synced.unseenEntries,
@@ -363,9 +361,7 @@ export function ReferenceShell() {
   }
 
   function renderToolGlyph(tool: "claude" | "cursor" | "copilot", size = 18) {
-    if (tool === "claude") return <Bot size={size} />;
-    if (tool === "cursor") return <MousePointer2 size={size} />;
-    return <Sparkles size={size} />;
+    return <ToolIcon tool={tool} size={size} />;
   }
 
   function renderCommandCard(tool: "claude" | "cursor" | "copilot", entry: CommandEntry) {
@@ -605,7 +601,7 @@ export function ReferenceShell() {
     );
   }
 
-  function toolNav(tool: "claude" | "cursor" | "copilot", label: string, icon: React.ReactNode) {
+  function toolNav(tool: "claude" | "cursor" | "copilot", label: string) {
     const active = route === tool;
     return (
       <div className={`tool-nav-item ${active ? "tool-open" : ""}`}>
@@ -617,7 +613,9 @@ export function ReferenceShell() {
           title={label}
           aria-expanded={active}
         >
-          <span className="nav-icon-wrap">{icon}</span>
+          <span className={`nav-icon-wrap nav-icon-wrap-tool nav-icon-wrap-${tool}`}>
+            <ToolIcon tool={tool} size={14} className="nav-icon" />
+          </span>
           <span className="nav-label">{label}</span>
         </button>
         <div className={`sub-nav sub-nav-${tool}`}>
@@ -787,17 +785,17 @@ export function ReferenceShell() {
               <span className="nav-label">Request a feature</span>
             </button>
             <button
-              className={`nav-btn has-tooltip ${route === "release-notes" ? "active" : ""}`}
-              onClick={() => navigate("release-notes")}
-              data-tooltip="Release notes"
-              aria-label="Release notes"
-              title="Release notes"
+              className={`nav-btn has-tooltip ${route === "whats-new" ? "active" : ""}`}
+              onClick={() => navigate("whats-new")}
+              data-tooltip="What's new"
+              aria-label="What's new"
+              title="What's new"
             >
               <span className="nav-icon-wrap">
                 <FileText size={15} className="nav-icon" />
               </span>
-              <span className="nav-label">Release notes</span>
-              {route !== "release-notes" && catalogUpdateCount > 0 ? (
+              <span className="nav-label">What&apos;s new</span>
+              {route !== "whats-new" && catalogUpdateCount > 0 ? (
                 <span className="nav-count" aria-label={`${catalogUpdateCount} new catalog updates`}>
                   {catalogUpdateCount}
                 </span>
@@ -805,9 +803,9 @@ export function ReferenceShell() {
             </button>
             <div className="sidebar-tools">
               <p className="nav-title">Tools</p>
-              {toolNav("claude", "Claude", <Bot size={15} className="nav-icon" />)}
-              {toolNav("cursor", "Cursor", <MousePointer2 size={15} className="nav-icon" />)}
-              {toolNav("copilot", "Copilot", <Sparkles size={15} className="nav-icon" />)}
+              {toolNav("claude", "Claude")}
+              {toolNav("cursor", "Cursor")}
+              {toolNav("copilot", "Copilot")}
             </div>
           </div>
 
@@ -880,7 +878,7 @@ export function ReferenceShell() {
                       <div className="hero-tool-row" aria-label="Included tools">
                         <article className="hero-tool-item claude" aria-label="Claude">
                           <span className="hero-tool-icon">
-                            <Bot size={18} />
+                            <ToolIcon tool="claude" size={18} />
                           </span>
                           <span className="hero-tool-name">Claude</span>
                           <span className="hero-tool-meta">
@@ -889,7 +887,7 @@ export function ReferenceShell() {
                         </article>
                         <article className="hero-tool-item cursor" aria-label="Cursor">
                           <span className="hero-tool-icon">
-                            <MousePointer2 size={18} />
+                            <ToolIcon tool="cursor" size={18} />
                           </span>
                           <span className="hero-tool-name">Cursor</span>
                           <span className="hero-tool-meta">
@@ -898,7 +896,7 @@ export function ReferenceShell() {
                         </article>
                         <article className="hero-tool-item copilot" aria-label="Copilot">
                           <span className="hero-tool-icon">
-                            <Sparkles size={18} />
+                            <ToolIcon tool="copilot" size={18} />
                           </span>
                           <span className="hero-tool-name">Copilot</span>
                           <span className="hero-tool-meta">
@@ -1003,11 +1001,11 @@ export function ReferenceShell() {
                 </>
               ) : null}
 
-              {route === "release-notes" ? (
+              {route === "whats-new" ? (
                 <section className="catalog-updates-page">
                   <div className="catalog-updates-hero">
                     <div>
-                      <h1>Catalog Updates</h1>
+                      <h1>What&apos;s new</h1>
                       <p>
                         {releaseDisplay.mode === "new"
                           ? `${releaseDisplay.unseenCount} new ${releaseDisplay.unseenCount === 1 ? "entry" : "entries"} since your last review.`

@@ -40,7 +40,7 @@
 
     .app-shell[data-route="landing"],
     .app-shell[data-route="feedback"],
-    .app-shell[data-route="release-notes"] {
+    .app-shell[data-route="whats-new"] {
       --mobile-header-offset: 112px;
     }
 
@@ -848,11 +848,11 @@
       position: fixed;
       top: 94px;
       left: 0;
-      width: 224px;
+      width: 236px;
       height: calc(100dvh - 94px);
-      background: var(--surface);
+      background: linear-gradient(180deg, #fafaff 0%, var(--bg) 100%);
       border-right: 1px solid var(--border);
-      padding: 18px 12px 20px;
+      padding: 14px 10px 18px;
       overflow-x: hidden;
       overflow-y: hidden;
       -ms-overflow-style: none;
@@ -870,7 +870,7 @@
 
     .sidebar.collapsed {
       width: 72px;
-      padding: 18px 8px 20px;
+      padding: 14px 8px 18px;
     }
 
     body.has-update .sidebar {
@@ -879,11 +879,16 @@
     }
 
     .nav-title {
-      margin: 0 8px 8px;
+      margin: 0 6px 6px;
+      padding: 0 4px;
       font: 700 10px Inter, sans-serif;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--text-3);
+    }
+
+    .sidebar-main > .nav-title:first-child {
+      margin-top: 2px;
     }
 
     .sidebar-toggle {
@@ -935,7 +940,9 @@
     }
 
     .sidebar-tools {
-      margin-top: 12px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(235, 235, 245, 0.9);
       display: flex;
       flex-direction: column;
       align-items: stretch;
@@ -943,8 +950,8 @@
 
     .sidebar-footer {
       margin-top: auto;
-      border-top: 1px solid var(--border);
-      padding-top: 10px;
+      border-top: 1px solid rgba(235, 235, 245, 0.9);
+      padding-top: 12px;
     }
 
     .footer-action {
@@ -988,20 +995,21 @@
     .sub-link {
       width: 100%;
       border: 1px solid transparent;
-      border-radius: 20px;
+      border-radius: 12px;
       background: transparent;
-      padding: 9px 10px;
+      padding: 8px 10px;
       text-align: left;
       font: 600 12px Inter, sans-serif;
       line-height: 1.25;
       color: var(--text-2);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 9px;
       cursor: pointer;
-      margin-bottom: 4px;
-      min-height: 36px;
+      margin-bottom: 3px;
+      min-height: 38px;
       position: relative;
+      transition: border-color 140ms ease, background 140ms ease, color 140ms ease, box-shadow 140ms ease;
     }
 
     .nav-label {
@@ -1021,6 +1029,34 @@
       flex: 0 0 16px;
     }
 
+    .nav-icon-wrap-tool {
+      width: 26px;
+      height: 26px;
+      flex: 0 0 26px;
+      border-radius: 9px;
+      border: 1px solid transparent;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(24, 24, 42, 0.04);
+    }
+
+    .nav-icon-wrap-claude {
+      border-color: var(--claude-m);
+      background: linear-gradient(135deg, #fcfaff, var(--claude-p));
+      color: var(--claude);
+    }
+
+    .nav-icon-wrap-cursor {
+      border-color: var(--cursor-m);
+      background: linear-gradient(135deg, #f8fdff, var(--cursor-p));
+      color: var(--cursor);
+    }
+
+    .nav-icon-wrap-copilot {
+      border-color: var(--copilot-m);
+      background: linear-gradient(135deg, #f8fffb, var(--copilot-p));
+      color: var(--copilot);
+    }
+
     .nav-icon {
       color: currentColor;
       stroke-width: 2;
@@ -1029,13 +1065,15 @@
     .nav-btn:hover {
       border-color: var(--border-hover);
       color: var(--text);
-      background: #fff;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 1px 3px rgba(24, 24, 42, 0.04);
     }
 
     .nav-btn.active {
       color: var(--text);
       border-color: var(--border);
       background: #fff;
+      box-shadow: 0 1px 4px rgba(24, 24, 42, 0.05);
     }
 
     .tool-nav-item {
@@ -1044,20 +1082,20 @@
 
     .tool-open > .nav-btn.active.tool-claude {
       border-color: var(--claude-m);
-      background: linear-gradient(90deg, rgba(237, 229, 255, 0.95), #fff 78%);
-      box-shadow: inset 3px 0 0 var(--claude);
+      background: linear-gradient(90deg, rgba(237, 229, 255, 0.72), #fff 82%);
+      box-shadow: inset 3px 0 0 var(--claude), 0 1px 4px rgba(124, 77, 255, 0.08);
     }
 
     .tool-open > .nav-btn.active.tool-cursor {
       border-color: var(--cursor-m);
-      background: linear-gradient(90deg, rgba(224, 242, 254, 0.95), #fff 78%);
-      box-shadow: inset 3px 0 0 var(--cursor);
+      background: linear-gradient(90deg, rgba(224, 242, 254, 0.72), #fff 82%);
+      box-shadow: inset 3px 0 0 var(--cursor), 0 1px 4px rgba(14, 165, 233, 0.08);
     }
 
     .tool-open > .nav-btn.active.tool-copilot {
       border-color: var(--copilot-m);
-      background: linear-gradient(90deg, rgba(209, 250, 229, 0.95), #fff 78%);
-      box-shadow: inset 3px 0 0 var(--copilot);
+      background: linear-gradient(90deg, rgba(209, 250, 229, 0.72), #fff 82%);
+      box-shadow: inset 3px 0 0 var(--copilot), 0 1px 4px rgba(16, 185, 129, 0.08);
     }
 
     .nav-count {
@@ -1097,9 +1135,9 @@
     .dot-copilot { background: var(--copilot); }
 
     .sub-nav {
-      margin: 2px 0 8px;
-      margin-left: 8px;
-      padding: 4px 0 4px 10px;
+      margin: 4px 0 6px;
+      margin-left: 12px;
+      padding: 6px 0 6px 12px;
       border-left: 2px solid var(--border);
       display: none;
     }
@@ -1131,8 +1169,8 @@
     .sub-link {
       width: 100%;
       padding: 7px 10px;
-      margin-bottom: 3px;
-      border-radius: 12px;
+      margin-bottom: 2px;
+      border-radius: 10px;
       font: 600 11px Inter, sans-serif;
       border: 1px solid transparent;
       background: transparent;
@@ -1142,7 +1180,7 @@
       display: flex;
       align-items: center;
       min-height: 32px;
-      transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+      transition: border-color 140ms ease, background 140ms ease, color 140ms ease, box-shadow 140ms ease;
     }
 
     .sub-link:hover {
@@ -1176,7 +1214,7 @@
     }
 
     .content {
-      margin-left: 224px;
+      margin-left: 236px;
       max-width: none;
       padding: 32px 28px 36px;
       transition: margin-left 180ms ease;
@@ -1504,6 +1542,13 @@
     .logo-52 svg,
     .hero-tool-icon svg {
       stroke-width: 2.1;
+    }
+
+    .tool-mini.cursor svg path,
+    .logo-52.cursor svg path,
+    .hero-tool-item.cursor .hero-tool-icon svg path,
+    .nav-icon-wrap-cursor svg path {
+      stroke-width: 0;
     }
 
     .tool-mini.claude { border-color: var(--claude-m); background: var(--claude-p); }
@@ -2395,7 +2440,7 @@
     .rtag-change { background: var(--claude-p); color: var(--claude); border-color: var(--claude-m); }
 
     .footer {
-      margin-left: 224px;
+      margin-left: 236px;
       margin-top: auto;
       flex-shrink: 0;
       border-top: 1px solid var(--border);
@@ -2812,7 +2857,7 @@
 
       .app-shell[data-route="landing"] .top-actions,
       .app-shell[data-route="feedback"] .top-actions,
-      .app-shell[data-route="release-notes"] .top-actions {
+      .app-shell[data-route="whats-new"] .top-actions {
         display: none;
       }
 
@@ -2825,8 +2870,9 @@
         max-height: none;
         border-right: 1px solid var(--border);
         border-bottom: 0;
-        padding: 12px 10px 14px;
-        box-shadow: 0 14px 28px rgba(24, 24, 42, 0.16);
+        padding: 14px 12px 16px;
+        background: linear-gradient(180deg, #fafaff 0%, var(--bg) 100%);
+        box-shadow: 0 16px 36px rgba(24, 24, 42, 0.14);
         transform: translateX(-110%);
         transition: transform 220ms ease;
         z-index: 46;

@@ -1,12 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Bot, BrainCircuit, Layers3, Loader2, Sparkles } from "lucide-react";
+import { Bot, Layers3, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Controller } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { ToolIcon } from "@/components/tool-icon";
 import {
   FEEDBACK_MESSAGE_MAX_CHARS,
   FEEDBACK_MESSAGE_MIN_CHARS,
@@ -78,7 +79,7 @@ function loadTurnstileScript() {
 
 function SelectedToolIcon({ tool }: { tool: "Claude" | "Cursor" | "Copilot" | "General" }) {
   if (tool === "Claude") return <Bot size={18} strokeWidth={2.25} />;
-  if (tool === "Cursor") return <BrainCircuit size={18} strokeWidth={2.25} />;
+  if (tool === "Cursor") return <ToolIcon tool="cursor" size={18} />;
   if (tool === "Copilot") return <Sparkles size={18} strokeWidth={2.25} />;
   return <Layers3 size={18} strokeWidth={2.25} />;
 }

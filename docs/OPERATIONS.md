@@ -288,7 +288,7 @@ Use this checklist before calling `POST /api/catalog/sync`.
 - `/feedback`
 - `/privacy-policy`
 - `/terms-and-conditions`
-- `/release-notes`
+- `/whats-new`
 
 ## GitHub Actions Workflows
 

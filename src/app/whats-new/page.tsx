@@ -3,11 +3,11 @@ import { ReferenceShell } from "@/features/reference/reference-shell";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata(
-  "Release Notes",
-  "Latest catalog updates for AI Dev Reference.",
-  "/release-notes",
+  "What's New",
+  "See the latest commands, skills, agents, and hooks added to AI Dev Reference.",
+  "/whats-new",
 );
 
-export default function ReleaseNotesPage() {
+export default function WhatsNewPage() {
   return <ReferenceShell />;
 }

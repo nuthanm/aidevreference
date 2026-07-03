@@ -10,7 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/feedback",
     "/privacy-policy",
     "/terms-and-conditions",
-    "/release-notes",
+    "/whats-new",
   ];
 
   return routes.map((route) => ({
