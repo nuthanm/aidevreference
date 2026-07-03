@@ -36,6 +36,7 @@ yarn-error.log*
 
 # local subscriber dumps (use PostgreSQL in production)
 data/subscribers.json
+data/catalog.merged.json
 
 # vercel
 .vercel
