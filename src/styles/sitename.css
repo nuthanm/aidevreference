@@ -215,6 +215,21 @@
       margin-bottom: 12px;
     }
 
+    .catalog-updates-empty {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 28px 12px;
+      text-align: center;
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .catalog-updates-empty p {
+      margin: 0;
+    }
+
     .catalog-chip {
       border: 1px solid var(--border-hover);
       border-radius: 999px;
@@ -1021,12 +1036,28 @@
     }
 
     .nav-icon-wrap {
+      position: relative;
       width: 16px;
       height: 16px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       flex: 0 0 16px;
+    }
+
+    .nav-badge {
+      position: absolute;
+      top: -7px;
+      right: -9px;
+      min-width: 14px;
+      height: 14px;
+      padding: 0 3px;
+      border-radius: 999px;
+      background: var(--claude);
+      color: #fff;
+      font: 700 9px/14px Inter, sans-serif;
+      text-align: center;
+      box-shadow: 0 0 0 2px #fff;
     }
 
     .nav-icon-wrap-tool {

@@ -420,26 +420,16 @@ export function ReferenceShell() {
 
   useEffect(() => {
     const synced = syncCatalogUpdates(data);
-
-    if (route === "whats-new") {
-      if (synced.unseenEntries.length > 0) {
-        setReleaseDisplay({
-          entries: synced.unseenEntries,
-          mode: "new",
-          unseenCount: synced.unseenEntries.length,
-        });
-      } else {
-        setReleaseDisplay({ entries: [], mode: "empty", unseenCount: 0 });
-      }
+    if (synced.unseenEntries.length > 0) {
+      setReleaseDisplay({
+        entries: synced.unseenEntries,
+        mode: "new",
+        unseenCount: synced.unseenEntries.length,
+      });
       return;
     }
-  }, [data, route]);
-
-  useEffect(() => {
-    if (route === "whats-new" && releaseDisplay.mode !== "new") {
-      router.replace("/");
-    }
-  }, [route, releaseDisplay.mode, router]);
+    setReleaseDisplay({ entries: [], mode: "empty", unseenCount: 0 });
+  }, [data]);
 
   function handleMarkUpdatesReviewed() {
     const synced = syncCatalogUpdates(data);
@@ -447,7 +437,6 @@ export function ReferenceShell() {
 
     markAllUnseenReviewed(synced.unseenEntries.map((entry) => entry.key));
     setReleaseDisplay({ entries: [], mode: "empty", unseenCount: 0 });
-    router.replace("/");
   }
 
   useEffect(() => {
@@ -1141,6 +1130,27 @@ export function ReferenceShell() {
               <span className="nav-label">Home</span>
             </button>
             <button
+              className={`nav-btn has-tooltip ${route === "whats-new" ? "active" : ""}`}
+              onClick={() => navigate("whats-new")}
+              data-tooltip="What's new"
+              aria-label={
+                releaseDisplay.unseenCount > 0
+                  ? `What's new, ${releaseDisplay.unseenCount} new entries`
+                  : "What's new"
+              }
+              title="What's new"
+            >
+              <span className="nav-icon-wrap">
+                <Sparkles size={15} className="nav-icon" />
+                {releaseDisplay.unseenCount > 0 ? (
+                  <span className="nav-badge" aria-hidden="true">
+                    {releaseDisplay.unseenCount > 9 ? "9+" : releaseDisplay.unseenCount}
+                  </span>
+                ) : null}
+              </span>
+              <span className="nav-label">What&apos;s new</span>
+            </button>
+            <button
               className={`nav-btn has-tooltip ${route === "feedback" ? "active" : ""}`}
               onClick={() => navigate("feedback")}
               data-tooltip="Request a feature"
@@ -1359,70 +1369,99 @@ export function ReferenceShell() {
               {route === "terms" ? <TermsContent /> : null}
               {route === "privacy" ? <PrivacyContent /> : null}
 
-              {route === "whats-new" && releaseDisplay.mode === "new" ? (
+              {route === "whats-new" ? (
                 <section className="catalog-updates-page">
                   <div className="catalog-updates-hero">
                     <div>
                       <h1>What&apos;s new</h1>
-                      {releaseDisplay.unseenCount > 0 ? (
+                      {releaseDisplay.mode === "new" ? (
                         <p>
-                          {releaseDisplay.unseenCount} new {releaseDisplay.unseenCount === 1 ? "entry" : "entries"} since your last review.
+                          {releaseDisplay.unseenCount} new{" "}
+                          {releaseDisplay.unseenCount === 1 ? "entry" : "entries"} since your last
+                          review.
                         </p>
-                      ) : null}
+                      ) : (
+                        <p>Recently added catalog entries appear here when the reference is updated.</p>
+                      )}
                     </div>
-                    <div className="catalog-updates-actions">
-                      <button className="btn-primary catalog-mark-read" type="button" onClick={handleMarkUpdatesReviewed}>
-                        Mark as reviewed
-                      </button>
-                    </div>
+                    {releaseDisplay.mode === "new" ? (
+                      <div className="catalog-updates-actions">
+                        <button
+                          className="btn-primary catalog-mark-read"
+                          type="button"
+                          onClick={handleMarkUpdatesReviewed}
+                        >
+                          Mark as reviewed
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
 
                   <section className="catalog-updates-shell">
-                    {releaseDisplay.unseenCount > 0 ? (
-                      <div className="catalog-updates-head">
-                        <div className="catalog-chip catalog-chip-new">{releaseDisplay.unseenCount} new</div>
+                    {releaseDisplay.mode === "new" ? (
+                      <>
+                        <div className="catalog-updates-head">
+                          <div className="catalog-chip catalog-chip-new">
+                            {releaseDisplay.unseenCount} new
+                          </div>
+                        </div>
+
+                        <div className="update-feed">
+                          {TOOL_ORDER.map((tool) => {
+                            const items = groupedReleaseEntries[tool];
+                            if (!items.length) return null;
+
+                            return (
+                              <section className={`update-group update-group-${tool}`} key={tool}>
+                                <div className="update-group-head">
+                                  <h2>{TOOL_LABELS[tool]}</h2>
+                                  <span className="update-group-count">{items.length}</span>
+                                </div>
+                                <div className="update-card-list">
+                                  {items.map((item) => (
+                                    <article
+                                      className={`update-card ${tool} is-new`}
+                                      key={item.key}
+                                    >
+                                      <div className="update-card-top">
+                                        <span className={`update-kind ${item.kind}`}>{item.kind}</span>
+                                        <time className="update-date" dateTime={item.addedAt}>
+                                          {formatReleaseDate(item.addedAt)}
+                                        </time>
+                                      </div>
+                                      <h3 className="update-title">{item.title}</h3>
+                                      <p className="update-details">{item.details}</p>
+                                      <button
+                                        className={`update-open tool-link-${tool}`}
+                                        type="button"
+                                        onClick={() => navigate(tool)}
+                                      >
+                                        Open in {TOOL_LABELS[tool]} reference
+                                      </button>
+                                    </article>
+                                  ))}
+                                </div>
+                              </section>
+                            );
+                          })}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="catalog-updates-empty">
+                        <p>You&apos;re all caught up. No new entries since your last review.</p>
+                        <p>
+                          Subscribe on the{" "}
+                          <button
+                            type="button"
+                            className="link-btn"
+                            onClick={() => navigate("feedback")}
+                          >
+                            feedback page
+                          </button>{" "}
+                          to get email alerts when the catalog grows.
+                        </p>
                       </div>
-                    ) : null}
-
-                    <div className="update-feed">
-                      {TOOL_ORDER.map((tool) => {
-                        const items = groupedReleaseEntries[tool];
-                        if (!items.length) return null;
-
-                        return (
-                          <section className={`update-group update-group-${tool}`} key={tool}>
-                            <div className="update-group-head">
-                              <h2>{TOOL_LABELS[tool]}</h2>
-                              <span className="update-group-count">{items.length}</span>
-                            </div>
-                            <div className="update-card-list">
-                              {items.map((item) => (
-                                <article
-                                  className={`update-card ${tool} is-new`}
-                                  key={item.key}
-                                >
-                                  <div className="update-card-top">
-                                    <span className={`update-kind ${item.kind}`}>{item.kind}</span>
-                                    <time className="update-date" dateTime={item.addedAt}>
-                                      {formatReleaseDate(item.addedAt)}
-                                    </time>
-                                  </div>
-                                  <h3 className="update-title">{item.title}</h3>
-                                  <p className="update-details">{item.details}</p>
-                                  <button
-                                    className={`update-open tool-link-${tool}`}
-                                    type="button"
-                                    onClick={() => navigate(tool)}
-                                  >
-                                    Open in {TOOL_LABELS[tool]} reference
-                                  </button>
-                                </article>
-                              ))}
-                            </div>
-                          </section>
-                        );
-                      })}
-                    </div>
+                    )}
                   </section>
                 </section>
               ) : null}
