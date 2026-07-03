@@ -1,0 +1,114 @@
+name: Catalog Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "data/catalog.pending.json"
+      - "src/lib/catalog.ts"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Deploy mode"
+        required: true
+        type: choice
+        default: auto
+        options:
+          - auto
+          - sync
+          - seed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate before deploy
+        run: npm run catalog:validate
+
+      - name: Sync pending entries via API
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'auto' || inputs.mode == 'sync'))
+        shell: bash
+        env:
+          SYNC_ENDPOINT_URL: ${{ secrets.SYNC_ENDPOINT_URL }}
+          ADMIN_BROADCAST_KEY: ${{ secrets.ADMIN_BROADCAST_KEY }}
+        run: |
+          if [ -z "$SYNC_ENDPOINT_URL" ]; then
+            echo "SYNC_ENDPOINT_URL not set — skipping API sync"
+            exit 0
+          fi
+          if [ -z "$ADMIN_BROADCAST_KEY" ]; then
+            echo "ADMIN_BROADCAST_KEY not set — skipping API sync"
+            exit 0
+          fi
+
+          echo "Calling catalog sync endpoint..."
+          response_file=$(mktemp)
+          http_code=$(curl --show-error --silent \
+            -o "$response_file" \
+            -w "%{http_code}" \
+            -X POST "$SYNC_ENDPOINT_URL" \
+            -H "content-type: application/json" \
+            -H "x-admin-key: $ADMIN_BROADCAST_KEY")
+
+          cat "$response_file"
+          echo ""
+
+          if [ "$http_code" -ge 400 ]; then
+            echo "Catalog sync failed with HTTP $http_code"
+            exit 1
+          fi
+
+          echo "Catalog sync completed (HTTP $http_code)."
+
+      - name: Seed database from baseCatalog
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'auto' || inputs.mode == 'seed'))
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL not set — skipping direct DB seed"
+            exit 0
+          fi
+
+          echo "Seeding catalog to database..."
+          npm run catalog:seed-db
+
+      - name: Verify production catalog API
+        shell: bash
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+        run: |
+          if [ -z "$SITE_URL" ]; then
+            echo "SITE_URL not set — skipping API verification"
+            exit 0
+          fi
+
+          echo "Checking $SITE_URL/api/catalog ..."
+          http_code=$(curl --show-error --silent -o /tmp/catalog.json -w "%{http_code}" "$SITE_URL/api/catalog")
+          echo "HTTP $http_code"
+          if [ "$http_code" -ge 400 ]; then
+            echo "Catalog API check failed"
+            exit 1
+          fi
+          node -e "
+            const data = require('/tmp/catalog.json');
+            const tools = ['claude','cursor','copilot'];
+            for (const t of tools) {
+              const c = data.tools[t];
+              const cmds = c.groups.reduce((s,g) => s + g.entries.length, 0);
+              const total = cmds + (c.skills?.length||0) + (c.agents?.length||0) + (c.hooks?.length||0);
+              console.log(t + ': ' + total + ' entries');
+            }
+            console.log('sourceFeeds:', data.sourceFeeds?.join(', '));
+          "

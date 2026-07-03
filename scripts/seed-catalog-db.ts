@@ -5,7 +5,7 @@
  */
 import "./load-env";
 import { baseCatalog, collectCatalogValidationWarnings } from "../src/lib/catalog";
-import { getCatalogSnapshotStored, upsertCatalogSnapshotStored } from "../src/lib/catalog-store";
+import { getCatalogSnapshotStored, upsertCatalogSnapshotStored, closeCatalogStore } from "../src/lib/catalog-store";
 
 async function main() {
   const warnings = collectCatalogValidationWarnings(baseCatalog);
@@ -34,6 +34,8 @@ async function main() {
       `  ${tool}: ${commands} commands, ${conf.skills?.length ?? 0} skills, ${conf.agents?.length ?? 0} agents, ${conf.hooks?.length ?? 0} hooks`,
     );
   }
+
+  await closeCatalogStore();
 }
 
 main().catch((err) => {

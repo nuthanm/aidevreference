@@ -292,6 +292,11 @@ Use this checklist before calling `POST /api/catalog/sync`.
 
 ## GitHub Actions Workflows
 
+Catalog automation:
+
+- [catalog-validate.yml](../.github/workflows/catalog-validate.yml) — validates catalog JSON and checks duplicates on every PR
+- [catalog-deploy.yml](../.github/workflows/catalog-deploy.yml) — auto-syncs/seeds production DB on push to `main` (manual dispatch supported)
+
 Manual broadcast workflow:
 
 - [broadcast-release.yml](../.github/workflows/broadcast-release.yml)
@@ -306,6 +311,19 @@ Auto broadcast scheduler workflow:
 - Requires secrets:
   - `AUTO_BROADCAST_ENDPOINT_URL` (example: `https://your-domain.com/api/notify/auto-broadcast`)
   - `CRON_BROADCAST_KEY`
+
+### Catalog automation secrets
+
+Add these GitHub Actions secrets for hands-free catalog deploys:
+
+| Secret | Purpose |
+|--------|---------|
+| `DATABASE_URL` | Direct DB seed via `catalog:seed-db` |
+| `SYNC_ENDPOINT_URL` | Production sync endpoint (e.g. `https://your-domain.com/api/catalog/sync`) |
+| `ADMIN_BROADCAST_KEY` | Auth header for sync API |
+| `SITE_URL` | Post-deploy verification (e.g. `https://your-domain.com`) |
+
+When `catalog.pending.json` or `src/lib/catalog.ts` changes on `main`, the **Catalog Deploy** workflow runs automatically.
 
 ## Deploy to Vercel
 

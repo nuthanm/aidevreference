@@ -1,0 +1,36 @@
+name: Catalog Validate
+
+on:
+  pull_request:
+    paths:
+      - "data/catalog.pending.json"
+      - "src/lib/catalog.ts"
+      - "scripts/merge-catalog.ts"
+      - "scripts/seed-catalog-db.ts"
+  push:
+    branches: [main]
+    paths:
+      - "data/catalog.pending.json"
+      - "src/lib/catalog.ts"
+      - "scripts/merge-catalog.ts"
+      - "scripts/seed-catalog-db.ts"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate catalog JSON syntax
+        run: node -e "JSON.parse(require('fs').readFileSync('data/catalog.pending.json','utf8')); console.log('catalog.pending.json: valid JSON')"
+
+      - name: Validate catalog entries and check duplicates
+        run: npm run catalog:validate
