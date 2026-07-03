@@ -34,7 +34,12 @@ export default function PrivacyPolicyPage() {
         prevention.
       </p>
       <h2>Your Rights</h2>
-      <p>You can request deletion of your stored email by contacting the support email.</p>
+      <p>
+        For anything related to your data — including deletion requests — submit a{" "}
+        <Link href="/feedback">support request</Link>. Select <strong>General</strong> as the tool
+        and <strong>I want to contact</strong> as the type, then include your name, email, and
+        details in the message.
+      </p>
       <p>
         <Link href="/">Back to home</Link> · <Link href="/terms-and-conditions">Terms and Conditions</Link>
       </p>

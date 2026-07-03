@@ -1,3 +1,5 @@
+import type { FeedbackType } from "@/lib/validators";
+
 export type ApiResult = {
   ok: boolean;
   error?: string;
@@ -8,7 +10,7 @@ export type FeedbackInput = {
   name: string;
   email: string;
   tool: "Claude" | "Cursor" | "Copilot" | "General";
-  type: "Bug report" | "Missing command" | "Content update" | "Feature request";
+  type: FeedbackType;
   message: string;
   captchaToken?: string;
 };

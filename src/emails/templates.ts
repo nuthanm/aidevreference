@@ -134,8 +134,8 @@ export function requestTemplate(input: FeedbackInput): MailTemplate {
 
   return {
     subject: `[AI Dev Reference] ${input.type} · ${input.tool}`,
-    html: wrapEmail("New request submitted", "A new feature request is waiting for review.", content),
-    text: `Feature request\n\nName: ${input.name}\nEmail: ${input.email}\nTool: ${input.tool}\nType: ${input.type}\nMessage:\n${input.message}`,
+    html: wrapEmail("New request submitted", "A new support request is waiting for review.", content),
+    text: `${input.type}\n\nName: ${input.name}\nEmail: ${input.email}\nTool: ${input.tool}\nType: ${input.type}\nMessage:\n${input.message}`,
   };
 }
 
