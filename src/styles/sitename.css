@@ -2130,8 +2130,7 @@
       font-style: italic;
     }
 
-    .cmd-grid-list {
-      display: grid;
+    .cmd-grid.cmd-grid-list {
       grid-template-columns: 1fr;
       gap: 8px;
     }
@@ -2215,12 +2214,6 @@
       margin-top: 6px;
     }
 
-    .skills-list-compact .skill-row-list,
-    .agent-grid-list {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 8px;
-    }
 
     .detail-modal-backdrop {
       position: fixed;
@@ -2300,6 +2293,24 @@
         width: 100%;
       }
 
+      .agent-card-list {
+        grid-template-columns: 1fr;
+      }
+
+      .agent-card-list .agent-top {
+        grid-row: auto;
+        flex-direction: row;
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      .agent-card-list .agent-desc,
+      .agent-card-list .agent-when,
+      .agent-card-list .config-block,
+      .agent-card-list .meta-pills {
+        grid-column: 1;
+      }
+
       .badge-legend-hint {
         display: none;
       }
@@ -2372,7 +2383,25 @@
 
     .skills-list {
       display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 10px;
+    }
+
+    .skills-list.skills-list-compact {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .skill-row-list {
+      grid-template-columns: minmax(120px, 160px) 1fr;
+    }
+
+    .skill-row-list .skill-left {
+      padding: 10px;
+    }
+
+    .skill-row-list .skill-right {
+      padding: 10px 12px;
     }
 
     .skill-row {
@@ -2407,6 +2436,35 @@
       text-transform: lowercase;
     }
 
+    .badge-legend-aside .skill-auto {
+      margin-top: 0;
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-legend-aside .skill-auto-auto {
+      background: #DBEAFE;
+      color: #1D4ED8;
+    }
+
+    .badge-legend-aside .skill-auto-manual {
+      background: #FEF3C7;
+      color: #B45309;
+    }
+
+    .agent-badge-legend {
+      display: inline-block;
+      align-self: flex-start;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 9px;
+      padding: 2px 6px;
+    }
+
     .skill-right {
       padding: 12px;
     }
@@ -2439,6 +2497,39 @@
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 10px;
+    }
+
+    .agent-grid.agent-grid-list {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .agent-card-list {
+      display: grid;
+      grid-template-columns: minmax(120px, 160px) 1fr;
+      gap: 8px 14px;
+      align-items: start;
+      padding: 12px 14px;
+    }
+
+    .agent-card-list .agent-top {
+      grid-column: 1;
+      grid-row: 1 / span 3;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .agent-card-list .agent-desc {
+      grid-column: 2;
+      margin-top: 0;
+      min-height: 0;
+    }
+
+    .agent-card-list .agent-when,
+    .agent-card-list .config-block,
+    .agent-card-list .meta-pills {
+      grid-column: 2;
     }
 
     .agent-card {

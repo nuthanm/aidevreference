@@ -22,6 +22,7 @@ export type SkillEntry = {
   auto: boolean;
   desc: string;
   ex: string;
+  usage?: string;
   trigger: string;
   configPath?: string;
   configExample?: string;
@@ -50,6 +51,7 @@ export type HookEntry = {
   auto: boolean;
   desc: string;
   ex: string;
+  usage?: string;
   trigger: string;
   configPath?: string;
   configExample?: string;
@@ -83,7 +85,7 @@ export const baseCatalog: Catalog = {
       maker: "Anthropic",
       subtitle: "Slash commands, skills, subagents, and workflow hooks for Claude Code environments.",
       officialDocs: [
-        "https://docs.anthropic.com/en/docs/claude-code"
+        "https://code.claude.com/docs/en/overview"
       ],
       groups: [
         {
@@ -111,6 +113,7 @@ export const baseCatalog: Catalog = {
               name: "Build Plan",
               desc: "Creates a concise execution plan before coding.",
               ex: "/plan add billing retry",
+              usage: "/plan <goal>",
               badge: "wf",
               officialUrl: "https://docs.anthropic.com/en/docs/claude-code"
             },
@@ -151,6 +154,7 @@ export const baseCatalog: Catalog = {
               name: "Manage MCP Servers",
               desc: "List, connect, enable, or disable MCP server integrations.",
               ex: "/mcp reconnect my-server",
+              usage: "/mcp reconnect <server-name>",
               badge: "ide",
               officialUrl: "https://code.claude.com/docs/en/mcp"
             },
@@ -251,6 +255,7 @@ export const baseCatalog: Catalog = {
               name: "Plan Mode",
               desc: "Enter plan mode to design an approach before making code changes.",
               ex: "/plan add retry logic to payments",
+              usage: "/plan <goal>",
               badge: "wf",
               officialUrl: "https://code.claude.com/docs/en/commands"
             },
@@ -349,6 +354,7 @@ export const baseCatalog: Catalog = {
           name: "Project Setup Info",
           auto: true,
           desc: "Scaffolding guidance for complete project setup.",
+          usage: "/project-setup-info-local <request>",
           ex: "/project-setup-info-local setup Next.js app",
           trigger: "When user asks to initialize a full project",
           configPath: ".claude/skills/project-setup-info-local/SKILL.md",
@@ -361,6 +367,7 @@ export const baseCatalog: Catalog = {
           name: "Batch Migration",
           auto: false,
           desc: "Decompose large codebase changes into parallel subagent work units.",
+          usage: "/batch <goal> <scope>",
           ex: "/batch migrate src/ from Solid to React",
           trigger: "When orchestrating large multi-file migrations",
           configPath: ".claude/skills/batch/SKILL.md",
@@ -373,6 +380,7 @@ export const baseCatalog: Catalog = {
           name: "Debug Session",
           auto: false,
           desc: "Enable debug logging and troubleshoot issues from session logs.",
+          usage: "/debug <issue>",
           ex: "/debug MCP connection timeout",
           trigger: "When diagnosing Claude Code runtime issues",
           configPath: "CLAUDE_DEBUG=1 in shell or .claude/settings.json",
@@ -385,6 +393,7 @@ export const baseCatalog: Catalog = {
           name: "Loop Prompt",
           auto: false,
           desc: "Run a prompt repeatedly on an interval while the session stays open.",
+          usage: "/loop <interval> <prompt>",
           ex: "/loop 5m check if deploy finished",
           trigger: "When polling or recurring maintenance is needed",
           configPath: "Slash command (no file config required)",
@@ -421,6 +430,7 @@ export const baseCatalog: Catalog = {
           name: "Claude API Reference",
           auto: true,
           desc: "Load Claude API reference material for the project's language and SDK.",
+          usage: "/claude-api <task>",
           ex: "/claude-api migrate",
           trigger: "When code imports anthropic SDK or needs API guidance",
           configPath: ".claude/skills/claude-api/SKILL.md",
@@ -487,23 +497,12 @@ export const baseCatalog: Catalog = {
       ],
       hooks: [
         {
-          cmd: "onRouteChange",
-          name: "Route Transition Hook",
-          auto: true,
-          desc: "Resets scroll and updates active route state.",
-          ex: "window.scrollTo(0,0)",
-          trigger: "Runs when route changes",
-          configPath: "App router (this reference site only)",
-          configExample: "useEffect(() => window.scrollTo(0, 0), [route]);",
-          detail: "This entry documents a UI hook in the AI Dev Reference app itself — not a Claude Code hook.\n\nFor Claude Code hooks, see PreToolUse, PostToolUse, etc. below.",
-          officialUrl: "https://docs.anthropic.com/en/docs/claude-code"
-        },
-        {
           cmd: "PreToolUse",
           name: "Pre-Tool Validation",
           auto: true,
           desc: "Run scripts before tool calls to block, allow, or modify execution.",
-          ex: "block rm -rf in .claude/settings.json hooks",
+          usage: "hooks.PreToolUse in .claude/settings.json",
+          ex: "bash .claude/hooks/block-dangerous.sh",
           trigger: "Fires before any tool call executes",
           configPath: ".claude/settings.json → hooks.PreToolUse",
           configExample: '{\n  "hooks": {\n    "PreToolUse": [\n      {\n        "matcher": "Bash",\n        "hooks": [\n          {\n            "type": "command",\n            "command": "bash .claude/hooks/block-dangerous.sh"\n          }\n        ]\n      }\n    ]\n  }\n}',
@@ -515,7 +514,8 @@ export const baseCatalog: Catalog = {
           name: "Post-Tool Formatting",
           auto: true,
           desc: "Run scripts after successful tool calls, e.g. auto-format edited files.",
-          ex: "prettier --write $FILE after Edit|Write",
+          usage: 'hooks.PostToolUse matcher "Edit|Write"',
+          ex: "prettier --write $FILE",
           trigger: "Fires after a tool call succeeds",
           configPath: ".claude/settings.json → hooks.PostToolUse",
           configExample: '{\n  "hooks": {\n    "PostToolUse": [\n      {\n        "matcher": "Edit|Write",\n        "hooks": [\n          {\n            "type": "command",\n            "command": "prettier --write $FILE"\n          }\n        ]\n      }\n    ]\n  }\n}',
@@ -527,7 +527,8 @@ export const baseCatalog: Catalog = {
           name: "Session Start Hook",
           auto: true,
           desc: "Inject context when a session begins, resumes, clears, or compacts.",
-          ex: "reload env vars after /compact",
+          usage: "hooks.SessionStart on session start, resume, clear, or compact",
+          ex: "bash .claude/hooks/load-env.sh",
           trigger: "Fires on startup, resume, clear, or compact",
           configPath: ".claude/settings.json → hooks.SessionStart",
           configExample: '{\n  "hooks": {\n    "SessionStart": [\n      {\n        "hooks": [\n          {\n            "type": "command",\n            "command": "bash .claude/hooks/load-env.sh"\n          }\n        ]\n      }\n    ]\n  }\n}',
@@ -539,7 +540,8 @@ export const baseCatalog: Catalog = {
           name: "Desktop Notification",
           auto: true,
           desc: "Send OS notifications when Claude needs input or permission.",
-          ex: "notify-send 'Claude needs your attention'",
+          usage: "hooks.Notification when Claude waits for input",
+          ex: 'notify-send "Claude needs your attention"',
           trigger: "Fires when Claude waits for user input",
           configPath: ".claude/settings.json → hooks.Notification",
           configExample: '{\n  "hooks": {\n    "Notification": [\n      {\n        "hooks": [\n          {\n            "type": "command",\n            "command": "notify-send \\"Claude needs input\\""\n          }\n        ]\n      }\n    ]\n  }\n}',
@@ -551,7 +553,8 @@ export const baseCatalog: Catalog = {
           name: "Stop Hook",
           auto: true,
           desc: "Run scripts when Claude finishes a response turn.",
-          ex: "log session activity on turn complete",
+          usage: "hooks.Stop after each response turn",
+          ex: "bash .claude/hooks/log-turn.sh",
           trigger: "Fires when Claude finishes responding",
           configPath: ".claude/settings.json → hooks.Stop",
           configExample: '{\n  "hooks": {\n    "Stop": [\n      {\n        "hooks": [\n          {\n            "type": "command",\n            "command": "bash .claude/hooks/log-turn.sh"\n          }\n        ]\n      }\n    ]\n  }\n}',
@@ -564,7 +567,7 @@ export const baseCatalog: Catalog = {
       maker: "Anysphere",
       subtitle: "Commands, automation hooks, and IDE workflows for Cursor.",
       officialDocs: [
-        "https://docs.cursor.com"
+        "https://cursor.com/docs"
       ],
       groups: [
         {
@@ -674,6 +677,7 @@ export const baseCatalog: Catalog = {
           name: "Refactor Flow",
           auto: false,
           desc: "Guides larger refactors with checkpoints and validation.",
+          usage: "@refactor-flow <goal>",
           ex: "@refactor-flow split auth service",
           trigger: "When user asks for multi-file structural refactors",
           officialUrl: "https://docs.cursor.com"
@@ -683,6 +687,7 @@ export const baseCatalog: Catalog = {
           name: "Create Skill",
           auto: false,
           desc: "Walk through creating a new Agent Skill with SKILL.md structure.",
+          usage: "/create-skill <description>",
           ex: "/create-skill for API endpoint testing",
           trigger: "When user wants to add a reusable agent workflow",
           configPath: ".cursor/skills/<skill-name>/SKILL.md",
@@ -695,6 +700,7 @@ export const baseCatalog: Catalog = {
           name: "Create Rule",
           desc: "Create Cursor rules with appropriate scope and instructions.",
           auto: false,
+          usage: "/create-rule <rule description>",
           ex: "/create-rule enforce TypeScript strict mode",
           trigger: "When user wants persistent project conventions",
           configPath: ".cursor/rules/*.mdc or AGENTS.md",
@@ -707,6 +713,7 @@ export const baseCatalog: Catalog = {
           name: "Create Hook",
           auto: false,
           desc: "Create lifecycle hooks and update hooks.json for agent events.",
+          usage: "/create-hook <description>",
           ex: "/create-hook format files after edits",
           trigger: "When automating agent lifecycle behavior",
           configPath: ".cursor/hooks.json",
@@ -719,6 +726,7 @@ export const baseCatalog: Catalog = {
           name: "Create Subagent",
           auto: false,
           desc: "Create custom subagents with focused roles and delegation rules.",
+          usage: "/create-subagent <role>",
           ex: "/create-subagent for security reviews",
           trigger: "When delegating specialized tasks to subagents",
           configPath: ".cursor/agents/<agent-name>.md",
@@ -740,6 +748,7 @@ export const baseCatalog: Catalog = {
           name: "Loop Skill",
           auto: false,
           desc: "Run a prompt or skill repeatedly at a specified interval.",
+          usage: "/loop <interval> <prompt>",
           ex: "/loop 10m check CI status",
           trigger: "When recurring polling or maintenance is needed",
           officialUrl: "https://cursor.com/docs/skills"
@@ -749,6 +758,7 @@ export const baseCatalog: Catalog = {
           name: "Create Automation",
           auto: false,
           desc: "Create Cursor Automations triggered by schedules, Slack, or GitHub.",
+          usage: "/automate <description>",
           ex: "/automate daily dependency audit",
           trigger: "When setting up event-driven agent workflows",
           officialUrl: "https://cursor.com/docs/skills"
@@ -758,6 +768,7 @@ export const baseCatalog: Catalog = {
           name: "Cursor SDK Guide",
           auto: true,
           desc: "Guidance for building programmatic agents with the Cursor TypeScript SDK.",
+          usage: "/sdk <task>",
           ex: "/sdk set up a cloud agent",
           trigger: "When building agents with @cursor/sdk",
           officialUrl: "https://cursor.com/docs/cloud-agent/api/endpoints"
@@ -818,7 +829,8 @@ export const baseCatalog: Catalog = {
           name: "Pre-command Validation",
           auto: true,
           desc: "Validates command intent against workspace rules.",
-          ex: "check .cursor/rules",
+          usage: "pre-command hook in .cursor/hooks.json",
+          ex: "bash .cursor/hooks/validate-command.sh",
           trigger: "Runs before command execution",
           officialUrl: "https://docs.cursor.com"
         },
@@ -827,7 +839,8 @@ export const baseCatalog: Catalog = {
           name: "Session Start",
           auto: true,
           desc: "Run commands when an agent session begins or ends.",
-          ex: "inject project env vars on sessionStart",
+          usage: "hooks.sessionStart in .cursor/hooks.json",
+          ex: "bash .cursor/hooks/load-env.sh",
           trigger: "Fires at sessionStart or sessionEnd",
           officialUrl: "https://cursor.com/docs/hooks"
         },
@@ -836,7 +849,8 @@ export const baseCatalog: Catalog = {
           name: "Pre-Tool Use",
           auto: true,
           desc: "Validate or block tool calls before the agent executes them.",
-          ex: "deny writes outside src/ on preToolUse",
+          usage: "hooks.preToolUse in .cursor/hooks.json",
+          ex: "bash .cursor/hooks/validate-write.sh",
           trigger: "Fires before any agent tool call",
           configPath: ".cursor/hooks.json → hooks.preToolUse",
           configExample: '{\n  "hooks": {\n    "preToolUse": [\n      { "command": "bash .cursor/hooks/validate-write.sh" }\n    ]\n  }\n}',
@@ -848,7 +862,8 @@ export const baseCatalog: Catalog = {
           name: "Post-Tool Use",
           auto: true,
           desc: "Observe or react after a tool call completes successfully.",
-          ex: "log tool usage on postToolUse",
+          usage: "hooks.postToolUse in .cursor/hooks.json",
+          ex: "bash .cursor/hooks/log-tool.sh",
           trigger: "Fires after successful tool execution",
           configPath: ".cursor/hooks.json → hooks.postToolUse",
           configExample: '{\n  "hooks": {\n    "postToolUse": [\n      { "command": "bash .cursor/hooks/log-tool.sh" }\n    ]\n  }\n}',
@@ -860,7 +875,8 @@ export const baseCatalog: Catalog = {
           name: "After File Edit",
           auto: true,
           desc: "Run formatters or linters after the agent edits a file.",
-          ex: ".cursor/hooks/format.sh on afterFileEdit",
+          usage: "hooks.afterFileEdit in .cursor/hooks.json",
+          ex: "prettier --write $FILE",
           trigger: "Fires after agent file modifications",
           configPath: ".cursor/hooks.json → hooks.afterFileEdit",
           configExample: '{\n  "hooks": {\n    "afterFileEdit": [\n      { "command": "prettier --write $FILE" }\n    ]\n  }\n}',
@@ -872,7 +888,8 @@ export const baseCatalog: Catalog = {
           name: "Before Submit Prompt",
           auto: true,
           desc: "Inspect or modify prompts before they are sent to the agent.",
-          ex: "redact secrets in beforeSubmitPrompt",
+          usage: "hooks.beforeSubmitPrompt in .cursor/hooks.json",
+          ex: "bash .cursor/hooks/redact-secrets.sh",
           trigger: "Fires before user prompt is submitted",
           officialUrl: "https://cursor.com/docs/hooks"
         }
@@ -882,7 +899,7 @@ export const baseCatalog: Catalog = {
       maker: "Microsoft/GitHub",
       subtitle: "Slash commands, reusable skills, and quality workflows for GitHub Copilot in VS Code.",
       officialDocs: [
-        "https://code.visualstudio.com/docs/copilot"
+        "https://docs.github.com/en/copilot"
       ],
       groups: [
         {
@@ -1114,7 +1131,8 @@ export const baseCatalog: Catalog = {
           name: "Diagnostics Hook",
           auto: true,
           desc: "Synchronizes diagnostic context into chat responses.",
-          ex: "read Problems panel before /fix",
+          usage: "Diagnostics context before /fix",
+          ex: "/fix this file",
           trigger: "Runs when diagnostics update",
           officialUrl: "https://code.visualstudio.com/docs/copilot"
         },
@@ -1123,7 +1141,8 @@ export const baseCatalog: Catalog = {
           name: "Test Coverage (Experimental)",
           auto: true,
           desc: "Generate tests for functions not yet covered by existing tests.",
-          ex: "trigger from Testing view coverage gaps",
+          usage: "Testing view → generate tests for uncovered functions",
+          ex: "/tests for validateEmail",
           trigger: "When uncovered functions are detected",
           officialUrl: "https://code.visualstudio.com/docs/agents/reference/copilot-vscode-features"
         },
@@ -1132,7 +1151,8 @@ export const baseCatalog: Catalog = {
           name: "Inline Chat Hook",
           auto: true,
           desc: "Context from cursor position and selection flows into inline chat.",
-          ex: "Ctrl+I with selection for /explain",
+          usage: "Ctrl+I with selection",
+          ex: "/explain this module",
           trigger: "Fires when inline chat opens with editor context",
           officialUrl: "https://code.visualstudio.com/docs/copilot/chat/getting-started-chat"
         }
