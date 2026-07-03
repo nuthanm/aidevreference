@@ -2,6 +2,9 @@
 
 Operator handbook for maintaining the AI Dev Reference catalog, subscribers, and broadcast workflows.
 
+> **Visual flow guides:** See [docs/README.md](README.md) for per-feature diagrams.  
+> Quick links: [Catalog update](flows/03-catalog-update.md) · [Feedback resolve](flows/06-feedback-and-resolve.md) · [Broadcast](flows/08-release-broadcast.md) · [CI/CD](flows/09-ci-cd.md)
+
 ## Architecture
 
 Catalog source priority:

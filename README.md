@@ -14,8 +14,6 @@
 
 ## What this site does
 
-Developers switch between Claude Code, Cursor, and Copilot — but slash commands, skills, hooks, and subagents are scattered across different docs. **AI Dev Reference** puts them in one searchable place:
-
 | Capability | Description |
 |------------|-------------|
 | **Browse** | Commands, skills, agents, and hooks per tool |
@@ -24,390 +22,163 @@ Developers switch between Claude Code, Cursor, and Copilot — but slash command
 | **Copy examples** | Every card includes a copy-paste usage example |
 | **Subscribe** | Email alerts when new catalog entries are published |
 | **What's new** | `/whats-new` shows recently added entries |
-
-### Current catalog size
-
-| Tool | Commands | Skills | Agents | Hooks | Total |
-|------|----------|--------|--------|-------|-------|
-| Claude | 29 | 8 | 3 | 6 | **46** |
-| Cursor | 11 | 9 | 4 | 6 | **30** |
-| Copilot | 15 | 4 | 4 | 3 | **26** |
-| **All** | **55** | **21** | **11** | **15** | **102** |
+| **Feedback** | Submit requests; admin can mark resolved and notify by email |
 
 ---
 
-## Site map
+## Architecture (overview)
 
 ```mermaid
 flowchart TB
-  subgraph Public pages
-    HOME["/  Landing + compare"]
-    CLAUDE["/claude"]
-    CURSOR["/cursor"]
-    COPILOT["/copilot"]
-    NEW["/whats-new"]
-    FB["/feedback"]
+  subgraph Public
+    UI["Next.js UI\nReferenceShell"]
+    API_READ["GET /api/catalog"]
   end
 
-  subgraph API
-    API_ALL["GET /api/catalog"]
-    API_TOOL["GET /api/catalog?tool=claude|cursor|copilot"]
-    API_SYNC["POST /api/catalog/sync"]
+  subgraph Data
+    DB[("PostgreSQL\ncatalog · subscribers · requests")]
+    CODE["baseCatalog fallback"]
+    PEND["catalog.pending.json\nstaging only"]
   end
 
-  HOME --> CLAUDE & CURSOR & COPILOT
-  API_ALL --> HOME & CLAUDE & CURSOR & COPILOT
-  API_TOOL --> CLAUDE & CURSOR & COPILOT
+  subgraph Email
+    FB["POST /api/feedback"]
+    NOTIFY["POST /api/notify"]
+    BCAST["broadcast APIs"]
+    SMTP["SMTP"]
+  end
+
+  subgraph Automation
+    GHA["GitHub Actions"]
+  end
+
+  UI --> API_READ
+  API_READ --> DB
+  API_READ --> CODE
+  PEND -->|POST sync| DB
+  FB & NOTIFY & BCAST --> SMTP
+  GHA --> DB
+  GHA --> BCAST
 ```
 
-| Route | What you see |
-|-------|--------------|
-| `/` | Tool cards, live entry counts, **comparison table** |
-| `/claude` | Claude commands grouped by category + skills, agents, hooks |
-| `/cursor` | Cursor commands, skills, agents, hooks |
-| `/copilot` | Copilot chat commands, workspace agents, skills, hooks |
-| `/whats-new` | Recently added catalog entries |
-| `/feedback` | Submit support requests, report missing commands, or sign up for updates |
-| `/api/catalog` | Public JSON API (cached, no auth) |
+**Catalog read priority:** PostgreSQL snapshot → in-code `baseCatalog` if DB is down.  
+**Pending file** is never served to visitors — it is a draft queue before sync.
 
 ---
 
-## Catalog workflows — when to do what
+## Documentation map
 
-### Three storage layers
+Detailed flows with diagrams live in **[docs/](docs/README.md)** — use this table instead of scrolling one long README.
+
+### Start here
+
+| Topic | Guide |
+|-------|-------|
+| **All docs index** | [docs/README.md](docs/README.md) |
+| **System architecture** | [docs/flows/01-architecture.md](docs/flows/01-architecture.md) |
+| **Site & catalog read** | [docs/flows/02-site-and-catalog-read.md](docs/flows/02-site-and-catalog-read.md) |
+
+### Catalog (maintainers)
+
+| Topic | Guide |
+|-------|-------|
+| Add new commands (incremental) | [docs/flows/03-catalog-update.md](docs/flows/03-catalog-update.md) |
+| First deploy & seed | [docs/flows/04-catalog-first-deploy.md](docs/flows/04-catalog-first-deploy.md) |
+| Local dev without DB | [docs/flows/05-catalog-local-dev.md](docs/flows/05-catalog-local-dev.md) |
+| Full catalog runbook | [docs/CATALOG_SETUP_GUIDE.md](docs/CATALOG_SETUP_GUIDE.md) |
+
+### Email & subscribers
+
+| Topic | Guide |
+|-------|-------|
+| Feedback submit & resolve | [docs/flows/06-feedback-and-resolve.md](docs/flows/06-feedback-and-resolve.md) |
+| Notify signup & confirm | [docs/flows/07-subscriber-notify.md](docs/flows/07-subscriber-notify.md) |
+| Release broadcast & auto-cron | [docs/flows/08-release-broadcast.md](docs/flows/08-release-broadcast.md) |
+
+### Operations
+
+| Topic | Guide |
+|-------|-------|
+| CI/CD & GitHub Actions | [docs/flows/09-ci-cd.md](docs/flows/09-ci-cd.md) |
+| Environment variables & keys | [docs/flows/10-environment-and-keys.md](docs/flows/10-environment-and-keys.md) |
+| Operator handbook (API, JSON shapes) | [docs/OPERATIONS.md](docs/OPERATIONS.md) |
+| UX / user testing | [docs/USER_TESTING.md](docs/USER_TESTING.md) |
+
+---
+
+## High-level flows
 
 ```mermaid
 flowchart LR
-  PENDING["catalog.pending.json\n(staging draft)"] -->|sync| DB[("PostgreSQL")]
-  BASE["baseCatalog in catalog.ts\n(code fallback)"] -->|seed-db| DB
-  DB -->|GET /api/catalog| API["JSON response"]
-  BASE -->|if DB down| API
+  subgraph Visitor
+    V1["Browse / search"] --> V2["Copy examples"]
+    V3["Submit feedback"] --> V4["Subscribe for updates"]
+  end
+
+  subgraph Maintainer
+    M1["Edit pending.json"] --> M2["Validate + sync"]
+    M2 --> M3["Broadcast or auto-cron"]
+    M4["Mark request resolved"] --> M5["User gets email"]
+  end
+
+  V3 -.-> M4
+  M2 -.-> V4
 ```
 
-| Layer | File | Live site reads it? | When you touch it |
-|-------|------|---------------------|-------------------|
-| **Pending** | `data/catalog.pending.json` | **No** | When adding **new** commands only |
-| **Base catalog** | `src/lib/catalog.ts` | Only if DB is down | After merge, or bulk initial setup |
-| **Database** | PostgreSQL `catalog_snapshots` | **Yes** (primary) | First deploy + every production update |
-
-`/api/catalog` always returns JSON. Check `"sourceFeeds"` in the response:
-
-| Value | Meaning |
-|-------|---------|
-| `["database-snapshot"]` | Data is coming from **PostgreSQL** |
-| `["json-seed-cache"]` | DB unavailable — using **code fallback** |
-
-`/api/catalog/sync` in a browser shows **405 or help text** — that endpoint requires **POST**, not GET. Use the scripts or curl below instead.
+| I want to… | Read |
+|------------|------|
+| Browse the live site | [Site & catalog read](docs/flows/02-site-and-catalog-read.md) |
+| Add new slash commands | [Catalog update](docs/flows/03-catalog-update.md) |
+| Deploy for the first time | [First deploy & seed](docs/flows/04-catalog-first-deploy.md) |
+| Resolve a user request | [Feedback & resolve](docs/flows/06-feedback-and-resolve.md) |
+| Fix auto-broadcast 401 | [Release broadcast](docs/flows/08-release-broadcast.md) |
+| Set up GitHub secrets | [CI/CD](docs/flows/09-ci-cd.md) + [Environment & keys](docs/flows/10-environment-and-keys.md) |
 
 ---
 
-### Scripts — what they do and when to run them
-
-| Command | When to run | What it does | Clears pending? |
-|---------|-------------|--------------|-----------------|
-| `npm run catalog:validate` | **Before every PR** that changes catalog files | Checks JSON, required fields, duplicates | No |
-| `npm run catalog:merge` | When developing **without a database** | Merges pending → `baseCatalog` in code | No |
-| `npm run catalog:seed-db` | **First production deploy**, or full refresh from code | Writes `baseCatalog` → PostgreSQL | **Yes** (auto) |
-| `npm run catalog:reset-pending` | After seed, or when pending is stale but DB is live | Empties `catalog.pending.json` | **Yes** |
-| `POST /api/catalog/sync` | When adding **new entries** via pending (incremental) | Merges pending → PostgreSQL | Yes, if new rows inserted |
-| `npm run dev` | Local preview anytime | Starts site; reads DB or fallback | No |
-| `npm run build` | Before deploy | Production build check | No |
-
----
-
-### Scenario A — First-time setup (you are here)
-
-**When:** New project, empty database, catalog already in `baseCatalog`.
-
-```mermaid
-flowchart LR
-  A["Run db/subscribers.sql"] --> B["Set DATABASE_URL in .env.local"]
-  B --> C["npm run catalog:seed-db"]
-  C --> D["Commit empty pending.json"]
-  D --> E["Deploy to Vercel with same DATABASE_URL"]
-  E --> F["Share public URL"]
-```
-
-```bash
-# 1. Bootstrap DB schema (once, in Neon SQL editor)
-#    Run db/subscribers.sql
-
-# 2. Local seed
-npm install
-cp .env.example .env.local   # set DATABASE_URL
-npm run catalog:seed-db      # writes DB + clears pending
-
-# 3. Verify
-npm run dev
-# Open http://localhost:3000 — check sourceFeeds is database-snapshot
-
-# 4. Deploy
-# Set DATABASE_URL + NEXT_PUBLIC_SITE_URL on Vercel, then deploy
-```
-
-You do **not** need `POST /api/catalog/sync` for first-time setup if you used `catalog:seed-db`.
-
----
-
-### Scenario B — Adding new commands later
-
-**When:** Vendors release new slash commands; you want to add a few entries.
-
-```mermaid
-flowchart LR
-  A["Add entries to catalog.pending.json"] --> B["npm run catalog:validate"]
-  B --> C["Open PR"]
-  C --> D["Merge to main"]
-  D --> E["Catalog Deploy workflow OR POST sync"]
-  E --> F["Pending cleared, DB updated"]
-```
-
-```bash
-# 1. Add ONLY new entries to data/catalog.pending.json
-npm run catalog:validate
-
-# 2. Sync to production (pick one)
-#    Option A — GitHub Actions (after secrets are set): merge PR → auto deploy
-#    Option B — Manual API:
-curl -X POST "https://aidevreference.vercel.app/api/catalog/sync" \
-  -H "x-admin-key: YOUR_ADMIN_BROADCAST_KEY"
-
-# 3. Verify
-curl https://aidevreference.vercel.app/api/catalog
-```
-
----
-
-### Scenario C — Local development only (no database)
-
-**When:** You want to preview the site without PostgreSQL.
-
-```bash
-npm run catalog:merge   # optional: merge pending into baseCatalog
-npm run dev             # site reads baseCatalog fallback
-```
-
-No seed or sync needed.
-
----
-
-### Scenario D — Pending file is full but DB is already seeded
-
-**When:** You ran `catalog:seed-db` earlier and `catalog.pending.json` still has data.
-
-This is normal — seed does not use pending. Reset it:
-
-```bash
-npm run catalog:reset-pending
-git add data/catalog.pending.json
-git commit -m "Reset catalog pending after seed"
-```
-
-Or re-run seed (also clears pending):
-
-```bash
-npm run catalog:seed-db
-```
-
----
-
-### Automated workflow (GitHub Actions)
-
-**When:** After one-time GitHub secrets setup — runs on every catalog PR and merge.
-
-```mermaid
-flowchart LR
-  PR["Open PR with catalog changes"] --> VAL["Catalog Validate"]
-  VAL --> MERGE["Merge to main"]
-  MERGE --> DEPLOY["Catalog Deploy"]
-  DEPLOY --> SYNC["POST /api/catalog/sync"]
-  DEPLOY --> SEED["npm run catalog:seed-db"]
-  DEPLOY --> CHECK["Verify /api/catalog"]
-```
-
-| Workflow | When it runs | What it does |
-|----------|--------------|--------------|
-| **Catalog Validate** | Every PR touching catalog files | JSON check + duplicate detection |
-| **Catalog Deploy** | Push to `main` or manual dispatch | Sync API + seed DB + verify live API |
-| **Auto Broadcast** | Every 6 hours | Email subscribers about new entries |
-
-#### One-time GitHub secrets (do this once before automation works)
-
-| Secret | Example value |
-|--------|---------------|
-| `DATABASE_URL` | Your Neon PostgreSQL connection string |
-| `SYNC_ENDPOINT_URL` | `https://aidevreference.vercel.app/api/catalog/sync` |
-| `ADMIN_BROADCAST_KEY` | Same key as in Vercel env vars |
-| `SITE_URL` | `https://aidevreference.vercel.app` |
-
-**Manual trigger:** GitHub → Actions → **Catalog Deploy** → Run workflow → choose `auto`, `sync`, or `seed`.
-
-> **Full runbook:** [docs/CATALOG_SETUP_GUIDE.md](docs/CATALOG_SETUP_GUIDE.md) · **Operator handbook:** [docs/OPERATIONS.md](docs/OPERATIONS.md)
-
----
-
-## Architecture
-
-```mermaid
-flowchart TD
-  PENDING["data/catalog.pending.json"] -->|POST /api/catalog/sync| SYNC["catalog-sync.ts"]
-  BASE["baseCatalog in catalog.ts"] --> SYNC
-  SYNC -->|merge + dedupe| DB[("PostgreSQL catalog_snapshots")]
-  DB --> API["GET /api/catalog"]
-  BASE -->|fallback if DB unavailable| API
-  API --> UI["ReferenceShell UI"]
-```
-
-**Data priority:**
-
-1. PostgreSQL snapshot (`catalog_snapshots`, row `id=active`) — **live site reads this**
-2. In-code fallback (`baseCatalog` in `src/lib/catalog.ts`) — only if DB is unavailable
-
-`catalog.pending.json` is **not** read by the site. It is a staging draft for new entries before sync.
-
-After seeding, reset pending so the repo stays clean:
-
-```bash
-npm run catalog:reset-pending   # or included automatically in catalog:seed-db
-```
-
-**Dedup keys** (duplicates are silently skipped on sync):
-
-| Type | Key |
-|------|-----|
-| Commands | `cmd\|name` |
-| Skills / Hooks | `cmd\|name` |
-| Agents | `name` |
-
----
-
-## Why the landing page shows a comparison table
-
-The table at the bottom of `/` is **intentional** — it is a **side-by-side tool comparison**, not a git diff or error.
-
-| Row | What it shows |
-|-----|---------------|
-| Built-in commands count | Live counts from the catalog (e.g. Claude 29, Cursor 11, Copilot 15) |
-| Bundled skills/agents | How each tool packages reusable workflows |
-| Parallel execution | Whether the tool supports parallel agent/task flows |
-| Context management | How each tool handles project memory and context |
-| MCP support | Model Context Protocol availability |
-| Memory/rules file | Where persistent instructions live per tool |
-| Code review | Review workflows per tool |
-| Surfaces | Where you use each tool (terminal, IDE, chat) |
-
-Command counts differ because each vendor documents a different number of slash commands. That is expected and reflects real product differences.
-
----
-
-## Quick start (local development)
+## Quick start
 
 ```bash
 git clone https://github.com/nuthan-murarysetty/ai-dev-ref.git
 cd ai-dev-ref
 npm install
 cp .env.example .env.local
-# Fill in DATABASE_URL, SMTP, Turnstile, and admin keys (optional for local catalog browsing)
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). Catalog loads from `baseCatalog` without a database.
 
-The catalog loads from `baseCatalog` even without a database configured.
+Production setup: [First deploy & seed](docs/flows/04-catalog-first-deploy.md).
 
 ---
 
 ## npm scripts
 
-| Command | When to run | Purpose |
-|---------|-------------|---------|
-| `npm run dev` | Local preview anytime | Start dev server |
-| `npm run build` | Before every deploy | Production build check |
-| `npm run catalog:validate` | Before every catalog PR | Validate pending JSON + check duplicates |
-| `npm run catalog:merge` | Local dev without DB | Merge pending into `baseCatalog` |
-| `npm run catalog:seed-db` | **First deploy** or full DB refresh | Write `baseCatalog` → PostgreSQL + reset pending |
-| `npm run catalog:reset-pending` | After seed, or when pending is stale | Clear `catalog.pending.json` |
-
----
-
-## Project structure
-
-```
-src/
-  app/              # Routes and API endpoints
-  features/         # ReferenceShell UI and forms
-  lib/              # Catalog, subscribers, mail, validation
-data/
-  catalog.pending.json   # Staging queue for new catalog entries
-scripts/
-  merge-catalog.ts       # Validate + merge + dedupe
-  seed-catalog-db.ts     # Seed PostgreSQL from baseCatalog
-  reset-pending.ts       # Clear staging file
-db/
-  subscribers.sql        # PostgreSQL schema bootstrap
-docs/
-  OPERATIONS.md          # Maintainer handbook (sync, broadcast, deploy)
-  CATALOG_SETUP_GUIDE.md # Step-by-step catalog population runbook
-  USER_TESTING.md        # UX observations and user-testing suggestions
-```
-
----
-
-## Environment variables
-
-See [.env.example](.env.example) for the full template.
-
-| Variable | Required for | Purpose |
-|----------|--------------|---------|
-| `DATABASE_URL` | Production sync | PostgreSQL catalog + subscribers |
-| `NEXT_PUBLIC_SITE_URL` | Production | SEO, sitemap, email links |
-| `ADMIN_BROADCAST_KEY` | Catalog sync | Auth for `POST /api/catalog/sync` |
-| `CRON_BROADCAST_KEY` | Auto-broadcast | GitHub Actions cron |
-| `SMTP_*`, `MAIL_*` | Email features | Feedback + subscriber notifications |
-| `TURNSTILE_*` | Forms | Anti-abuse on feedback/subscribe |
-
-Generate secure keys:
-
-```bash
-openssl rand -base64 48
-```
-
----
-
-## API endpoints
-
-| Method | Endpoint | Auth | Purpose |
-|--------|----------|------|---------|
-| `GET` | `/api/catalog` | None | Full catalog JSON |
-| `GET` | `/api/catalog?tool=claude` | None | Single tool catalog |
-| `POST` | `/api/catalog/sync` | `x-admin-key` | Merge pending → DB |
-| `POST` | `/api/feedback` | Turnstile | User feedback |
-| `POST` | `/api/notify` | Turnstile | Subscribe for updates |
+| Command | Guide |
+|---------|-------|
+| `npm run dev` | [Local dev](docs/flows/05-catalog-local-dev.md) |
+| `npm run catalog:validate` | [Catalog update](docs/flows/03-catalog-update.md) |
+| `npm run catalog:seed-db` | [First deploy](docs/flows/04-catalog-first-deploy.md) |
+| `npm run catalog:merge` | [Local dev](docs/flows/05-catalog-local-dev.md) |
+| `npm run catalog:reset-pending` | [Catalog update](docs/flows/03-catalog-update.md) |
 
 ---
 
 ## Contributing
 
-- **Missing a command?** Use the [feedback form](/feedback) on the live site or open an issue.
-- **Want to add catalog data?** Open a PR with entries in `data/catalog.pending.json` following [docs/OPERATIONS.md](docs/OPERATIONS.md).
-- **Operator runbook:** [docs/CATALOG_SETUP_GUIDE.md](docs/CATALOG_SETUP_GUIDE.md)
-- **UX / user testing notes:** [docs/USER_TESTING.md](docs/USER_TESTING.md)
+- **Missing a command?** Use the [feedback form](https://aidevreference.vercel.app/feedback) or open an issue.
+- **Add catalog data?** PR with `data/catalog.pending.json` — see [Catalog update flow](docs/flows/03-catalog-update.md).
+- **Operators:** Start at [docs/README.md](docs/README.md).
 
----
+### Official vendor docs
 
-## Official documentation
-
-Always verify against vendor docs before production use:
-
-- [Claude Code docs](https://code.claude.com/docs)
-- [Cursor docs](https://cursor.com/docs)
-- [GitHub Copilot docs](https://code.visualstudio.com/docs/copilot)
+- [Claude Code](https://code.claude.com/docs) · [Cursor](https://cursor.com/docs) · [GitHub Copilot](https://code.visualstudio.com/docs/copilot)
 
 ---
 
 ## Disclaimer
 
-This is an **unofficial, community-maintained** reference. Command names, behavior, and availability may change when vendors update their tools. We do our best to keep the catalog current, but always confirm against official documentation.
+Unofficial, community-maintained reference. Command names and behavior may change when vendors update their tools. Confirm against official documentation before production use.
 
 ---
 

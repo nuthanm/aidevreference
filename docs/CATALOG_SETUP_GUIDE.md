@@ -1,6 +1,8 @@
 # Catalog Setup Guide — Step-by-Step Runbook
 
-Operator guide for populating, validating, seeding, and deploying the AI Dev Reference catalog. Use this when you need exact commands and clarity on **which script to run and when**.
+Operator guide for populating, validating, seeding, and deploying the AI Dev Reference catalog.
+
+> **Visual flow guides:** [docs/README.md](README.md) — [incremental update](flows/03-catalog-update.md) · [first deploy](flows/04-catalog-first-deploy.md) · [local dev](flows/05-catalog-local-dev.md)
 
 ---
 
