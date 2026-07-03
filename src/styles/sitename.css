@@ -3512,6 +3512,11 @@
       color: #a0a5c8;
     }
 
+    .f-copyright {
+      color: #6b719d;
+      white-space: nowrap;
+    }
+
     .f-link-row {
       display: flex;
       align-items: center;
@@ -4294,5 +4299,84 @@
 
       .catalog-updates-table {
         min-width: 520px;
+      }
+    }
+
+    .policy-page {
+      max-width: 720px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-bottom: 24px;
+    }
+
+    .policy-page h1 {
+      margin: 0 0 4px;
+      font-size: clamp(24px, 3vw, 30px);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    .policy-page h2 {
+      margin: 14px 0 0;
+      font-size: 17px;
+      line-height: 1.25;
+    }
+
+    .policy-page p {
+      margin: 0;
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .policy-nav-links a {
+      color: var(--claude);
+      font-weight: 600;
+    }
+
+    .app-shell[data-route="terms"],
+    .app-shell[data-route="privacy"] {
+      --mobile-header-offset: 112px;
+    }
+
+    .scroll-nav {
+      position: fixed;
+      right: 20px;
+      bottom: 96px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 45;
+    }
+
+    .scroll-nav-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      border: 1.5px solid var(--border);
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 4px 16px rgba(24, 24, 42, 0.1);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      color: var(--text-2);
+      transition: border-color 120ms ease, color 120ms ease;
+    }
+
+    .scroll-nav-btn:hover {
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+
+    @media (max-width: 768px) {
+      .scroll-nav {
+        right: 14px;
+        bottom: 88px;
+      }
+
+      .scroll-nav-btn {
+        width: 36px;
+        height: 36px;
       }
     }

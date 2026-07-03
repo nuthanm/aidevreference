@@ -25,9 +25,11 @@ import {
 } from "lucide-react";
 import { CommandRunPreview } from "@/components/command-run-preview";
 import { CopyButton } from "@/components/copy-button";
+import { ScrollNav } from "@/components/scroll-nav";
 import { buildCommandRunPreview, commandEntryKey } from "@/lib/command-run-preview";
 import { ToolIcon } from "@/components/tool-icon";
 import { FeedbackForm, NotifyForm } from "@/features/forms/forms";
+import { PrivacyContent, TermsContent } from "@/features/policy/policy-pages";
 import { useFooterTicker } from "@/hooks/use-footer-ticker";
 import {
   markAllUnseenReviewed,
@@ -43,7 +45,9 @@ type RouteId =
   | "cursor"
   | "copilot"
   | "feedback"
-  | "whats-new";
+  | "whats-new"
+  | "terms"
+  | "privacy";
 
 type SubscriberStats = {
   confirmed: number;
@@ -66,6 +70,8 @@ const PATH_TO_ROUTE: Record<string, RouteId> = {
   "/copilot": "copilot",
   "/feedback": "feedback",
   "/whats-new": "whats-new",
+  "/terms-and-conditions": "terms",
+  "/privacy-policy": "privacy",
 };
 
 const ROUTE_TO_PATH: Record<RouteId, string> = {
@@ -75,6 +81,8 @@ const ROUTE_TO_PATH: Record<RouteId, string> = {
   copilot: "/copilot",
   feedback: "/feedback",
   "whats-new": "/whats-new",
+  terms: "/terms-and-conditions",
+  privacy: "/privacy-policy",
 };
 
 type BadgeFilter = "all" | Badge;
@@ -765,9 +773,7 @@ export function ReferenceShell() {
             : "Lifecycle hooks automate agent behavior. Configure in .cursor/hooks.json or via /create-hook."}
         </div>
         <div className="skills-list skills-list-compact">
-          {hooks.map((h) => {
-            const usage = commandUsage(h.cmd, h.ex, h.usage);
-            return (
+          {hooks.map((h) => (
             <article className="skill-row skill-row-list" key={`${h.cmd}-${h.name}`}>
               <div className="skill-left">
                 <div className="skill-cmd-row">
@@ -784,18 +790,21 @@ export function ReferenceShell() {
                 {renderConfigBlock(h.configPath, h.configExample)}
                 <div className="ex-label-row">
                   <span className="ex-label">Command</span>
-                  <CopyButton text={usage} label="Copy command pattern" />
+                  <CopyButton text={h.ex} label="Copy hook command" />
                 </div>
-                <pre className="skill-ex cmd-usage">{usage}</pre>
-                <div className="ex-label-row">
-                  <span className="ex-label">Example</span>
-                  <CopyButton text={h.ex} label="Copy example" />
-                </div>
-                <pre className="skill-ex">{h.ex}</pre>
+                <pre className="skill-ex cmd-usage">{h.ex}</pre>
+                {h.usage ? (
+                  <>
+                    <div className="ex-label-row">
+                      <span className="ex-label">Configuration</span>
+                      <CopyButton text={h.usage} label="Copy configuration" />
+                    </div>
+                    <pre className="skill-ex">{h.usage}</pre>
+                  </>
+                ) : null}
               </div>
             </article>
-            );
-          })}
+          ))}
         </div>
       </section>
     );
@@ -1343,6 +1352,9 @@ export function ReferenceShell() {
                 </>
               ) : null}
 
+              {route === "terms" ? <TermsContent /> : null}
+              {route === "privacy" ? <PrivacyContent /> : null}
+
               {route === "whats-new" && releaseDisplay.mode === "new" ? (
                 <section className="catalog-updates-page">
                   <div className="catalog-updates-hero">
@@ -1442,7 +1454,10 @@ export function ReferenceShell() {
           </div>
           <div className="footer-row footer-row-secondary">
             <div className="f-legal">
+              <span className="f-copyright">© 2026 Nuthan Murarysetty</span>
+              <span className="dot" aria-hidden="true">·</span>
               <Link href="/privacy-policy">Privacy Policy</Link>
+              <span className="dot" aria-hidden="true">·</span>
               <Link href="/terms-and-conditions">Terms and Conditions</Link>
             </div>
             <div className="f-social">
@@ -1466,6 +1481,8 @@ export function ReferenceShell() {
           </div>
         </div>
       </footer>
+
+      <ScrollNav key={route} />
     </div>
   );
 }
