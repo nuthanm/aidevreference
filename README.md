@@ -85,6 +85,41 @@ flowchart LR
   E --> F["Share public URL"]
 ```
 
+### Automated workflow (GitHub Actions)
+
+You can automate validation and deployment — no manual `seed-db` or `curl sync` needed after setup.
+
+```mermaid
+flowchart LR
+  PR["Open PR with catalog changes"] --> VAL["Catalog Validate workflow"]
+  VAL --> MERGE["Merge to main"]
+  MERGE --> DEPLOY["Catalog Deploy workflow"]
+  DEPLOY --> SYNC["POST /api/catalog/sync"]
+  DEPLOY --> SEED["npm run catalog:seed-db"]
+  DEPLOY --> CHECK["Verify /api/catalog"]
+```
+
+| Workflow | Trigger | What it does |
+|----------|---------|--------------|
+| **Catalog Validate** | Every PR that touches catalog files | JSON syntax check + duplicate detection |
+| **Catalog Deploy** | Push to `main` or manual dispatch | Sync API + seed DB + verify live API |
+| **Auto Broadcast** | Every 6 hours | Email subscribers about new entries |
+
+#### One-time GitHub secrets setup
+
+In **GitHub → Settings → Secrets and variables → Actions**, add:
+
+| Secret | Example value |
+|--------|---------------|
+| `DATABASE_URL` | Your Neon PostgreSQL connection string |
+| `SYNC_ENDPOINT_URL` | `https://aidevreference.vercel.app/api/catalog/sync` |
+| `ADMIN_BROADCAST_KEY` | Same key as in Vercel env vars |
+| `SITE_URL` | `https://aidevreference.vercel.app` |
+
+After secrets are set, every merge to `main` that changes `catalog.pending.json` or `src/lib/catalog.ts` automatically updates production.
+
+**Manual trigger:** GitHub → Actions → **Catalog Deploy** → Run workflow → choose `auto`, `sync`, or `seed`.
+
 ### Step-by-step
 
 #### 1. Edit `data/catalog.pending.json`
