@@ -9,9 +9,9 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "catalog:merge": "tsx scripts/merge-catalog.ts --write",
-    "catalog:validate": "tsx scripts/merge-catalog.ts",
-    "catalog:seed-db": "tsx scripts/seed-catalog-db.ts"
+    "catalog:merge": "npx tsx scripts/merge-catalog.ts --write",
+    "catalog:validate": "npx tsx scripts/merge-catalog.ts",
+    "catalog:seed-db": "npx tsx scripts/seed-catalog-db.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
