@@ -154,12 +154,15 @@ function getValidationState({
   touched,
   dirty,
   submitted,
+  suppress,
 }: {
   valid: boolean;
   touched: boolean;
   dirty: boolean;
   submitted: boolean;
+  suppress?: boolean;
 }): ValidationState {
+  if (suppress) return "idle";
   const engaged = touched || dirty || submitted;
   if (!engaged) return "idle";
   return valid ? "valid" : "invalid";
@@ -211,11 +214,13 @@ type FeedbackValues = z.infer<typeof feedbackSchema>;
 export function FeedbackForm() {
   const [statusText, setStatusText] = useState("");
   const [statusTone, setStatusTone] = useState<"success" | "error" | "info">("info");
+  const [submitCompleted, setSubmitCompleted] = useState(false);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const requiresCaptcha = isConfiguredTurnstileSiteKey(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   const form = useForm<FeedbackValues>({
     resolver: zodResolver(feedbackSchema),
     mode: "onSubmit",
-    reValidateMode: "onSubmit",
+    reValidateMode: "onChange",
     defaultValues: {
       name: "",
       email: "",
@@ -269,37 +274,49 @@ export function FeedbackForm() {
   const feedbackSubmitted = form.formState.submitCount > 0;
   const feedbackTouched = form.formState.touchedFields;
   const feedbackDirty = form.formState.dirtyFields;
+  const suppressFieldMarks = submitCompleted;
 
   const nameMark = getValidationState({
     valid: isFeedbackNameValid,
     touched: Boolean(feedbackTouched.name),
     dirty: Boolean(feedbackDirty.name),
     submitted: feedbackSubmitted,
+    suppress: suppressFieldMarks,
   });
   const emailMark = getValidationState({
     valid: isFeedbackEmailValid,
     touched: Boolean(feedbackTouched.email),
     dirty: Boolean(feedbackDirty.email),
     submitted: feedbackSubmitted,
+    suppress: suppressFieldMarks,
   });
   const toolMark = getValidationState({
     valid: isFeedbackToolValid,
     touched: Boolean(feedbackTouched.tool),
     dirty: Boolean(feedbackDirty.tool),
     submitted: false,
+    suppress: suppressFieldMarks,
   });
   const typeMark = getValidationState({
     valid: isFeedbackTypeValid,
     touched: Boolean(feedbackTouched.type),
     dirty: Boolean(feedbackDirty.type),
     submitted: false,
+    suppress: suppressFieldMarks,
   });
   const messageMark = getValidationState({
     valid: isFeedbackMessageValid,
     touched: Boolean(feedbackTouched.message),
     dirty: Boolean(feedbackDirty.message),
     submitted: feedbackSubmitted,
+    suppress: suppressFieldMarks,
   });
+
+  useEffect(() => {
+    if (submitCompleted && Object.keys(feedbackDirty).length > 0) {
+      setSubmitCompleted(false);
+    }
+  }, [submitCompleted, feedbackDirty]);
 
   const setCaptchaToken = useCallback(
     (token: string) => {
@@ -324,24 +341,32 @@ export function FeedbackForm() {
         setStatusText("Submitting your request...");
         try {
           await postJson("/api/feedback", values);
-          const msg = "Request submitted. Thank you for helping improve this reference.";
+          const msg = "Request submitted. Check your inbox for a confirmation email.";
           setStatusTone("success");
           setStatusText(msg);
-          form.reset({
-            name: "",
-            email: "",
-            tool: values.tool,
-            type: values.type,
-            message: "",
-            acceptPolicies: false,
-            website: "",
-            formStartedAt: Date.now(),
-            captchaToken: "",
-          });
+          setSubmitCompleted(true);
+          form.reset(
+            {
+              name: "",
+              email: "",
+              tool: values.tool,
+              type: values.type,
+              message: "",
+              acceptPolicies: false,
+              website: "",
+              formStartedAt: Date.now(),
+              captchaToken: "",
+            },
+            { keepSubmitCount: false },
+          );
+          form.clearErrors();
+          setCaptchaResetKey((k) => k + 1);
         } catch (err) {
           const msg = err instanceof Error ? err.message : "Unable to submit request.";
           setStatusTone("error");
           setStatusText(msg);
+          form.setValue("captchaToken", "");
+          setCaptchaResetKey((k) => k + 1);
         }
       })}
     >
@@ -396,7 +421,7 @@ export function FeedbackForm() {
         {requiresCaptcha ? (
           <div className="field full">
             <span className="field-label-row">CAPTCHA</span>
-            <TurnstileField onToken={setCaptchaToken} onLoadError={onCaptchaError} />
+            <TurnstileField key={captchaResetKey} onToken={setCaptchaToken} onLoadError={onCaptchaError} />
           </div>
         ) : null}
 
@@ -426,7 +451,7 @@ export function FeedbackForm() {
       <button
         className="btn-primary"
         type="submit"
-        disabled={form.formState.isSubmitting || !canSubmitFeedback}
+        disabled={form.formState.isSubmitting || submitCompleted || !canSubmitFeedback}
       >
         {form.formState.isSubmitting ? <Loader2 size={14} className="spin" /> : "Submit request"}
       </button>
@@ -444,12 +469,13 @@ type NotifyValues = z.infer<typeof notifySchema>;
 export function NotifyForm() {
   const [statusText, setStatusText] = useState("");
   const [statusTone, setStatusTone] = useState<"success" | "error" | "info">("info");
+  const [submitCompleted, setSubmitCompleted] = useState(false);
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const requiresCaptcha = isConfiguredTurnstileSiteKey(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   const form = useForm<NotifyValues>({
     resolver: zodResolver(notifySchema),
     mode: "onSubmit",
-    reValidateMode: "onSubmit",
+    reValidateMode: "onChange",
     defaultValues: {
       email: "",
       acceptPolicies: false,
@@ -478,7 +504,14 @@ export function NotifyForm() {
     touched: Boolean(notifyTouched.email),
     dirty: Boolean(notifyDirty.email),
     submitted: notifySubmitted,
+    suppress: submitCompleted,
   });
+
+  useEffect(() => {
+    if (submitCompleted && Object.keys(notifyDirty).length > 0) {
+      setSubmitCompleted(false);
+    }
+  }, [submitCompleted, notifyDirty]);
 
   const setCaptchaToken = useCallback(
     (token: string) => {
@@ -505,7 +538,13 @@ export function NotifyForm() {
           const msg = response.message || "Check your inbox and confirm your subscription to receive updates.";
           setStatusTone("success");
           setStatusText(msg);
-          form.reset({ email: "", acceptPolicies: false, website: "", formStartedAt: Date.now(), captchaToken: "" });
+          setSubmitCompleted(true);
+          form.reset(
+            { email: "", acceptPolicies: false, website: "", formStartedAt: Date.now(), captchaToken: "" },
+            { keepSubmitCount: false },
+          );
+          form.clearErrors();
+          setCaptchaResetKey((k) => k + 1);
         } catch (err) {
           const msg = err instanceof Error ? err.message : "Unable to register email.";
           setStatusTone("error");
@@ -533,7 +572,7 @@ export function NotifyForm() {
         <button
           className="btn-claude"
           type="submit"
-          disabled={form.formState.isSubmitting || !canSubmitNotify}
+          disabled={form.formState.isSubmitting || submitCompleted || !canSubmitNotify}
         >
           {form.formState.isSubmitting ? <Loader2 size={14} className="spin" /> : "Notify me"}
         </button>

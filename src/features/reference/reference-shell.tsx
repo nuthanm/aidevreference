@@ -159,7 +159,13 @@ function formatMetaBreakdown(tool: ToolCatalog) {
   if (meta.skills) parts.push(`${meta.skills} skill${meta.skills === 1 ? "" : "s"}`);
   if (meta.agents) parts.push(`${meta.agents} agent${meta.agents === 1 ? "" : "s"}`);
   if (meta.hooks) parts.push(`${meta.hooks} hook${meta.hooks === 1 ? "" : "s"}`);
-  return parts.length ? parts.join(" · ") : "—";
+  return parts.length ? parts.join(" · ") : "";
+}
+
+function formatToolStats(tool: ToolCatalog) {
+  const total = countToolEntries(tool);
+  const meta = formatMetaBreakdown(tool);
+  return meta ? `${total} entries · ${meta}` : `${total} entries`;
 }
 
 const CONFIG_PATHS: Record<"claude" | "cursor" | "copilot", string> = {
@@ -1253,23 +1259,19 @@ export function ReferenceShell() {
                           <div className={`tool-mini ${card.id}`}>
                             {renderToolGlyph(card.id, 18)}
                           </div>
-                          <div>
+                          <div className="tool-head-copy">
                             <div className={`tool-name ${card.id}`}>{card.name}</div>
-                            <div className="maker">
-                              by {card.maker} · {countToolEntries(data[card.id])} entries
-                            </div>
-                            <div className="maker-meta">{formatMetaBreakdown(data[card.id])}</div>
+                            <div className="tool-vendor">by {card.maker}</div>
                           </div>
                         </div>
-                        <div className="tool-strip-body">
-                          <p className="tool-desc">{card.desc}</p>
-                          <div className="tags">
-                            {card.tags.map((tag) => (
-                              <span className="tag" key={tag}>
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
+                        <div className={`tool-stat-row ${card.id}`}>{formatToolStats(data[card.id])}</div>
+                        <p className="tool-desc">{card.desc}</p>
+                        <div className="tags">
+                          {card.tags.map((tag) => (
+                            <span className="tag" key={tag}>
+                              {tag}
+                            </span>
+                          ))}
                         </div>
                         <div className="tool-strip-cta">
                           <span className={`card-cta ${card.id}`}>
@@ -1285,7 +1287,7 @@ export function ReferenceShell() {
                       <tbody>
                         <tr><th>Catalog entries</th><td>{countToolEntries(data.claude)}</td><td>{countToolEntries(data.cursor)}</td><td>{countToolEntries(data.copilot)}</td></tr>
                         <tr><th>Slash commands</th><td>{countCommands(data.claude)}</td><td>{countCommands(data.cursor)}</td><td>{countCommands(data.copilot)}</td></tr>
-                        <tr><th>Skills / agents / hooks</th><td>{formatMetaBreakdown(data.claude)}</td><td>{formatMetaBreakdown(data.cursor)}</td><td>{formatMetaBreakdown(data.copilot)}</td></tr>
+                        <tr><th>Skills / agents / hooks</th><td>{formatMetaBreakdown(data.claude) || "—"}</td><td>{formatMetaBreakdown(data.cursor) || "—"}</td><td>{formatMetaBreakdown(data.copilot) || "—"}</td></tr>
                         <tr><th>Configure in</th><td><code>{CONFIG_PATHS.claude}</code></td><td><code>{CONFIG_PATHS.cursor}</code></td><td><code>{CONFIG_PATHS.copilot}</code></td></tr>
                         <tr><th>Parallel execution</th><td>Supported in tool pipelines</td><td>Supported in IDE workflows</td><td>Supported in terminal/task flows</td></tr>
                         <tr><th>Context management</th><td>Memory tiers + agent context</td><td>Workspace-aware context windows</td><td>Chat + repo context + policies</td></tr>

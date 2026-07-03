@@ -7,10 +7,23 @@ export const runtime = "nodejs";
 
 function isAuthorized(req: NextRequest) {
   const cronKey = process.env.CRON_BROADCAST_KEY?.trim();
-  if (!cronKey) {
+  const adminKey = process.env.ADMIN_BROADCAST_KEY?.trim();
+  const cronHeader = req.headers.get("x-cron-key")?.trim();
+  const adminHeader = req.headers.get("x-admin-key")?.trim();
+
+  if (cronKey && cronHeader === cronKey) {
+    return true;
+  }
+
+  if (adminKey && adminHeader === adminKey) {
+    return true;
+  }
+
+  if (!cronKey && !adminKey) {
     return process.env.NODE_ENV !== "production";
   }
-  return req.headers.get("x-cron-key") === cronKey;
+
+  return false;
 }
 
 function getBaseUrl(req: NextRequest) {

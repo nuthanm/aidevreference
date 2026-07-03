@@ -1479,7 +1479,7 @@
       margin-top: 22px;
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
+      gap: 16px;
       align-items: stretch;
     }
 
@@ -1487,15 +1487,17 @@
       border-radius: 18px;
       background: var(--surface);
       border: 1.5px solid var(--border);
-      padding: 12px 14px;
+      padding: 18px 18px 16px;
       position: relative;
       transform: translateY(0);
       cursor: pointer;
       box-shadow: 0 4px 14px rgba(24, 24, 42, 0.04);
-      display: grid;
-      grid-template-columns: 1fr;
-      align-items: start;
-      gap: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      min-height: 248px;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
     }
 
     .tool-card:hover {
@@ -1524,8 +1526,47 @@
     .tool-head {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       margin-top: 0;
+    }
+
+    .tool-head-copy {
+      min-width: 0;
+    }
+
+    .tool-vendor {
+      color: var(--text-3);
+      font: 500 12px/1.3 Inter, sans-serif;
+      margin-top: 3px;
+    }
+
+    .tool-stat-row {
+      display: inline-flex;
+      align-self: flex-start;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font: 600 11px/1.2 Inter, sans-serif;
+      color: var(--text-2);
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid var(--border);
+    }
+
+    .tool-stat-row.claude {
+      border-color: #e4d8ff;
+      background: rgba(250, 247, 255, 0.9);
+      color: #5b3f9e;
+    }
+
+    .tool-stat-row.cursor {
+      border-color: #c8ebfe;
+      background: rgba(243, 251, 255, 0.92);
+      color: #0c6f9c;
+    }
+
+    .tool-stat-row.copilot {
+      border-color: #baf0d8;
+      background: rgba(242, 253, 247, 0.92);
+      color: #0f7a52;
     }
 
     .tool-mini {
@@ -1581,8 +1622,7 @@
     }
 
     .tool-name {
-      font: 800 16px Inter, sans-serif;
-      line-height: 1.1;
+      font: 800 18px/1.15 Inter, sans-serif;
     }
 
     .tool-name.claude { color: var(--claude); }
@@ -1603,19 +1643,20 @@
 
     .tool-desc {
       margin: 0;
-      font: 500 12px/1.45 Inter, sans-serif;
+      flex: 1 1 auto;
+      font: 500 13px/1.5 Inter, sans-serif;
       color: var(--text-2);
-      max-width: 520px;
-    }
-
-    .tool-strip-body {
-      display: grid;
-      gap: 10px;
-      min-width: 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      min-height: 3em;
     }
 
     .tool-strip-cta {
-      justify-self: start;
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid rgba(24, 24, 42, 0.07);
       white-space: nowrap;
     }
 
@@ -1623,23 +1664,25 @@
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
+      min-height: 28px;
+      align-content: flex-start;
     }
 
     .tag {
-      border-radius: 20px;
+      border-radius: 999px;
       border: 1px solid var(--border);
-      background: var(--bg);
+      background: rgba(255, 255, 255, 0.88);
       color: var(--text-2);
-      padding: 4px 8px;
-      font: 600 10px Inter, sans-serif;
+      padding: 4px 9px;
+      font: 600 10px/1.2 Inter, sans-serif;
     }
 
     .card-cta {
       margin-top: 0;
-      font: 700 12px Inter, sans-serif;
+      font: 700 13px Inter, sans-serif;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
     }
 
     .card-cta .arr {
@@ -3592,8 +3635,7 @@
       }
 
       .tool-card {
-        grid-template-columns: 1fr;
-        align-items: start;
+        min-height: 0;
       }
 
       .tool-strip-cta {

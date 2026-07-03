@@ -2,12 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { feedbackSchema } from "@/lib/validators";
 import { requestNotificationTemplate, requestTemplate } from "@/lib/email-templates";
 import { isBotLikeSubmission } from "@/lib/anti-bot";
+import { createFeedbackRequest } from "@/lib/feedback-requests";
 import { isMailerConfigured, sendMail } from "@/lib/mailer";
 import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { zodErrorToFieldMap } from "@/lib/validators";
 
 export const runtime = "nodejs";
+
+function getBaseUrl(req: NextRequest) {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) {
+    return configured.replace(/\/$/, "");
+  }
+  return req.nextUrl.origin;
+}
 
 function parseBody(raw: string) {
   const trimmed = raw.trim();
@@ -74,7 +83,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "MAIL_TO is not configured." }, { status: 503 });
     }
 
-    const adminMail = requestTemplate(parsed.data);
+    const stored = await createFeedbackRequest(parsed.data).catch((err) => {
+      console.error("[feedback] unable to store request:", err instanceof Error ? err.message : err);
+      return undefined;
+    });
+
+    const baseUrl = getBaseUrl(req);
+    const resolveUrl = stored
+      ? `${baseUrl}/api/feedback/resolve?token=${encodeURIComponent(stored.resolveToken)}`
+      : undefined;
+
+    const adminMail = requestTemplate(parsed.data, resolveUrl);
     const userMail = requestNotificationTemplate(parsed.data);
 
     await sendMail({ to: adminTo, subject: adminMail.subject, text: adminMail.text, html: adminMail.html });

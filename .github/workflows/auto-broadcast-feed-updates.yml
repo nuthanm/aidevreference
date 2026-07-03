@@ -14,32 +14,46 @@ jobs:
         env:
           AUTO_BROADCAST_ENDPOINT_URL: ${{ secrets.AUTO_BROADCAST_ENDPOINT_URL }}
           CRON_BROADCAST_KEY: ${{ secrets.CRON_BROADCAST_KEY }}
+          ADMIN_BROADCAST_KEY: ${{ secrets.ADMIN_BROADCAST_KEY }}
         run: |
           if [ -z "$AUTO_BROADCAST_ENDPOINT_URL" ]; then
             echo "Missing secret: AUTO_BROADCAST_ENDPOINT_URL"
             exit 1
           fi
 
-          if [ -z "$CRON_BROADCAST_KEY" ]; then
-            echo "Missing secret: CRON_BROADCAST_KEY"
+          if [ -z "$CRON_BROADCAST_KEY" ] && [ -z "$ADMIN_BROADCAST_KEY" ]; then
+            echo "Missing secret: set CRON_BROADCAST_KEY and/or ADMIN_BROADCAST_KEY"
             exit 1
           fi
 
           echo "Calling auto-broadcast endpoint..."
           response_file=$(mktemp)
+          curl_headers=(-H "content-type: application/json")
+
+          if [ -n "$CRON_BROADCAST_KEY" ]; then
+            curl_headers+=(-H "x-cron-key: $CRON_BROADCAST_KEY")
+          fi
+
+          if [ -n "$ADMIN_BROADCAST_KEY" ]; then
+            curl_headers+=(-H "x-admin-key: $ADMIN_BROADCAST_KEY")
+          fi
 
           http_code=$(curl --show-error --silent \
             -o "$response_file" \
             -w "%{http_code}" \
             -X POST "$AUTO_BROADCAST_ENDPOINT_URL" \
-            -H "content-type: application/json" \
-            -H "x-cron-key: $CRON_BROADCAST_KEY")
+            "${curl_headers[@]}")
 
           cat "$response_file"
           echo ""
 
           if [ "$http_code" -ge 400 ]; then
             echo "Auto-broadcast failed with HTTP $http_code"
+            if [ "$http_code" = "401" ]; then
+              echo "Hint: ensure GitHub secrets match Vercel env vars:"
+              echo "  CRON_BROADCAST_KEY -> x-cron-key"
+              echo "  ADMIN_BROADCAST_KEY -> x-admin-key"
+            fi
             exit 1
           fi
 

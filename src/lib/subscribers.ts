@@ -30,7 +30,7 @@ function createToken(size = 24) {
   return randomBytes(size).toString("hex");
 }
 
-function getSqlClient() {
+export function getSqlClient() {
   const raw = process.env.DATABASE_URL?.trim();
   if (!raw) {
     throw new Error("DATABASE_URL is not configured.");

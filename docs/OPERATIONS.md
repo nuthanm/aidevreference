@@ -65,12 +65,77 @@ Then set both app and GitHub secrets to the same exact values:
 - `ADMIN_BROADCAST_KEY`
 - `CRON_BROADCAST_KEY`
 
+For **Auto Broadcast Feed Updates**, GitHub sends both `x-cron-key` and `x-admin-key`. At least one must match the corresponding Vercel environment variable. If you only maintain one key, set `ADMIN_BROADCAST_KEY` in both GitHub and Vercel and leave `CRON_BROADCAST_KEY` empty in GitHub (or set both to the same value).
+
+## Resolving Feedback Requests
+
+When a user submits feedback, the admin email includes a **Mark resolved and notify** button.
+
+1. Fix the catalog entry or content issue.
+2. Open the resolve link from the admin email (or call the API).
+3. The requester receives a **Request resolved** email with a link back to the site.
+
+### Backfill for requests submitted before deploy
+
+Older requests were emailed but not stored with a resolve token. After deploy, notify them with:
+
+```bash
+curl -X POST "https://your-domain.com/api/feedback/resolve" \
+  -H "content-type: application/json" \
+  -H "x-admin-key: $ADMIN_BROADCAST_KEY" \
+  -d '{
+    "email": "requester@example.com",
+    "name": "Nuthan",
+    "tool": "Cursor",
+    "type": "Missing command",
+    "note": "Added the missing command to the catalog."
+  }'
+```
+
+This sends the resolved email even when no earlier resolve link exists.
+
+### Pending notify subscribers before deploy
+
+Resend confirmation emails so they can verify and receive future updates:
+
+```bash
+curl -X POST "https://your-domain.com/api/notify/resend-confirm" \
+  -H "content-type: application/json" \
+  -H "x-admin-key: $ADMIN_BROADCAST_KEY" \
+  -d '{"email":"subscriber@example.com"}'
+```
+
+Resend to all pending subscribers:
+
+```bash
+curl -X POST "https://your-domain.com/api/notify/resend-confirm" \
+  -H "content-type: application/json" \
+  -H "x-admin-key: $ADMIN_BROADCAST_KEY" \
+  -d '{"allPending":true}'
+```
+
+Optional resolution note (GET):
+
+```text
+/api/feedback/resolve?token=<token>&note=Added%20missing%20command%20to%20catalog
+```
+
+Programmatic resolve (POST):
+
+```bash
+curl -X POST "https://your-domain.com/api/feedback/resolve" \
+  -H "content-type: application/json" \
+  -H "x-admin-key: $ADMIN_BROADCAST_KEY" \
+  -d '{"token":"<resolve-token>","note":"Optional note for the requester"}'
+```
+
 ## Database Setup
 
 Use PostgreSQL (Neon recommended).
 
 1. Run [db/subscribers.sql](../db/subscribers.sql) in your database.
-2. Set `DATABASE_URL` in your environment.
+2. Run [db/feedback_requests.sql](../db/feedback_requests.sql) for request resolution tracking.
+3. Set `DATABASE_URL` in your environment.
 
 ### Scripts reference
 
@@ -311,6 +376,9 @@ Use this checklist before calling `POST /api/catalog/sync`.
 - `POST /api/catalog/sync`
 - `GET /api/releases`
 - `POST /api/feedback`
+- `GET /api/feedback/resolve?token=...`
+- `POST /api/feedback/resolve` (admin key)
+- `POST /api/notify/resend-confirm` (admin key)
 - `POST /api/notify`
 - `GET /api/notify/confirm?token=...`
 - `GET /api/notify/unsubscribe?token=...`

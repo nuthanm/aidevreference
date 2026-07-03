@@ -115,7 +115,23 @@ function contentCard(inner: string) {
   `;
 }
 
-export function requestTemplate(input: FeedbackInput): MailTemplate {
+export function requestTemplate(input: FeedbackInput, resolveUrl?: string): MailTemplate {
+  const resolveAction = resolveUrl
+    ? `
+    <p style="margin:16px 0 0;font-size:14px;color:${shell.body};">
+      When this request is addressed, click below to notify the requester by email.
+    </p>
+    <p style="margin:14px 0 0;">
+      <a
+        href="${escapeHtml(resolveUrl)}"
+        style="display:inline-block;padding:10px 14px;border-radius:10px;background:#10B981;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:14px;"
+      >
+        Mark resolved and notify
+      </a>
+    </p>
+  `
+    : "";
+
   const content = `
     <div style="margin:0 0 12px;">${toolBadgeHtml(input.tool)}</div>
     ${contentCard(`
@@ -130,12 +146,15 @@ export function requestTemplate(input: FeedbackInput): MailTemplate {
         <div style="font-size:14px;color:${shell.ink};white-space:pre-wrap;">${escapeHtml(input.message)}</div>
       </div>
     `)}
+    ${resolveAction}
   `;
+
+  const resolveText = resolveUrl ? `\n\nMark resolved and notify: ${resolveUrl}` : "";
 
   return {
     subject: `[AI Dev Reference] ${input.type} · ${input.tool}`,
     html: wrapEmail("New request submitted", "A new support request is waiting for review.", content),
-    text: `${input.type}\n\nName: ${input.name}\nEmail: ${input.email}\nTool: ${input.tool}\nType: ${input.type}\nMessage:\n${input.message}`,
+    text: `${input.type}\n\nName: ${input.name}\nEmail: ${input.email}\nTool: ${input.tool}\nType: ${input.type}\nMessage:\n${input.message}${resolveText}`,
   };
 }
 
@@ -159,6 +178,54 @@ export function requestNotificationTemplate(input: FeedbackInput): MailTemplate 
     subject: `Request received · ${input.tool}`,
     html: wrapEmail("Request received", "Your submission has been recorded successfully.", content),
     text: `Thanks, ${input.name}.\n\nYour request was received.\nTool: ${input.tool}\nType: ${input.type}\nMessage:\n${input.message}`,
+  };
+}
+
+export function requestResolvedTemplate(input: {
+  name: string;
+  tool: FeedbackInput["tool"];
+  type: string;
+  siteUrl: string;
+  resolutionNote?: string;
+}): MailTemplate {
+  const noteBlock = input.resolutionNote?.trim()
+    ? `
+      <div style="margin-top:12px;padding:10px 12px;border-radius:10px;background:#F0FDF4;border:1px solid #BBF7D0;">
+        <div style="font-size:12px;color:${shell.body};font-weight:700;margin-bottom:6px;">Update</div>
+        <div style="font-size:14px;color:${shell.ink};white-space:pre-wrap;">${escapeHtml(input.resolutionNote.trim())}</div>
+      </div>
+    `
+    : "";
+
+  const content = `
+    <p style="margin:0 0 12px;font-size:14px;color:${shell.body};">
+      Hi ${escapeHtml(input.name)}, your request has been addressed. Please check your inbox and the site for the latest reference updates.
+    </p>
+    <div style="margin:0 0 12px;">${toolBadgeHtml(input.tool)}</div>
+    ${contentCard(`
+      <table style="width:100%;border-collapse:collapse;">
+        ${detailRow("Request type", escapeHtml(input.type))}
+        ${detailRow("Tool", escapeHtml(input.tool))}
+        ${detailRow("Status", "Resolved")}
+      </table>
+      ${noteBlock}
+    `)}
+    <p style="margin:14px 0 0;">
+      <a
+        href="${escapeHtml(input.siteUrl)}"
+        style="display:inline-block;padding:10px 14px;border-radius:10px;background:#7C4DFF;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:14px;"
+      >
+        Open AI Dev Reference
+      </a>
+    </p>
+  `;
+
+  const noteText = input.resolutionNote?.trim() ? `\n\nUpdate:\n${input.resolutionNote.trim()}` : "";
+
+  return {
+    subject: `Request resolved · ${input.tool}`,
+    html: wrapEmail("Your request is resolved", "Thank you for helping improve this reference.", content),
+    text: `Hi ${input.name},\n\nYour request has been resolved.${noteText}\n\nOpen the site: ${input.siteUrl}`,
   };
 }
 
