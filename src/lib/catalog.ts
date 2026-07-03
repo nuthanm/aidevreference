@@ -1,4 +1,4 @@
-export type Badge = "skill" | "wf" | "chat" | "ide";
+export type Badge = "skill" | "wf" | "chat" | "ide" | "other";
 
 export type CommandEntry = {
   cmd: string;
@@ -22,6 +22,9 @@ export type SkillEntry = {
   desc: string;
   ex: string;
   trigger: string;
+  configPath?: string;
+  configExample?: string;
+  detail?: string;
   officialUrl?: string;
 };
 
@@ -34,6 +37,9 @@ export type AgentEntry = {
   model: string;
   invoke: string;
   when: string;
+  configPath?: string;
+  configExample?: string;
+  detail?: string;
   officialUrl?: string;
 };
 
@@ -44,6 +50,9 @@ export type HookEntry = {
   desc: string;
   ex: string;
   trigger: string;
+  configPath?: string;
+  configExample?: string;
+  detail?: string;
   officialUrl?: string;
 };
 
@@ -341,6 +350,9 @@ export const baseCatalog: Catalog = {
           desc: "Scaffolding guidance for complete project setup.",
           ex: "/project-setup-info-local setup Next.js app",
           trigger: "When user asks to initialize a full project",
+          configPath: ".claude/skills/project-setup-info-local/SKILL.md",
+          configExample: "# Project Setup Info\n\nInvoke when the user asks to scaffold or initialize a new project.\n\n## Steps\n1. Detect framework from package.json\n2. Generate starter structure\n3. Add CLAUDE.md with conventions",
+          detail: "Bundled skills ship with Claude Code and live under .claude/skills/<skill-name>/SKILL.md.\n\nEach skill folder contains a SKILL.md with frontmatter (name, description) and instructions Claude follows when the skill is invoked.\n\nAuto-invoked skills are matched by intent; user-only skills require an explicit slash command.",
           officialUrl: "https://docs.anthropic.com/en/docs/claude-code"
         },
         {
@@ -350,6 +362,9 @@ export const baseCatalog: Catalog = {
           desc: "Decompose large codebase changes into parallel subagent work units.",
           ex: "/batch migrate src/ from Solid to React",
           trigger: "When orchestrating large multi-file migrations",
+          configPath: ".claude/skills/batch/SKILL.md",
+          configExample: "# Batch Migration\n\nBreak large refactors into parallel sub-tasks.\n\n## Usage\n/batch <goal> <scope>",
+          detail: "Create a custom skill at .claude/skills/batch/SKILL.md or invoke the bundled /batch command.\n\nThe skill instructs Claude to split work into independent units and delegate to subagents where possible.",
           officialUrl: "https://code.claude.com/docs/en/commands"
         },
         {
@@ -359,6 +374,9 @@ export const baseCatalog: Catalog = {
           desc: "Enable debug logging and troubleshoot issues from session logs.",
           ex: "/debug MCP connection timeout",
           trigger: "When diagnosing Claude Code runtime issues",
+          configPath: "CLAUDE_DEBUG=1 in shell or .claude/settings.json",
+          configExample: '{\n  "env": {\n    "CLAUDE_DEBUG": "1"\n  }\n}',
+          detail: "Run /debug <issue> to analyze session logs, or set CLAUDE_DEBUG=1 for verbose output.\n\nLogs are written to ~/.claude/debug/ — share relevant excerpts when reporting issues.",
           officialUrl: "https://code.claude.com/docs/en/commands"
         },
         {
@@ -368,6 +386,9 @@ export const baseCatalog: Catalog = {
           desc: "Run a prompt repeatedly on an interval while the session stays open.",
           ex: "/loop 5m check if deploy finished",
           trigger: "When polling or recurring maintenance is needed",
+          configPath: "Slash command (no file config required)",
+          configExample: "/loop 10m run tests and report failures",
+          detail: "Syntax: /loop <interval> <prompt>\n\nIntervals: 30s, 5m, 1h, etc. The loop runs until you stop the session or cancel.\n\nUse for CI polling, log watching, or recurring health checks.",
           officialUrl: "https://code.claude.com/docs/en/scheduled-tasks"
         },
         {
@@ -377,6 +398,9 @@ export const baseCatalog: Catalog = {
           desc: "Launch and drive the project app to verify a change works end-to-end.",
           ex: "/run",
           trigger: "When validating behavior beyond unit tests",
+          configPath: "package.json scripts (npm run dev, etc.)",
+          configExample: '{\n  "scripts": {\n    "dev": "next dev",\n    "start": "next start"\n  }\n}',
+          detail: "/run detects the project type from package.json and starts the dev server, then exercises the app to verify your change.\n\nEnsure your start/dev script is defined so Claude can launch the app.",
           officialUrl: "https://code.claude.com/docs/en/commands"
         },
         {
@@ -386,6 +410,9 @@ export const baseCatalog: Catalog = {
           desc: "Build and run the app to confirm a change works as intended.",
           ex: "/verify",
           trigger: "When confirming functional behavior of a code change",
+          configPath: "Project test/build scripts in package.json",
+          configExample: '{\n  "scripts": {\n    "build": "next build",\n    "test": "vitest run"\n  }\n}',
+          detail: "/verify runs build + test commands appropriate to your stack.\n\nClaude uses existing npm/pnpm scripts — define build and test targets for best results.",
           officialUrl: "https://code.claude.com/docs/en/commands"
         },
         {
@@ -395,6 +422,9 @@ export const baseCatalog: Catalog = {
           desc: "Load Claude API reference material for the project's language and SDK.",
           ex: "/claude-api migrate",
           trigger: "When code imports anthropic SDK or needs API guidance",
+          configPath: ".claude/skills/claude-api/SKILL.md",
+          configExample: "# Claude API Reference\n\nLoad SDK docs for Python, TypeScript, or curl based on project imports.",
+          detail: "Auto-invoked when Claude detects anthropic SDK imports or API-related questions.\n\nSkill loads language-specific reference material into context.",
           officialUrl: "https://code.claude.com/docs/en/commands"
         },
         {
@@ -404,6 +434,9 @@ export const baseCatalog: Catalog = {
           desc: "Scan transcripts and add allowlist rules for common read-only tool calls.",
           ex: "/fewer-permission-prompts",
           trigger: "When permission prompts slow down routine workflows",
+          configPath: ".claude/settings.json → permissions.allow",
+          configExample: '{\n  "permissions": {\n    "allow": [\n      "Read",\n      "Grep",\n      "Glob"\n    ]\n  }\n}',
+          detail: "Run /fewer-permission-prompts to analyze your session and suggest allowlist entries.\n\nManually edit .claude/settings.json to persist rules across sessions.\n\nUse cautiously — only allow tools you trust for your workflow.",
           officialUrl: "https://code.claude.com/docs/en/commands"
         }
       ],
@@ -417,6 +450,9 @@ export const baseCatalog: Catalog = {
           model: "Sonnet",
           invoke: "Automatic",
           when: "When broad context gathering is needed",
+          configPath: ".claude/agents/explore.md (optional custom agent)",
+          configExample: "---\nname: Explore\ntools: Read, Grep, Glob\ndescription: Fast read-only codebase search\n---\n\nSearch and summarize files without making edits.",
+          detail: "Built-in subagent — no config required.\n\nTo customize, create .claude/agents/explore.md with YAML frontmatter defining name, tools, model, and system prompt.\n\nClaude delegates exploration tasks automatically when broad context is needed.",
           officialUrl: "https://docs.anthropic.com/en/docs/claude-code"
         },
         {
@@ -428,6 +464,9 @@ export const baseCatalog: Catalog = {
           model: "Inherits session model",
           invoke: "Automatic in plan mode",
           when: "When planning requires codebase exploration",
+          configPath: "Plan mode (Shift+Tab) — no file required",
+          configExample: "Enter plan mode → Claude spawns Plan subagent automatically for research.",
+          detail: "Activated when you enter plan mode (Shift+Tab in Claude Code).\n\nThe Plan subagent researches the codebase read-only while the main session stays in planning.\n\nCustom plan agents can be defined in .claude/agents/plan.md.",
           officialUrl: "https://code.claude.com/docs/en/sub-agents"
         },
         {
@@ -439,6 +478,9 @@ export const baseCatalog: Catalog = {
           model: "Inherits session model",
           invoke: "Automatic",
           when: "When a task needs both research and code changes",
+          configPath: ".claude/agents/general-purpose.md",
+          configExample: "---\nname: general-purpose\ntools: Read, Edit, Bash, Grep\ndescription: Full-access agent for complex tasks\n---\n\nHandle multi-step tasks requiring both research and edits.",
+          detail: "Default workhorse subagent with full tool access.\n\nClaude spawns it automatically for tasks needing exploration plus code changes.\n\nOverride behavior by creating .claude/agents/general-purpose.md in your project.",
           officialUrl: "https://code.claude.com/docs/en/sub-agents"
         }
       ],
@@ -450,6 +492,9 @@ export const baseCatalog: Catalog = {
           desc: "Resets scroll and updates active route state.",
           ex: "window.scrollTo(0,0)",
           trigger: "Runs when route changes",
+          configPath: "App router (this reference site only)",
+          configExample: "useEffect(() => window.scrollTo(0, 0), [route]);",
+          detail: "This entry documents a UI hook in the AI Dev Reference app itself — not a Claude Code hook.\n\nFor Claude Code hooks, see PreToolUse, PostToolUse, etc. below.",
           officialUrl: "https://docs.anthropic.com/en/docs/claude-code"
         },
         {
@@ -459,6 +504,9 @@ export const baseCatalog: Catalog = {
           desc: "Run scripts before tool calls to block, allow, or modify execution.",
           ex: "block rm -rf in .claude/settings.json hooks",
           trigger: "Fires before any tool call executes",
+          configPath: ".claude/settings.json → hooks.PreToolUse",
+          configExample: '{\n  "hooks": {\n    "PreToolUse": [\n      {\n        "matcher": "Bash",\n        "hooks": [\n          {\n            "type": "command",\n            "command": "bash .claude/hooks/block-dangerous.sh"\n          }\n        ]\n      }\n    ]\n  }\n}',
+          detail: "PreToolUse hooks run before Claude executes a tool.\n\nUse matchers to target specific tools (Bash, Edit, Write, etc.).\n\nHook scripts receive JSON on stdin with tool name and input — exit 2 to block, 0 to allow.\n\nConfigure in .claude/settings.json (project) or ~/.claude/settings.json (global).",
           officialUrl: "https://code.claude.com/docs/en/hooks"
         },
         {
@@ -468,6 +516,9 @@ export const baseCatalog: Catalog = {
           desc: "Run scripts after successful tool calls, e.g. auto-format edited files.",
           ex: "prettier --write $FILE after Edit|Write",
           trigger: "Fires after a tool call succeeds",
+          configPath: ".claude/settings.json → hooks.PostToolUse",
+          configExample: '{\n  "hooks": {\n    "PostToolUse": [\n      {\n        "matcher": "Edit|Write",\n        "hooks": [\n          {\n            "type": "command",\n            "command": "prettier --write $FILE"\n          }\n        ]\n      }\n    ]\n  }\n}',
+          detail: "PostToolUse hooks run after a tool succeeds.\n\nCommon use: auto-format files after Edit/Write, run linters, or log activity.\n\n$FILE is replaced with the edited file path when available.",
           officialUrl: "https://code.claude.com/docs/en/hooks-guide"
         },
         {
@@ -477,6 +528,9 @@ export const baseCatalog: Catalog = {
           desc: "Inject context when a session begins, resumes, clears, or compacts.",
           ex: "reload env vars after /compact",
           trigger: "Fires on startup, resume, clear, or compact",
+          configPath: ".claude/settings.json → hooks.SessionStart",
+          configExample: '{\n  "hooks": {\n    "SessionStart": [\n      {\n        "hooks": [\n          {\n            "type": "command",\n            "command": "bash .claude/hooks/load-env.sh"\n          }\n        ]\n      }\n    ]\n  }\n}',
+          detail: "SessionStart fires when a session starts, resumes, after /clear, or after /compact.\n\nUse to inject environment variables, load project context, or print reminders.\n\nHook output can be added to Claude's context.",
           officialUrl: "https://code.claude.com/docs/en/hooks"
         },
         {
@@ -486,6 +540,9 @@ export const baseCatalog: Catalog = {
           desc: "Send OS notifications when Claude needs input or permission.",
           ex: "notify-send 'Claude needs your attention'",
           trigger: "Fires when Claude waits for user input",
+          configPath: ".claude/settings.json → hooks.Notification",
+          configExample: '{\n  "hooks": {\n    "Notification": [\n      {\n        "hooks": [\n          {\n            "type": "command",\n            "command": "notify-send \\"Claude needs input\\""\n          }\n        ]\n      }\n    ]\n  }\n}',
+          detail: "Notification hooks fire when Claude is waiting for your input or a permission decision.\n\nUseful when running long tasks in the background — get a desktop alert when attention is needed.\n\nOn macOS use osascript; on Linux use notify-send.",
           officialUrl: "https://code.claude.com/docs/en/hooks-guide"
         },
         {
@@ -495,6 +552,9 @@ export const baseCatalog: Catalog = {
           desc: "Run scripts when Claude finishes a response turn.",
           ex: "log session activity on turn complete",
           trigger: "Fires when Claude finishes responding",
+          configPath: ".claude/settings.json → hooks.Stop",
+          configExample: '{\n  "hooks": {\n    "Stop": [\n      {\n        "hooks": [\n          {\n            "type": "command",\n            "command": "bash .claude/hooks/log-turn.sh"\n          }\n        ]\n      }\n    ]\n  }\n}',
+          detail: "Stop hooks run when Claude completes a response turn.\n\nUse for logging, metrics, or triggering follow-up automation.\n\nReceives session metadata on stdin.",
           officialUrl: "https://code.claude.com/docs/en/hooks"
         }
       ]
@@ -624,6 +684,9 @@ export const baseCatalog: Catalog = {
           desc: "Walk through creating a new Agent Skill with SKILL.md structure.",
           ex: "/create-skill for API endpoint testing",
           trigger: "When user wants to add a reusable agent workflow",
+          configPath: ".cursor/skills/<skill-name>/SKILL.md",
+          configExample: "---\nname: api-testing\ndescription: Test API endpoints with fixtures\n---\n\n## Steps\n1. Read route handlers\n2. Generate test cases",
+          detail: "Run /create-skill to scaffold a new skill, or manually create .cursor/skills/<name>/SKILL.md.\n\nSkills are reusable agent workflows invoked by name or matched by intent.",
           officialUrl: "https://cursor.com/docs/skills"
         },
         {
@@ -633,6 +696,9 @@ export const baseCatalog: Catalog = {
           auto: false,
           ex: "/create-rule enforce TypeScript strict mode",
           trigger: "When user wants persistent project conventions",
+          configPath: ".cursor/rules/*.mdc or AGENTS.md",
+          configExample: "---\ndescription: TypeScript strict mode\nglobs: **/*.{ts,tsx}\n---\n\nAlways enable strict null checks.",
+          detail: "Rules persist project conventions. Store in .cursor/rules/ as .mdc files or use AGENTS.md for repo-wide guidance.",
           officialUrl: "https://cursor.com/docs/context/rules"
         },
         {
@@ -642,6 +708,9 @@ export const baseCatalog: Catalog = {
           desc: "Create lifecycle hooks and update hooks.json for agent events.",
           ex: "/create-hook format files after edits",
           trigger: "When automating agent lifecycle behavior",
+          configPath: ".cursor/hooks.json",
+          configExample: '{\n  "version": 1,\n  "hooks": {\n    "afterFileEdit": [\n      { "command": "prettier --write $FILE" }\n    ]\n  }\n}',
+          detail: "Hooks fire on agent lifecycle events (sessionStart, preToolUse, afterFileEdit, etc.).\n\nDefine in .cursor/hooks.json at project or user level.",
           officialUrl: "https://cursor.com/docs/hooks"
         },
         {
@@ -651,6 +720,9 @@ export const baseCatalog: Catalog = {
           desc: "Create custom subagents with focused roles and delegation rules.",
           ex: "/create-subagent for security reviews",
           trigger: "When delegating specialized tasks to subagents",
+          configPath: ".cursor/agents/<agent-name>.md",
+          configExample: "---\nname: security-reviewer\ntools: Read, Grep\ndescription: Read-only security audit subagent\n---\n\nReview changes for OWASP risks.",
+          detail: "Subagents are specialized delegates with their own tools and prompts.\n\nCreate .cursor/agents/<name>.md with frontmatter for name, tools, and instructions.",
           officialUrl: "https://cursor.com/docs/agent/subagents"
         },
         {
@@ -711,6 +783,9 @@ export const baseCatalog: Catalog = {
           model: "Composer",
           invoke: "Automatic",
           when: "When broad context gathering is needed before changes",
+          configPath: ".cursor/agents/explore.md (optional)",
+          configExample: "---\nname: Explore\ntools: Read, Grep, Glob\ndescription: Read-only codebase search\n---",
+          detail: "Built-in subagent for fast read-only exploration.\n\nCustomize via .cursor/agents/explore.md with YAML frontmatter.",
           officialUrl: "https://cursor.com/docs/agent/subagents"
         },
         {
@@ -762,6 +837,9 @@ export const baseCatalog: Catalog = {
           desc: "Validate or block tool calls before the agent executes them.",
           ex: "deny writes outside src/ on preToolUse",
           trigger: "Fires before any agent tool call",
+          configPath: ".cursor/hooks.json → hooks.preToolUse",
+          configExample: '{\n  "hooks": {\n    "preToolUse": [\n      { "command": "bash .cursor/hooks/validate-write.sh" }\n    ]\n  }\n}',
+          detail: "preToolUse hooks run before each agent tool call.\n\nUse to block dangerous operations or enforce workspace policies.",
           officialUrl: "https://cursor.com/docs/hooks"
         },
         {
@@ -771,6 +849,9 @@ export const baseCatalog: Catalog = {
           desc: "Observe or react after a tool call completes successfully.",
           ex: "log tool usage on postToolUse",
           trigger: "Fires after successful tool execution",
+          configPath: ".cursor/hooks.json → hooks.postToolUse",
+          configExample: '{\n  "hooks": {\n    "postToolUse": [\n      { "command": "bash .cursor/hooks/log-tool.sh" }\n    ]\n  }\n}',
+          detail: "postToolUse hooks run after a successful tool call.\n\nUse for logging, metrics, or follow-up automation.",
           officialUrl: "https://cursor.com/docs/hooks"
         },
         {
@@ -780,6 +861,9 @@ export const baseCatalog: Catalog = {
           desc: "Run formatters or linters after the agent edits a file.",
           ex: ".cursor/hooks/format.sh on afterFileEdit",
           trigger: "Fires after agent file modifications",
+          configPath: ".cursor/hooks.json → hooks.afterFileEdit",
+          configExample: '{\n  "hooks": {\n    "afterFileEdit": [\n      { "command": "prettier --write $FILE" }\n    ]\n  }\n}',
+          detail: "afterFileEdit hooks run when the agent modifies a file.\n\nCommon use: auto-format with prettier or eslint --fix.",
           officialUrl: "https://cursor.com/docs/hooks"
         },
         {
@@ -959,6 +1043,9 @@ export const baseCatalog: Catalog = {
           desc: "Save a reusable prompt to .github/prompts as a .prompt.md file.",
           ex: "/savePrompt",
           trigger: "When capturing a workflow prompt for reuse",
+          configPath: ".github/prompts/<name>.prompt.md",
+          configExample: "---\nname: review-pr\ndescription: Review pull request changes\n---\n\nReview the diff for bugs and style issues.",
+          detail: "Reusable prompts live in .github/prompts/ as .prompt.md files.\n\nRun /savePrompt to capture the current conversation as a prompt template.",
           officialUrl: "https://learn.microsoft.com/en-us/visualstudio/ide/copilot-chat-context"
         },
         {
@@ -992,6 +1079,9 @@ export const baseCatalog: Catalog = {
           model: "Copilot Agent",
           invoke: "On demand",
           when: "When implementing features across multiple files",
+          configPath: ".github/copilot-instructions.md",
+          configExample: "# Copilot instructions\n\n- Use TypeScript strict mode\n- Run tests before completing tasks",
+          detail: "The Coding Agent works across your workspace with edit and terminal access.\n\nGuide behavior via .github/copilot-instructions.md or VS Code custom instructions.",
           officialUrl: "https://code.visualstudio.com/docs/copilot/copilot-coding-agent"
         },
         {
