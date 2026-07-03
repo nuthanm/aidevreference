@@ -684,10 +684,6 @@ export function ReferenceShell() {
           </div>
         </button>
 
-        <div className="cmd-card-actions" onClick={(event) => event.stopPropagation()}>
-          <CopyButton text={entry.ex} label="Copy example command" />
-        </div>
-
         {isExpanded ? (
           <div className="cmd-card-preview-wrap" id={`cmd-preview-${previewKey}`}>
             <CommandRunPreview preview={runPreview} tool={tool} />
