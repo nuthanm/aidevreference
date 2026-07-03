@@ -80,6 +80,14 @@ function countCommands(tool: ToolCatalog) {
   return tool.groups.reduce((sum, group) => sum + group.entries.length, 0);
 }
 
+function countToolEntries(tool: ToolCatalog) {
+  const commands = countCommands(tool);
+  const skills = Array.isArray(tool.skills) ? tool.skills.length : 0;
+  const agents = Array.isArray(tool.agents) ? tool.agents.length : 0;
+  const hooks = Array.isArray(tool.hooks) ? tool.hooks.length : 0;
+  return commands + skills + agents + hooks;
+}
+
 function toCatalogTools() {
   return JSON.parse(JSON.stringify(baseCatalog.tools)) as Catalog["tools"];
 }
@@ -882,7 +890,7 @@ export function ReferenceShell() {
                           </span>
                           <span className="hero-tool-name">Claude</span>
                           <span className="hero-tool-meta">
-                            {countCommands(data.claude)} commands
+                            {countToolEntries(data.claude)} entries
                           </span>
                         </article>
                         <article className="hero-tool-item cursor" aria-label="Cursor">
@@ -891,7 +899,7 @@ export function ReferenceShell() {
                           </span>
                           <span className="hero-tool-name">Cursor</span>
                           <span className="hero-tool-meta">
-                            {countCommands(data.cursor)} commands
+                            {countToolEntries(data.cursor)} entries
                           </span>
                         </article>
                         <article className="hero-tool-item copilot" aria-label="Copilot">
@@ -900,7 +908,7 @@ export function ReferenceShell() {
                           </span>
                           <span className="hero-tool-name">Copilot</span>
                           <span className="hero-tool-meta">
-                            {countCommands(data.copilot)} commands
+                            {countToolEntries(data.copilot)} entries
                           </span>
                         </article>
                       </div>
@@ -938,7 +946,9 @@ export function ReferenceShell() {
                           </div>
                           <div>
                             <div className={`tool-name ${card.id}`}>{card.name}</div>
-                            <div className="maker">by {card.maker}</div>
+                            <div className="maker">
+                              by {card.maker} · {countToolEntries(data[card.id])} entries
+                            </div>
                           </div>
                         </div>
                         <div className="tool-strip-body">
@@ -963,7 +973,8 @@ export function ReferenceShell() {
                   <section className="compare-wrap">
                     <table>
                       <tbody>
-                        <tr><th>Built-in commands count</th><td>Claude: {countCommands(data.claude)}</td><td>Cursor: {countCommands(data.cursor)}</td><td>Copilot: {countCommands(data.copilot)}</td></tr>
+                        <tr><th>Catalog entries</th><td>Claude: {countToolEntries(data.claude)}</td><td>Cursor: {countToolEntries(data.cursor)}</td><td>Copilot: {countToolEntries(data.copilot)}</td></tr>
+                        <tr><th>Slash commands</th><td>{countCommands(data.claude)}</td><td>{countCommands(data.cursor)}</td><td>{countCommands(data.copilot)}</td></tr>
                         <tr><th>Bundled skills/agents</th><td>Skills + subagents</td><td>Command packs + context tools</td><td>Modes + integrations</td></tr>
                         <tr><th>Parallel execution</th><td>Supported in tool pipelines</td><td>Supported in IDE workflows</td><td>Supported in terminal/task flows</td></tr>
                         <tr><th>Context management</th><td>Memory tiers + agent context</td><td>Workspace-aware context windows</td><td>Chat + repo context + policies</td></tr>
