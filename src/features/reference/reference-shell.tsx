@@ -1454,7 +1454,7 @@ export function ReferenceShell() {
           </div>
           <div className="footer-row footer-row-secondary">
             <div className="f-legal">
-              <span className="f-copyright">© 2026 Nuthan Murarysetty</span>
+              <span className="f-copyright">© 2026 AI Dev Reference</span>
               <span className="dot" aria-hidden="true">·</span>
               <Link href="/privacy-policy">Privacy Policy</Link>
               <span className="dot" aria-hidden="true">·</span>
