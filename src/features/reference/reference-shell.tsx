@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
   Bug,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Github,
@@ -16,9 +17,12 @@ import {
   Lightbulb,
   List,
   Menu,
+  Terminal,
   X,
 } from "lucide-react";
+import { CommandRunPreview } from "@/components/command-run-preview";
 import { CopyButton } from "@/components/copy-button";
+import { buildCommandRunPreview, commandEntryKey } from "@/lib/command-run-preview";
 import { ToolIcon } from "@/components/tool-icon";
 import { FeedbackForm, NotifyForm } from "@/features/forms/forms";
 import { useFooterTicker } from "@/hooks/use-footer-ticker";
@@ -204,7 +208,8 @@ export function ReferenceShell() {
     cursor: "all",
     copilot: "all",
   });
-  const [viewMode, setViewMode] = useState<ViewMode>("tiles");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [expandedCommand, setExpandedCommand] = useState<string | null>(null);
   const [subscriberStats, setSubscriberStats] = useState<SubscriberStats | null>(null);
   const [releaseDisplay, setReleaseDisplay] = useState<ReleaseDisplay>({
     entries: [],
@@ -506,48 +511,55 @@ export function ReferenceShell() {
 
   function renderViewToolbar(tool: "claude" | "cursor" | "copilot", showTypeFilter: boolean) {
     return (
-      <div className="ref-toolbar">
-        {showTypeFilter ? (
-          <label className="ref-toolbar-field">
-            <span className="ref-toolbar-label">Type</span>
-            <select
-              className="ref-type-select"
-              value={badgeFilter[tool]}
-              onChange={(event) => {
-                const value = event.target.value as BadgeFilter;
-                setBadgeFilter((prev) => ({ ...prev, [tool]: value }));
-              }}
+      <div className="ref-toolbar-wrap">
+        <div className="ref-toolbar">
+          {showTypeFilter ? (
+            <label className="ref-toolbar-field">
+              <span className="ref-toolbar-label">Type</span>
+              <select
+                className="ref-type-select"
+                value={badgeFilter[tool]}
+                onChange={(event) => {
+                  const value = event.target.value as BadgeFilter;
+                  setBadgeFilter((prev) => ({ ...prev, [tool]: value }));
+                }}
+              >
+                {BADGE_FILTERS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <span className="ref-toolbar-spacer" />
+          )}
+          <div className="view-mode-toggle" role="group" aria-label="Display mode">
+            <button
+              type="button"
+              className={`view-mode-btn ${viewMode === "tiles" ? "active" : ""}`}
+              onClick={() => setViewMode("tiles")}
+              aria-pressed={viewMode === "tiles"}
             >
-              {BADGE_FILTERS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : (
-          <span className="ref-toolbar-spacer" />
-        )}
-        <div className="view-mode-toggle" role="group" aria-label="Display mode">
-          <button
-            type="button"
-            className={`view-mode-btn ${viewMode === "tiles" ? "active" : ""}`}
-            onClick={() => setViewMode("tiles")}
-            aria-pressed={viewMode === "tiles"}
-          >
-            <LayoutGrid size={14} />
-            Tiles
-          </button>
-          <button
-            type="button"
-            className={`view-mode-btn ${viewMode === "list" ? "active" : ""}`}
-            onClick={() => setViewMode("list")}
-            aria-pressed={viewMode === "list"}
-          >
-            <List size={14} />
-            List
-          </button>
+              <LayoutGrid size={14} />
+              Tiles
+            </button>
+            <button
+              type="button"
+              className={`view-mode-btn ${viewMode === "list" ? "active" : ""}`}
+              onClick={() => setViewMode("list")}
+              aria-pressed={viewMode === "list"}
+            >
+              <List size={14} />
+              List
+            </button>
+          </div>
         </div>
+        {showTypeFilter ? (
+          <p className="ref-toolbar-hint">
+            Click any command to see a simulated terminal preview of what happens when you run it.
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -625,32 +637,74 @@ export function ReferenceShell() {
     );
   }
 
+  function toggleCommandPreview(tool: "claude" | "cursor" | "copilot", entry: CommandEntry) {
+    const key = `${tool}|${commandEntryKey(entry)}`;
+    setExpandedCommand((current) => (current === key ? null : key));
+  }
+
   function renderCommandCard(tool: "claude" | "cursor" | "copilot", entry: CommandEntry) {
     const badgeValue = entryBadge(entry);
     const badge = badgeValue ? <span className={`badge ${badgeValue}`}>{badgeLabel(badgeValue)}</span> : null;
     const usage = commandUsage(entry.cmd, entry.ex, entry.usage);
+    const previewKey = `${tool}|${commandEntryKey(entry)}`;
+    const isExpanded = expandedCommand === previewKey;
+    const runPreview = buildCommandRunPreview(entry, tool);
 
     return (
       <article
-        className={`cmd-card ${tool} ${viewMode === "list" ? "cmd-card-list" : ""}`}
+        className={[
+          "cmd-card",
+          tool,
+          viewMode === "list" ? "cmd-card-list" : "cmd-card-compact",
+          isExpanded ? "cmd-card-expanded" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         key={`${entry.cmd}-${entry.name}`}
       >
-        <div className="cmd-top">
-          <span className={`cmd ${tool}`}>{entry.cmd}</span>
-          <div className="cmd-top-actions">{badge}</div>
+        <button
+          type="button"
+          className="cmd-card-hit"
+          onClick={() => toggleCommandPreview(tool, entry)}
+          aria-expanded={isExpanded}
+          aria-controls={`cmd-preview-${previewKey}`}
+        >
+          <div className="cmd-top">
+            <span className={`cmd ${tool}`}>{entry.cmd}</span>
+            <div className="cmd-top-actions">{badge}</div>
+          </div>
+          <div className="cmd-name">{entry.name}</div>
+          <div className="cmd-desc">{entry.desc}</div>
+          <div className="cmd-card-meta">
+            <span className="cmd-card-preview-hint">
+              <Terminal size={12} aria-hidden />
+              {isExpanded ? "Hide run preview" : "Show run preview"}
+            </span>
+            <ChevronDown size={14} className={`cmd-card-chevron ${isExpanded ? "open" : ""}`} aria-hidden />
+          </div>
+        </button>
+
+        <div className="cmd-card-actions" onClick={(event) => event.stopPropagation()}>
+          <CopyButton text={entry.ex} label="Copy example command" />
         </div>
-        <div className="cmd-name">{entry.name}</div>
-        <div className="cmd-desc">{entry.desc}</div>
-        <div className="ex-label-row">
-          <span className="ex-label">Command</span>
-          <CopyButton text={usage} label="Copy command pattern" />
-        </div>
-        <pre className={`ex ${tool} cmd-usage`}>{usage}</pre>
-        <div className="ex-label-row">
-          <span className="ex-label">Example</span>
-          <CopyButton text={entry.ex} label="Copy example" />
-        </div>
-        <pre className={`ex ${tool}`}>{entry.ex}</pre>
+
+        {isExpanded ? (
+          <div className="cmd-card-preview-wrap" id={`cmd-preview-${previewKey}`}>
+            <CommandRunPreview preview={runPreview} tool={tool} />
+            <div className="cmd-card-copy-row">
+              <div className="ex-label-row">
+                <span className="ex-label">Example</span>
+                <CopyButton text={entry.ex} label="Copy example" />
+              </div>
+              <pre className={`ex ${tool}`}>{entry.ex}</pre>
+              <div className="ex-label-row">
+                <span className="ex-label">Pattern</span>
+                <CopyButton text={usage} label="Copy command pattern" />
+              </div>
+              <pre className={`ex ${tool} cmd-usage`}>{usage}</pre>
+            </div>
+          </div>
+        ) : null}
       </article>
     );
   }
