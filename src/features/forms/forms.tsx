@@ -349,8 +349,8 @@ export function FeedbackForm() {
             {
               name: "",
               email: "",
-              tool: values.tool,
-              type: values.type,
+              tool: "General",
+              type: "Feature request",
               message: "",
               acceptPolicies: false,
               website: "",
@@ -451,7 +451,7 @@ export function FeedbackForm() {
       <button
         className="btn-primary"
         type="submit"
-        disabled={form.formState.isSubmitting || submitCompleted || !canSubmitFeedback}
+        disabled={form.formState.isSubmitting || !canSubmitFeedback}
       >
         {form.formState.isSubmitting ? <Loader2 size={14} className="spin" /> : "Submit request"}
       </button>
@@ -572,7 +572,7 @@ export function NotifyForm() {
         <button
           className="btn-claude"
           type="submit"
-          disabled={form.formState.isSubmitting || submitCompleted || !canSubmitNotify}
+          disabled={form.formState.isSubmitting || !canSubmitNotify}
         >
           {form.formState.isSubmitting ? <Loader2 size={14} className="spin" /> : "Notify me"}
         </button>

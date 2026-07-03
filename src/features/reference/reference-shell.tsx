@@ -606,11 +606,11 @@ export function ReferenceShell() {
             ? "Claude can auto-invoke skills based on request intent. User-only skills are available when invoked explicitly. Configure custom skills in .claude/skills/<name>/SKILL.md."
             : "Agent skills extend Cursor with reusable workflows. Configure in .cursor/skills/ or via /create-skill."}
         </div>
-        <div className={`skills-list ${viewMode === "list" ? "skills-list-compact" : ""}`}>
+        <div className="skills-list skills-list-compact">
           {skills.map((s) => {
             const usage = commandUsage(s.cmd, s.ex, s.usage);
             return (
-            <article className={`skill-row ${viewMode === "list" ? "skill-row-list" : ""}`} key={`${s.cmd}-${s.name}`}>
+            <article className="skill-row skill-row-list" key={`${s.cmd}-${s.name}`}>
               <div className="skill-left">
                 <div className="skill-cmd-row">
                   <div className="skill-cmd">{s.cmd}</div>
@@ -723,9 +723,9 @@ export function ReferenceShell() {
             ? "Subagents run focused tasks with tuned tools, model choices, and invocation patterns. Define custom agents in .claude/agents/<name>.md."
             : "Subagents delegate specialized tasks. Configure in .cursor/agents/ or via /create-subagent."}
         </div>
-        <div className={`agent-grid ${viewMode === "list" ? "agent-grid-list" : ""}`}>
+        <div className="agent-grid agent-grid-list">
           {agents.map((a) => (
-            <article className={`agent-card ${viewMode === "list" ? "agent-card-list" : ""}`} style={{ borderLeftColor: a.color }} key={a.name}>
+            <article className="agent-card agent-card-list" style={{ borderLeftColor: a.color }} key={a.name}>
               <div className="agent-top">
                 <div className="agent-name">{a.name}</div>
                 <div className="agent-top-actions">
@@ -761,11 +761,11 @@ export function ReferenceShell() {
             ? "Lifecycle hooks automate Claude Code sessions. Configure in .claude/settings.json under the hooks key, or globally in ~/.claude/settings.json."
             : "Lifecycle hooks automate agent behavior. Configure in .cursor/hooks.json or via /create-hook."}
         </div>
-        <div className={`skills-list ${viewMode === "list" ? "skills-list-compact" : ""}`}>
+        <div className="skills-list skills-list-compact">
           {hooks.map((h) => {
             const usage = commandUsage(h.cmd, h.ex, h.usage);
             return (
-            <article className={`skill-row ${viewMode === "list" ? "skill-row-list" : ""}`} key={`${h.cmd}-${h.name}`}>
+            <article className="skill-row skill-row-list" key={`${h.cmd}-${h.name}`}>
               <div className="skill-left">
                 <div className="skill-cmd-row">
                   <div className="skill-cmd">{h.cmd}</div>
@@ -808,7 +808,7 @@ export function ReferenceShell() {
     const legendContext: LegendContext =
       groupValue === "skills" ? "skills" : groupValue === "agents" ? "agents" : groupValue === "hooks-meta" ? "hooks" : "commands";
 
-    const pills = [
+    const commandPills = [
       <button
         key="all"
         className={`pill ${tool} ${groupValue === "all" ? "active" : ""}`}
@@ -827,11 +827,13 @@ export function ReferenceShell() {
       )),
     ];
 
+    const metaPills: React.ReactNode[] = [];
+
     if (conf.skills?.length) {
-      pills.push(
+      metaPills.push(
         <button
           key="skills"
-          className={`pill ${tool} ${groupValue === "skills" ? "active" : ""}`}
+          className={`pill pill-meta ${tool} ${groupValue === "skills" ? "active" : ""}`}
           onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "skills" }))}
         >
           Skills
@@ -840,10 +842,10 @@ export function ReferenceShell() {
     }
 
     if (conf.agents?.length) {
-      pills.push(
+      metaPills.push(
         <button
           key="agents"
-          className={`pill ${tool} ${groupValue === "agents" ? "active" : ""}`}
+          className={`pill pill-meta ${tool} ${groupValue === "agents" ? "active" : ""}`}
           onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "agents" }))}
         >
           Agents
@@ -852,10 +854,10 @@ export function ReferenceShell() {
     }
 
     if (Array.isArray(conf.hooks) && conf.hooks.length) {
-      pills.push(
+      metaPills.push(
         <button
           key="hooks-meta"
-          className={`pill ${tool} ${groupValue === "hooks-meta" ? "active" : ""}`}
+          className={`pill pill-meta ${tool} ${groupValue === "hooks-meta" ? "active" : ""}`}
           onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "hooks-meta" }))}
         >
           Hooks
@@ -931,8 +933,13 @@ export function ReferenceShell() {
         </section>
         <div className="tool-content-layout">
           <div className="tool-content-main">
-            <nav className="pill-nav">{pills}</nav>
-            {showingCommandGroups ? renderViewToolbar(tool, true) : renderViewToolbar(tool, false)}
+            <nav className="pill-nav">{commandPills}</nav>
+            {metaPills.length ? (
+              <nav className="pill-nav pill-nav-meta" aria-label="Skills, agents, and hooks">
+                {metaPills}
+              </nav>
+            ) : null}
+            {showingCommandGroups ? renderViewToolbar(tool, true) : null}
             {sections}
           </div>
           {renderLegend(legendContext)}
