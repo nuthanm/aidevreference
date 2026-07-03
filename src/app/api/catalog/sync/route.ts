@@ -13,6 +13,23 @@ function isAuthorized(req: NextRequest) {
   return req.headers.get("x-admin-key") === adminKey;
 }
 
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    endpoint: "/api/catalog/sync",
+    method: "POST",
+    description: "Merge data/catalog.pending.json into the PostgreSQL catalog snapshot.",
+    auth: "Required header: x-admin-key (ADMIN_BROADCAST_KEY)",
+    note: "Opening this URL in a browser uses GET and will not sync. Use POST instead.",
+    readApi: "GET /api/catalog — public catalog JSON (no auth)",
+    example: {
+      curl: 'curl -X POST "https://your-domain.vercel.app/api/catalog/sync" -H "x-admin-key: YOUR_ADMIN_BROADCAST_KEY"',
+      powershell:
+        'Invoke-RestMethod -Method Post -Uri "https://your-domain.vercel.app/api/catalog/sync" -Headers @{ "x-admin-key" = "YOUR_ADMIN_BROADCAST_KEY" }',
+    },
+  });
+}
+
 export async function POST(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });

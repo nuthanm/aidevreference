@@ -43,11 +43,11 @@ jobs:
           ADMIN_BROADCAST_KEY: ${{ secrets.ADMIN_BROADCAST_KEY }}
         run: |
           if [ -z "$SYNC_ENDPOINT_URL" ]; then
-            echo "SYNC_ENDPOINT_URL not set — skipping API sync"
+            echo "::warning::SYNC_ENDPOINT_URL not set — API sync was skipped. Add it in GitHub Secrets."
             exit 0
           fi
           if [ -z "$ADMIN_BROADCAST_KEY" ]; then
-            echo "ADMIN_BROADCAST_KEY not set — skipping API sync"
+            echo "::warning::ADMIN_BROADCAST_KEY not set — API sync was skipped. Add it in GitHub Secrets."
             exit 0
           fi
 
@@ -77,7 +77,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "DATABASE_URL not set — skipping direct DB seed"
+            echo "::warning::DATABASE_URL not set — DB seed was skipped. Add it in GitHub Secrets."
             exit 0
           fi
 
