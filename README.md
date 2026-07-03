@@ -218,8 +218,16 @@ flowchart TD
 
 **Data priority:**
 
-1. PostgreSQL snapshot (`catalog_snapshots`, row `id=active`)
-2. In-code fallback (`baseCatalog` in `src/lib/catalog.ts`)
+1. PostgreSQL snapshot (`catalog_snapshots`, row `id=active`) — **live site reads this**
+2. In-code fallback (`baseCatalog` in `src/lib/catalog.ts`) — only if DB is unavailable
+
+`catalog.pending.json` is **not** read by the site. It is a staging draft for new entries before sync.
+
+After seeding, reset pending so the repo stays clean:
+
+```bash
+npm run catalog:reset-pending   # or included automatically in catalog:seed-db
+```
 
 **Dedup keys** (duplicates are silently skipped on sync):
 
@@ -275,7 +283,8 @@ The catalog loads from `baseCatalog` even without a database configured.
 | `npm run build` | Production build |
 | `npm run catalog:validate` | Validate pending JSON, check duplicates |
 | `npm run catalog:merge` | Merge pending into baseCatalog |
-| `npm run catalog:seed-db` | Write baseCatalog to PostgreSQL |
+| `npm run catalog:seed-db` | Write baseCatalog to PostgreSQL + reset pending |
+| `npm run catalog:reset-pending` | Clear `catalog.pending.json` staging file |
 
 ---
 

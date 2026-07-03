@@ -9,9 +9,50 @@ This document records exactly how the catalog was populated, validated, merged, 
 | # | Task | Outcome |
 |---|------|---------|
 | 1 | Gather data from official docs | 102 entries across Claude, Cursor, Copilot |
-| 2 | Create `data/catalog.pending.json` | Staging queue with all new entries |
+| 2 | Create `data/catalog.pending.json` | Staging queue for new entries |
 | 3 | Validate, merge, check duplicates | 0 warnings, 0 duplicates |
 | 4 | Verify API + UI + build | Site shows full catalog locally |
+
+---
+
+## Three storage layers (read this first)
+
+```mermaid
+flowchart LR
+  PENDING["catalog.pending.json\n(staging draft)"] -->|sync| DB[("PostgreSQL")]
+  BASE["baseCatalog in catalog.ts\n(code fallback)"] -->|seed-db| DB
+  DB -->|GET /api/catalog| API["JSON response"]
+  BASE -->|if DB down| API
+```
+
+| Layer | Location | Read by live site? | Purpose |
+|-------|----------|-------------------|---------|
+| **Pending** | `data/catalog.pending.json` | **No** | Draft queue for *new* entries only |
+| **Base catalog** | `src/lib/catalog.ts` | Only if DB unavailable | Backup + seed source |
+| **Database** | PostgreSQL `catalog_snapshots` | **Yes** (primary) | Live production catalog |
+
+`/api/catalog` always returns JSON. Check `"sourceFeeds"`:
+
+- `["database-snapshot"]` → data from PostgreSQL
+- `["json-seed-cache"]` → fallback from code (DB not connected)
+
+### Reset pending after seed
+
+Once data is in `baseCatalog` and the database, clear the staging file:
+
+```bash
+npm run catalog:reset-pending
+```
+
+Or seed and reset in one step (default):
+
+```bash
+npm run catalog:seed-db
+```
+
+`catalog:seed-db` automatically resets `catalog.pending.json` unless you pass `--keep-pending`.
+
+Commit the emptied `catalog.pending.json` so the repo matches production state.
 
 ---
 
@@ -317,5 +358,5 @@ curl -X POST "$SITE_URL/api/catalog/sync" -H "x-admin-key: $ADMIN_BROADCAST_KEY"
 | `src/lib/catalog.ts` | `baseCatalog` — in-code fallback + seed source |
 | `scripts/merge-catalog.ts` | Validate, dedupe, merge |
 | `scripts/seed-catalog-db.ts` | Write baseCatalog to PostgreSQL |
-| `package.json` | `catalog:validate`, `catalog:merge`, `catalog:seed-db` scripts |
+| `package.json` | `catalog:validate`, `catalog:merge`, `catalog:seed-db`, `catalog:reset-pending` scripts |
 | `docs/OPERATIONS.md` | Maintainer handbook (API, broadcast, deploy) |
