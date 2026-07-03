@@ -70,6 +70,52 @@ jobs:
 
           echo "Catalog sync completed (HTTP $http_code)."
 
+      - name: Trigger release auto-broadcast
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'auto' || inputs.mode == 'sync'))
+        shell: bash
+        env:
+          AUTO_BROADCAST_ENDPOINT_URL: ${{ secrets.AUTO_BROADCAST_ENDPOINT_URL }}
+          CRON_BROADCAST_KEY: ${{ secrets.CRON_BROADCAST_KEY }}
+          ADMIN_BROADCAST_KEY: ${{ secrets.ADMIN_BROADCAST_KEY }}
+        run: |
+          if [ -z "$AUTO_BROADCAST_ENDPOINT_URL" ]; then
+            echo "AUTO_BROADCAST_ENDPOINT_URL not set — skipping auto-broadcast"
+            exit 0
+          fi
+
+          if [ -z "$CRON_BROADCAST_KEY" ] && [ -z "$ADMIN_BROADCAST_KEY" ]; then
+            echo "CRON_BROADCAST_KEY / ADMIN_BROADCAST_KEY not set — skipping auto-broadcast"
+            exit 0
+          fi
+
+          echo "Calling auto-broadcast endpoint after catalog deploy..."
+          response_file=$(mktemp)
+          curl_headers=(-H "content-type: application/json")
+
+          if [ -n "$CRON_BROADCAST_KEY" ]; then
+            curl_headers+=(-H "x-cron-key: $CRON_BROADCAST_KEY")
+          fi
+
+          if [ -n "$ADMIN_BROADCAST_KEY" ]; then
+            curl_headers+=(-H "x-admin-key: $ADMIN_BROADCAST_KEY")
+          fi
+
+          http_code=$(curl --show-error --silent \
+            -o "$response_file" \
+            -w "%{http_code}" \
+            -X POST "$AUTO_BROADCAST_ENDPOINT_URL" \
+            "${curl_headers[@]}")
+
+          cat "$response_file"
+          echo ""
+
+          if [ "$http_code" -ge 400 ]; then
+            echo "Auto-broadcast after deploy failed with HTTP $http_code"
+            exit 1
+          fi
+
+          echo "Auto-broadcast after deploy completed (HTTP $http_code)."
+
       - name: Seed database from baseCatalog
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'auto' || inputs.mode == 'seed'))
         shell: bash

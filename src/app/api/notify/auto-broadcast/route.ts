@@ -41,7 +41,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const state = await getBroadcastStateStored().catch(() => undefined);
-    const feed = await buildCatalogBroadcastPayload(state?.lastFeedKeys || []);
+    const feed = await buildCatalogBroadcastPayload(state?.lastFeedKeys || [], {
+      since: state?.lastSentAt,
+      includeCommits: true,
+    });
 
     if (!state?.lastFeedKeys?.length) {
       await upsertBroadcastStateStored({

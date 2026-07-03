@@ -16,6 +16,7 @@ type ResolveTarget = {
   email: string;
   tool: FeedbackInput["tool"];
   type: string;
+  message?: string;
 };
 
 function parseTool(value: unknown): FeedbackInput["tool"] {
@@ -34,6 +35,7 @@ export async function sendRequestResolvedEmail(
     name: target.name,
     tool: target.tool,
     type: target.type,
+    message: target.message,
     siteUrl: baseUrl,
     resolutionNote,
   });
@@ -61,6 +63,7 @@ export async function resolveFeedbackRequest(
       email: record.email,
       tool: record.tool,
       type: record.type,
+      message: record.message,
     },
     baseUrl,
     resolutionNote,
@@ -80,11 +83,25 @@ export async function resolveFeedbackByToken(token: string, baseUrl: string, res
   }
 
   if (record.resolved) {
-    return { ok: true as const, alreadyResolved: true, email: record.email };
+    return {
+      ok: true as const,
+      alreadyResolved: true,
+      email: record.email,
+      tool: record.tool,
+      type: record.type,
+      message: record.message,
+    };
   }
 
   const email = await resolveFeedbackRequest(record, baseUrl, resolutionNote);
-  return { ok: true as const, email, resolved: true };
+  return {
+    ok: true as const,
+    email,
+    resolved: true,
+    tool: record.tool,
+    type: record.type,
+    message: record.message,
+  };
 }
 
 export async function resolveFeedbackByEmailBackfill(

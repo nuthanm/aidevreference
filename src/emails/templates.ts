@@ -185,9 +185,19 @@ export function requestResolvedTemplate(input: {
   name: string;
   tool: FeedbackInput["tool"];
   type: string;
+  message?: string;
   siteUrl: string;
   resolutionNote?: string;
 }): MailTemplate {
+  const messageBlock = input.message?.trim()
+    ? `
+      <div style="margin-top:12px;padding:10px 12px;border-radius:10px;background:#F8FAFF;border:1px solid ${shell.border};">
+        <div style="font-size:12px;color:${shell.body};font-weight:700;margin-bottom:6px;">Your original request</div>
+        <div style="font-size:14px;color:${shell.ink};white-space:pre-wrap;">${escapeHtml(input.message.trim())}</div>
+      </div>
+    `
+    : "";
+
   const noteBlock = input.resolutionNote?.trim()
     ? `
       <div style="margin-top:12px;padding:10px 12px;border-radius:10px;background:#F0FDF4;border:1px solid #BBF7D0;">
@@ -208,6 +218,7 @@ export function requestResolvedTemplate(input: {
         ${detailRow("Tool", escapeHtml(input.tool))}
         ${detailRow("Status", "Resolved")}
       </table>
+      ${messageBlock}
       ${noteBlock}
     `)}
     <p style="margin:14px 0 0;">
@@ -220,12 +231,13 @@ export function requestResolvedTemplate(input: {
     </p>
   `;
 
+  const messageText = input.message?.trim() ? `\n\nYour original request:\n${input.message.trim()}` : "";
   const noteText = input.resolutionNote?.trim() ? `\n\nUpdate:\n${input.resolutionNote.trim()}` : "";
 
   return {
     subject: `Request resolved · ${input.tool}`,
     html: wrapEmail("Your request is resolved", "Thank you for helping improve this reference.", content),
-    text: `Hi ${input.name},\n\nYour request has been resolved.${noteText}\n\nOpen the site: ${input.siteUrl}`,
+    text: `Hi ${input.name},\n\nYour request has been resolved.${messageText}${noteText}\n\nOpen the site: ${input.siteUrl}`,
   };
 }
 
@@ -281,14 +293,39 @@ export function notifyUserTemplate(unsubscribeUrl: string): MailTemplate {
 }
 
 export function releaseBroadcastTemplate(version: string, notes: string[], unsubscribeUrl: string): MailTemplate {
-  const items = notes
-    .map(
-      (n) =>
-        `<li style="margin:0 0 8px;color:${shell.ink};font-size:14px;line-height:1.5;">${escapeHtml(n)}</li>`,
-    )
-    .join("");
+  const commitItems = notes.filter((n) => n.startsWith("Commit "));
+  const catalogItems = notes.filter((n) => !n.startsWith("Commit "));
+
+  function renderList(items: string[]) {
+    return items
+      .map(
+        (n) =>
+          `<li style="margin:0 0 8px;color:${shell.ink};font-size:14px;line-height:1.5;">${escapeHtml(n)}</li>`,
+      )
+      .join("");
+  }
+
+  const commitSection = commitItems.length
+    ? `
+      <div style="font-size:12px;color:${shell.body};font-weight:700;margin:0 0 8px;">Recent pushes</div>
+      <ul style="margin:0 0 14px;padding-left:18px;">${renderList(commitItems)}</ul>
+    `
+    : "";
+
+  const catalogSection = catalogItems.length
+    ? `
+      <div style="font-size:12px;color:${shell.body};font-weight:700;margin:0 0 8px;">Catalog updates</div>
+      <ul style="margin:0;padding-left:18px;">${renderList(catalogItems)}</ul>
+    `
+    : "";
+
+  const fallbackSection =
+    !commitSection && !catalogSection
+      ? `<ul style="margin:0;padding-left:18px;"><li style="margin:0;color:${shell.ink};font-size:14px;">Catalog and references were refreshed.</li></ul>`
+      : "";
+
   const content = `
-    ${contentCard(`<ul style="margin:0;padding-left:18px;">${items}</ul>`)}
+    ${contentCard(`${commitSection}${catalogSection}${fallbackSection}`)}
     <p style="font-size:12px;color:${shell.body};margin:12px 0 0;">
       Want to stop release notifications?
       <a href="${escapeHtml(unsubscribeUrl)}" style="color:#7C4DFF;text-decoration:none;font-weight:700;">Unsubscribe</a>.
@@ -297,7 +334,7 @@ export function releaseBroadcastTemplate(version: string, notes: string[], unsub
 
   return {
     subject: `AI Dev Reference update ${version}`,
-    html: wrapEmail(`New reference update: ${escapeHtml(version)}`, "Highlights from the latest release.", content),
+    html: wrapEmail(`New reference update: ${escapeHtml(version)}`, "Recent pushes and catalog changes.", content),
     text: `Update ${version}\n- ${notes.join("\n- ")}\n\nUnsubscribe: ${unsubscribeUrl}`,
   };
 }

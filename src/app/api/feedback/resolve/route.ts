@@ -3,11 +3,16 @@ import {
   resolveFeedbackByEmailBackfill,
   resolveFeedbackByToken,
 } from "@/lib/feedback-resolve";
+import { escapeHtml } from "@/lib/sanitize";
 import { isMailerConfigured } from "@/lib/mailer";
 
 export const runtime = "nodejs";
 
-function htmlResponse(title: string, message: string, status = 200) {
+function htmlResponse(title: string, message: string, status = 200, details?: string) {
+  const detailsBlock = details
+    ? `<div style="margin-top:14px;padding:12px 14px;border-radius:10px;background:#F8FAFF;border:1px solid #E6E7F2;font-size:14px;color:#46466a;white-space:pre-wrap;">${details}</div>`
+    : "";
+
   return new NextResponse(
     `<!doctype html>
 <html lang="en">
@@ -27,6 +32,7 @@ function htmlResponse(title: string, message: string, status = 200) {
   <main class="card">
     <h1>${title}</h1>
     <p>${message}</p>
+    ${detailsBlock}
   </main>
 </body>
 </html>`,
@@ -77,16 +83,28 @@ export async function GET(req: NextRequest) {
       return htmlResponse("Invalid resolve link", "This resolve link is not valid anymore.", 400);
     }
 
+    const requestSummary = [
+      `Tool: ${result.tool}`,
+      `Type: ${result.type}`,
+      result.message ? `Message:\n${result.message}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
     if (result.alreadyResolved) {
       return htmlResponse(
         "Request already resolved",
         `A resolution email was already sent to ${result.email}.`,
+        200,
+        escapeHtml(requestSummary),
       );
     }
 
     return htmlResponse(
       "Requester notified",
       `A resolution email was sent to ${result.email}.`,
+      200,
+      escapeHtml(requestSummary),
     );
   } catch {
     return htmlResponse("Unable to resolve request", "Please try again in a few minutes.", 500);

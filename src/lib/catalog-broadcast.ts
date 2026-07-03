@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { type Catalog } from "@/lib/catalog";
 import { getMergedCatalog } from "@/lib/catalog-server";
+import { readRecentCommitLines } from "@/lib/github-commits";
 
 export type CatalogBroadcastItem = {
   key: string;
@@ -51,14 +52,24 @@ function flattenCatalog(catalog: Catalog) {
   return items;
 }
 
-export async function buildCatalogBroadcastPayload(previousKeys: string[] = []) {
+export async function buildCatalogBroadcastPayload(
+  previousKeys: string[] = [],
+  options?: { since?: string; includeCommits?: boolean },
+) {
   const catalog = await getMergedCatalog();
   const items = flattenCatalog(catalog);
   const currentKeys = items.map((item) => item.key);
   const previousKeySet = new Set(previousKeys);
 
   const addedItems = items.filter((item) => !previousKeySet.has(item.key));
-  const notes = addedItems.map((item) => item.line);
+  const catalogNotes = addedItems.map((item) => item.line);
+
+  const commitNotes =
+    options?.includeCommits === false
+      ? []
+      : await readRecentCommitLines(options?.since, 8);
+
+  const notes = [...commitNotes, ...catalogNotes];
 
   const signature = createHash("sha256")
     .update(currentKeys.join("\n"))
@@ -73,5 +84,7 @@ export async function buildCatalogBroadcastPayload(previousKeys: string[] = []) 
     totalKeys: currentKeys.length,
     currentKeys,
     notes,
+    catalogNotes,
+    commitNotes,
   };
 }

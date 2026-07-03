@@ -68,14 +68,32 @@ export async function POST(req: NextRequest) {
     if (existing?.confirmed) {
       return NextResponse.json({
         ok: true,
-        message: "If this email is not yet confirmed, check your inbox for a confirmation link.",
+        alreadySubscribed: true,
+        message: "This email is already subscribed to release updates. No further action is needed.",
       });
     }
 
-    const subscriber = existing
-      ? refreshConfirmToken(existing)
-      : createPendingSubscriber(parsed.data.email);
+    if (existing && !existing.confirmed) {
+      const subscriber = refreshConfirmToken(existing);
+      await upsertSubscriber(subscriber);
 
+      const confirmUrl = `${baseUrl}/api/notify/confirm?token=${encodeURIComponent(subscriber.confirmToken || "")}`;
+      const verificationMail = notifyVerificationTemplate(confirmUrl);
+      await sendMail({
+        to: parsed.data.email,
+        subject: verificationMail.subject,
+        text: verificationMail.text,
+        html: verificationMail.html,
+      });
+
+      return NextResponse.json({
+        ok: true,
+        pendingConfirmation: true,
+        message: "This email is pending confirmation. Check your inbox for a new confirmation link (valid for 48 hours).",
+      });
+    }
+
+    const subscriber = createPendingSubscriber(parsed.data.email);
     await upsertSubscriber(subscriber);
 
     const adminTo = process.env.MAIL_TO || process.env.SMTP_USER;
@@ -93,7 +111,10 @@ export async function POST(req: NextRequest) {
       html: verificationMail.html,
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      message: "Check your inbox and confirm your subscription to receive release updates.",
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[notify] subscription error:", message);

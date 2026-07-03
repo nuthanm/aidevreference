@@ -27,7 +27,10 @@ export async function POST(req: NextRequest) {
     const requestedVersion = typeof body?.version === "string" && body.version.trim() ? body.version.trim() : "";
     const requestedNotes = Array.isArray(body?.notes) ? body.notes.filter((v: unknown): v is string => typeof v === "string") : [];
     const state = await getBroadcastStateStored().catch(() => undefined);
-    const feed = await buildCatalogBroadcastPayload(state?.lastFeedKeys || []);
+    const feed = await buildCatalogBroadcastPayload(state?.lastFeedKeys || [], {
+      since: state?.lastSentAt,
+      includeCommits: true,
+    });
 
     const version = requestedVersion || feed.version;
     const notes = requestedNotes.length
