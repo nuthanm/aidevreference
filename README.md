@@ -72,42 +72,166 @@ flowchart TB
 
 ---
 
-## Catalog update workflow
+## Catalog workflows — when to do what
 
-Use this flow whenever you add or refresh catalog data:
+### Three storage layers
 
 ```mermaid
 flowchart LR
-  A["Edit catalog.pending.json"] --> B["Validate entries"]
-  B --> C["POST /api/catalog/sync"]
-  C --> D["Verify API + UI"]
-  D --> E["Deploy with NEXT_PUBLIC_SITE_URL"]
+  PENDING["catalog.pending.json\n(staging draft)"] -->|sync| DB[("PostgreSQL")]
+  BASE["baseCatalog in catalog.ts\n(code fallback)"] -->|seed-db| DB
+  DB -->|GET /api/catalog| API["JSON response"]
+  BASE -->|if DB down| API
+```
+
+| Layer | File | Live site reads it? | When you touch it |
+|-------|------|---------------------|-------------------|
+| **Pending** | `data/catalog.pending.json` | **No** | When adding **new** commands only |
+| **Base catalog** | `src/lib/catalog.ts` | Only if DB is down | After merge, or bulk initial setup |
+| **Database** | PostgreSQL `catalog_snapshots` | **Yes** (primary) | First deploy + every production update |
+
+`/api/catalog` always returns JSON. Check `"sourceFeeds"` in the response:
+
+| Value | Meaning |
+|-------|---------|
+| `["database-snapshot"]` | Data is coming from **PostgreSQL** |
+| `["json-seed-cache"]` | DB unavailable — using **code fallback** |
+
+`/api/catalog/sync` in a browser shows **405 or help text** — that endpoint requires **POST**, not GET. Use the scripts or curl below instead.
+
+---
+
+### Scripts — what they do and when to run them
+
+| Command | When to run | What it does | Clears pending? |
+|---------|-------------|--------------|-----------------|
+| `npm run catalog:validate` | **Before every PR** that changes catalog files | Checks JSON, required fields, duplicates | No |
+| `npm run catalog:merge` | When developing **without a database** | Merges pending → `baseCatalog` in code | No |
+| `npm run catalog:seed-db` | **First production deploy**, or full refresh from code | Writes `baseCatalog` → PostgreSQL | **Yes** (auto) |
+| `npm run catalog:reset-pending` | After seed, or when pending is stale but DB is live | Empties `catalog.pending.json` | **Yes** |
+| `POST /api/catalog/sync` | When adding **new entries** via pending (incremental) | Merges pending → PostgreSQL | Yes, if new rows inserted |
+| `npm run dev` | Local preview anytime | Starts site; reads DB or fallback | No |
+| `npm run build` | Before deploy | Production build check | No |
+
+---
+
+### Scenario A — First-time setup (you are here)
+
+**When:** New project, empty database, catalog already in `baseCatalog`.
+
+```mermaid
+flowchart LR
+  A["Run db/subscribers.sql"] --> B["Set DATABASE_URL in .env.local"]
+  B --> C["npm run catalog:seed-db"]
+  C --> D["Commit empty pending.json"]
+  D --> E["Deploy to Vercel with same DATABASE_URL"]
   E --> F["Share public URL"]
 ```
 
-### Automated workflow (GitHub Actions)
+```bash
+# 1. Bootstrap DB schema (once, in Neon SQL editor)
+#    Run db/subscribers.sql
 
-You can automate validation and deployment — no manual `seed-db` or `curl sync` needed after setup.
+# 2. Local seed
+npm install
+cp .env.example .env.local   # set DATABASE_URL
+npm run catalog:seed-db      # writes DB + clears pending
+
+# 3. Verify
+npm run dev
+# Open http://localhost:3000 — check sourceFeeds is database-snapshot
+
+# 4. Deploy
+# Set DATABASE_URL + NEXT_PUBLIC_SITE_URL on Vercel, then deploy
+```
+
+You do **not** need `POST /api/catalog/sync` for first-time setup if you used `catalog:seed-db`.
+
+---
+
+### Scenario B — Adding new commands later
+
+**When:** Vendors release new slash commands; you want to add a few entries.
 
 ```mermaid
 flowchart LR
-  PR["Open PR with catalog changes"] --> VAL["Catalog Validate workflow"]
+  A["Add entries to catalog.pending.json"] --> B["npm run catalog:validate"]
+  B --> C["Open PR"]
+  C --> D["Merge to main"]
+  D --> E["Catalog Deploy workflow OR POST sync"]
+  E --> F["Pending cleared, DB updated"]
+```
+
+```bash
+# 1. Add ONLY new entries to data/catalog.pending.json
+npm run catalog:validate
+
+# 2. Sync to production (pick one)
+#    Option A — GitHub Actions (after secrets are set): merge PR → auto deploy
+#    Option B — Manual API:
+curl -X POST "https://aidevreference.vercel.app/api/catalog/sync" \
+  -H "x-admin-key: YOUR_ADMIN_BROADCAST_KEY"
+
+# 3. Verify
+curl https://aidevreference.vercel.app/api/catalog
+```
+
+---
+
+### Scenario C — Local development only (no database)
+
+**When:** You want to preview the site without PostgreSQL.
+
+```bash
+npm run catalog:merge   # optional: merge pending into baseCatalog
+npm run dev             # site reads baseCatalog fallback
+```
+
+No seed or sync needed.
+
+---
+
+### Scenario D — Pending file is full but DB is already seeded
+
+**When:** You ran `catalog:seed-db` earlier and `catalog.pending.json` still has data.
+
+This is normal — seed does not use pending. Reset it:
+
+```bash
+npm run catalog:reset-pending
+git add data/catalog.pending.json
+git commit -m "Reset catalog pending after seed"
+```
+
+Or re-run seed (also clears pending):
+
+```bash
+npm run catalog:seed-db
+```
+
+---
+
+### Automated workflow (GitHub Actions)
+
+**When:** After one-time GitHub secrets setup — runs on every catalog PR and merge.
+
+```mermaid
+flowchart LR
+  PR["Open PR with catalog changes"] --> VAL["Catalog Validate"]
   VAL --> MERGE["Merge to main"]
-  MERGE --> DEPLOY["Catalog Deploy workflow"]
+  MERGE --> DEPLOY["Catalog Deploy"]
   DEPLOY --> SYNC["POST /api/catalog/sync"]
   DEPLOY --> SEED["npm run catalog:seed-db"]
   DEPLOY --> CHECK["Verify /api/catalog"]
 ```
 
-| Workflow | Trigger | What it does |
-|----------|---------|--------------|
-| **Catalog Validate** | Every PR that touches catalog files | JSON syntax check + duplicate detection |
+| Workflow | When it runs | What it does |
+|----------|--------------|--------------|
+| **Catalog Validate** | Every PR touching catalog files | JSON check + duplicate detection |
 | **Catalog Deploy** | Push to `main` or manual dispatch | Sync API + seed DB + verify live API |
 | **Auto Broadcast** | Every 6 hours | Email subscribers about new entries |
 
-#### One-time GitHub secrets setup
-
-In **GitHub → Settings → Secrets and variables → Actions**, add:
+#### One-time GitHub secrets (do this once before automation works)
 
 | Secret | Example value |
 |--------|---------------|
@@ -116,91 +240,9 @@ In **GitHub → Settings → Secrets and variables → Actions**, add:
 | `ADMIN_BROADCAST_KEY` | Same key as in Vercel env vars |
 | `SITE_URL` | `https://aidevreference.vercel.app` |
 
-After secrets are set, every merge to `main` that changes `catalog.pending.json` or `src/lib/catalog.ts` automatically updates production.
-
 **Manual trigger:** GitHub → Actions → **Catalog Deploy** → Run workflow → choose `auto`, `sync`, or `seed`.
 
-### Step-by-step
-
-#### 1. Edit `data/catalog.pending.json`
-
-Add new commands, skills, agents, or hooks under the correct tool (`claude`, `cursor`, `copilot`).
-
-```bash
-# Quick JSON syntax check
-node -e "JSON.parse(require('fs').readFileSync('data/catalog.pending.json','utf8')); console.log('JSON OK')"
-```
-
-See [docs/OPERATIONS.md](docs/OPERATIONS.md) for entry shapes and examples.
-
-#### 2. Validate entries
-
-```bash
-npm run catalog:validate
-```
-
-Checks required fields, reports duplicates, and shows how many entries would be inserted. Expect:
-
-- `Validation warnings: 0`
-- `Duplicates found: 0`
-
-#### 3. Merge locally (optional, for dev without DB)
-
-```bash
-npm run catalog:merge
-```
-
-Merges pending into `baseCatalog` in `src/lib/catalog.ts` so the site works locally without PostgreSQL.
-
-#### 4. Sync to database
-
-**Option A — API sync** (production workflow):
-
-```bash
-curl -X POST "http://localhost:3000/api/catalog/sync" \
-  -H "x-admin-key: $ADMIN_BROADCAST_KEY"
-```
-
-**Option B — Direct DB seed** (first deploy when data is already in baseCatalog):
-
-```bash
-npm run catalog:seed-db
-```
-
-#### 5. Verify API + UI
-
-```bash
-npm run dev
-
-# Full catalog
-curl http://localhost:3000/api/catalog
-
-# One tool
-curl "http://localhost:3000/api/catalog?tool=claude"
-```
-
-Open `/claude`, `/cursor`, `/copilot` and confirm cards appear.
-
-#### 6. Deploy and share
-
-Set in Vercel (or `.env.local`):
-
-| Variable | Example |
-|----------|---------|
-| `DATABASE_URL` | `postgresql://...` (run `db/subscribers.sql` first) |
-| `NEXT_PUBLIC_SITE_URL` | `https://your-domain.vercel.app` |
-| `ADMIN_BROADCAST_KEY` | `openssl rand -base64 48` |
-
-```bash
-npm run build   # verify before deploy
-```
-
-Share:
-
-- `https://your-domain.vercel.app` — main site
-- `https://your-domain.vercel.app/api/catalog` — public JSON API
-
-> **Full runbook with exact commands used:** [docs/CATALOG_SETUP_GUIDE.md](docs/CATALOG_SETUP_GUIDE.md)
+> **Full runbook:** [docs/CATALOG_SETUP_GUIDE.md](docs/CATALOG_SETUP_GUIDE.md) · **Operator handbook:** [docs/OPERATIONS.md](docs/OPERATIONS.md)
 
 ---
 
@@ -218,8 +260,16 @@ flowchart TD
 
 **Data priority:**
 
-1. PostgreSQL snapshot (`catalog_snapshots`, row `id=active`)
-2. In-code fallback (`baseCatalog` in `src/lib/catalog.ts`)
+1. PostgreSQL snapshot (`catalog_snapshots`, row `id=active`) — **live site reads this**
+2. In-code fallback (`baseCatalog` in `src/lib/catalog.ts`) — only if DB is unavailable
+
+`catalog.pending.json` is **not** read by the site. It is a staging draft for new entries before sync.
+
+After seeding, reset pending so the repo stays clean:
+
+```bash
+npm run catalog:reset-pending   # or included automatically in catalog:seed-db
+```
 
 **Dedup keys** (duplicates are silently skipped on sync):
 
@@ -269,13 +319,14 @@ The catalog loads from `baseCatalog` even without a database configured.
 
 ## npm scripts
 
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Start local dev server |
-| `npm run build` | Production build |
-| `npm run catalog:validate` | Validate pending JSON, check duplicates |
-| `npm run catalog:merge` | Merge pending into baseCatalog |
-| `npm run catalog:seed-db` | Write baseCatalog to PostgreSQL |
+| Command | When to run | Purpose |
+|---------|-------------|---------|
+| `npm run dev` | Local preview anytime | Start dev server |
+| `npm run build` | Before every deploy | Production build check |
+| `npm run catalog:validate` | Before every catalog PR | Validate pending JSON + check duplicates |
+| `npm run catalog:merge` | Local dev without DB | Merge pending into `baseCatalog` |
+| `npm run catalog:seed-db` | **First deploy** or full DB refresh | Write `baseCatalog` → PostgreSQL + reset pending |
+| `npm run catalog:reset-pending` | After seed, or when pending is stale | Clear `catalog.pending.json` |
 
 ---
 
@@ -291,6 +342,7 @@ data/
 scripts/
   merge-catalog.ts       # Validate + merge + dedupe
   seed-catalog-db.ts     # Seed PostgreSQL from baseCatalog
+  reset-pending.ts       # Clear staging file
 db/
   subscribers.sql        # PostgreSQL schema bootstrap
 docs/

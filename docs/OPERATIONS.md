@@ -72,6 +72,20 @@ Use PostgreSQL (Neon recommended).
 1. Run [db/subscribers.sql](../db/subscribers.sql) in your database.
 2. Set `DATABASE_URL` in your environment.
 
+### Scripts reference
+
+| Script | npm command | When to run |
+|--------|-------------|-------------|
+| `scripts/merge-catalog.ts` | `npm run catalog:validate` | Before every catalog PR |
+| `scripts/merge-catalog.ts --write` | `npm run catalog:merge` | Local dev without DB |
+| `scripts/seed-catalog-db.ts` | `npm run catalog:seed-db` | First deploy or full DB refresh |
+| `scripts/reset-pending.ts` | `npm run catalog:reset-pending` | After seed, or stale pending file |
+| API route | `POST /api/catalog/sync` | Incremental new entries in pending |
+
+See [CATALOG_SETUP_GUIDE.md](./CATALOG_SETUP_GUIDE.md) for the full decision guide and scenario walkthroughs.
+
+---
+
 ## Catalog Flows
 
 ### 1. Read Catalog Flow (UI/API)
@@ -82,10 +96,35 @@ Use PostgreSQL (Neon recommended).
 
 ### 2. Add or Update Entries Flow
 
+**When:** Adding new commands after initial deploy (production is already live).
+
 1. Add pending records into `data/catalog.pending.json`.
-2. Call `POST /api/catalog/sync` with `x-admin-key`.
-3. API merges entries by identity keys and prevents duplicates.
-4. API persists merged snapshot in DB and clears pending file.
+2. Run `npm run catalog:validate` locally or open a PR (Catalog Validate workflow runs).
+3. Call `POST /api/catalog/sync` with `x-admin-key` — or merge to `main` and let Catalog Deploy run.
+4. API merges entries by identity keys and prevents duplicates.
+5. API persists merged snapshot in DB and clears pending file (when inserts > 0).
+
+### 2b. First Deploy or Full Refresh Flow
+
+**When:** Empty database, or you need to push entire `baseCatalog` to PostgreSQL.
+
+1. Ensure `DATABASE_URL` is set in `.env.local` (local) or Vercel (production).
+2. Run `db/subscribers.sql` once if tables do not exist.
+3. Run `npm run catalog:seed-db` — writes full catalog to DB and resets pending.
+4. Verify `GET /api/catalog` returns `"sourceFeeds":["database-snapshot"]`.
+
+Do **not** use `POST /api/catalog/sync` for first-time setup if pending is empty or already merged into `baseCatalog`.
+
+### 2c. Reset Stale Pending File
+
+**When:** `catalog.pending.json` is full but data is already in DB and `baseCatalog`.
+
+```bash
+npm run catalog:reset-pending
+git add data/catalog.pending.json && git commit -m "Reset catalog pending"
+```
+
+The live site does **not** read pending — resetting is safe and keeps the repo clean.
 
 ### 3. Large Catalog Efficiency Flow
 
