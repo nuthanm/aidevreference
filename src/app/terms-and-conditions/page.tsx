@@ -36,6 +36,12 @@ export default function TermsAndConditionsPage() {
         The service is provided as-is without warranties. Operators are not liable for losses
         resulting from command misuse or stale references.
       </p>
+      <h2>Contact</h2>
+      <p>
+        For questions, privacy requests, or anything else, submit a{" "}
+        <Link href="/feedback">support request</Link>. Select <strong>General</strong> as the tool
+        and <strong>I want to contact</strong> as the type.
+      </p>
       <p>
         <Link href="/">Back to home</Link> · <Link href="/privacy-policy">Privacy Policy</Link>
       </p>

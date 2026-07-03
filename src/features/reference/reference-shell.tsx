@@ -998,7 +998,9 @@ export function ReferenceShell() {
                     <h1>Submit a request</h1>
                     <p className="feedback-sub">
                       Report missing commands, request additions, or suggest improvements for clarity
-                      and searchability across Claude, Cursor, and Copilot references.
+                      and searchability across Claude, Cursor, and Copilot references. For anything
+                      else — including privacy or data requests — select <strong>General</strong> and
+                      type <strong>I want to contact</strong>.
                     </p>
                   </section>
                   <section className="feedback-wrap">

@@ -67,7 +67,7 @@ flowchart TB
 | `/cursor` | Cursor commands, skills, agents, hooks |
 | `/copilot` | Copilot chat commands, workspace agents, skills, hooks |
 | `/whats-new` | Recently added catalog entries |
-| `/feedback` | Report missing commands or request additions |
+| `/feedback` | Submit support requests, report missing commands, or sign up for updates |
 | `/api/catalog` | Public JSON API (cached, no auth) |
 
 ---

@@ -4,6 +4,19 @@ import { hasSuspiciousInput, sanitizeMultiline, sanitizeText } from "@/lib/sanit
 export const FEEDBACK_MESSAGE_MIN_CHARS = 10;
 export const FEEDBACK_MESSAGE_MAX_CHARS = 500;
 
+export const FEEDBACK_TYPES = [
+  "Bug report",
+  "Missing command",
+  "Content update",
+  "Feature request",
+] as const;
+
+export const GENERAL_CONTACT_TYPE = "I want to contact" as const;
+
+export const FEEDBACK_TYPES_WITH_CONTACT = [...FEEDBACK_TYPES, GENERAL_CONTACT_TYPE] as const;
+
+export type FeedbackType = (typeof FEEDBACK_TYPES_WITH_CONTACT)[number];
+
 function rejectSuspiciousInput(value: string) {
   return !hasSuspiciousInput(value);
 }
@@ -30,7 +43,7 @@ export const feedbackSchema = z.object({
     .pipe(z.string().email("Enter a valid email").max(254))
     .refine(rejectSuspiciousInput, "Suspicious input is not allowed"),
   tool: z.enum(["Claude", "Cursor", "Copilot", "General"]),
-  type: z.enum(["Bug report", "Missing command", "Content update", "Feature request"]),
+  type: z.enum(FEEDBACK_TYPES_WITH_CONTACT),
   message: messageField(FEEDBACK_MESSAGE_MIN_CHARS, FEEDBACK_MESSAGE_MAX_CHARS),
   acceptPolicies: z.boolean().refine((value) => value, "Please accept Privacy Policy and Terms and Conditions"),
   website: z
