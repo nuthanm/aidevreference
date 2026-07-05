@@ -54,8 +54,13 @@ export function KeyboardShortcutsModal({
       if (event.key === "Escape") onClose();
     }
 
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -76,33 +81,38 @@ export function KeyboardShortcutsModal({
           aria-labelledby={titleId}
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="shortcuts-modal-head">
-            <h2 id={titleId}>Keyboard shortcuts</h2>
-            <div className="shortcuts-modal-actions">
-              <button type="button" className="shortcuts-print-btn" onClick={handlePrint}>
-                <Printer size={14} />
-                Print
-              </button>
-              <button type="button" className="shortcuts-modal-close" onClick={onClose} aria-label="Close">
-                <X size={16} />
-              </button>
+          <div className="shortcuts-modal-chrome">
+            <div className="shortcuts-modal-head">
+              <h2 id={titleId}>Keyboard shortcuts</h2>
+              <div className="shortcuts-modal-actions">
+                <button type="button" className="shortcuts-print-btn" onClick={handlePrint}>
+                  <Printer size={14} />
+                  <span className="shortcuts-print-label">Print</span>
+                </button>
+                <button type="button" className="shortcuts-modal-close" onClick={onClose} aria-label="Close">
+                  <X size={16} />
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="shortcuts-tool-tabs" role="tablist" aria-label="Tools">
-            {SHORTCUT_TOOL_ORDER.map((tool) => (
-              <button
-                key={tool}
-                type="button"
-                role="tab"
-                aria-selected={selectedTool === tool}
-                className={`shortcuts-tool-tab ${tool} ${selectedTool === tool ? "active" : ""}`}
-                onClick={() => onSelectTool(tool)}
-              >
-                <ToolIcon tool={tool} size={14} />
-                {KEYBOARD_SHORTCUTS[tool].label}
-              </button>
-            ))}
+            <div className="shortcuts-tool-tabs" role="tablist" aria-label="Tools">
+              {SHORTCUT_TOOL_ORDER.map((tool) => (
+                <button
+                  key={tool}
+                  type="button"
+                  role="tab"
+                  aria-selected={selectedTool === tool}
+                  className={`shortcuts-tool-tab ${tool} ${selectedTool === tool ? "active" : ""}`}
+                  onClick={() => onSelectTool(tool)}
+                >
+                  <ToolIcon tool={tool} size={14} />
+                  <span className="shortcuts-tab-label-full">{KEYBOARD_SHORTCUTS[tool].label}</span>
+                  <span className="shortcuts-tab-label-short">
+                    {tool === "claude" ? "Claude" : tool === "cursor" ? "Cursor" : "Copilot"}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="shortcuts-modal-body" ref={printRef}>
@@ -118,28 +128,30 @@ export function KeyboardShortcutsModal({
               {toolData.sections.map((section) => (
                 <section key={section.title} className="shortcuts-section">
                   <h3 className="shortcuts-section-title">{section.title}</h3>
-                  <table className="shortcuts-table">
-                    <thead>
-                      <tr>
-                        <th scope="col">Action</th>
-                        <th scope="col">Mac</th>
-                        <th scope="col">Win / Linux</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {section.shortcuts.map((row) => (
-                        <tr key={`${section.title}-${row.action}`}>
-                          <td>{row.action}</td>
-                          <td>
-                            <ShortcutKeys value={row.mac} />
-                          </td>
-                          <td>
-                            <ShortcutKeys value={row.winLinux} />
-                          </td>
+                  <div className="shortcuts-table-wrap">
+                    <table className="shortcuts-table">
+                      <thead>
+                        <tr>
+                          <th scope="col">Action</th>
+                          <th scope="col">Mac</th>
+                          <th scope="col">Win / Linux</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {section.shortcuts.map((row) => (
+                          <tr key={`${section.title}-${row.action}`}>
+                            <td className="shortcuts-action">{row.action}</td>
+                            <td className="shortcuts-mac" data-label="Mac">
+                              <ShortcutKeys value={row.mac} />
+                            </td>
+                            <td className="shortcuts-win" data-label="Win / Linux">
+                              <ShortcutKeys value={row.winLinux} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </section>
               ))}
             </div>
