@@ -6,7 +6,7 @@ AI Dev Reference takes security reports seriously. If you believe you have found
 
 **Preferred:** Open a [GitHub Security Advisory](https://github.com/nuthanm/aidevreference/security/advisories/new) (private disclosure).
 
-**Alternative:** Use the [feedback form](https://aidevreference.vercel.app/feedback) on the live site. Select **General** as the tool and **I want to contact** as the type. Include **Security report** in the subject or message so it is routed correctly.
+**Alternative:** Use the [feedback form](https://www.aidevreference.com/feedback) on the live site. Select **General** as the tool and **I want to contact** as the type. Include **Security report** in the subject or message so it is routed correctly.
 
 Please do **not** open a public GitHub issue for security vulnerabilities.
 
@@ -116,4 +116,4 @@ Before merging security fixes to `main`, run the checks in [Security verificatio
 - [Security verification guide](docs/SECURITY_VERIFICATION.md)
 - [Environment variables and keys](docs/flows/10-environment-and-keys.md)
 - [Operations handbook](docs/OPERATIONS.md)
-- [Terms and Conditions](https://aidevreference.vercel.app/terms-and-conditions)
+- [Terms and Conditions](https://www.aidevreference.com/terms-and-conditions)

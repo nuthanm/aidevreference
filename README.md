@@ -166,8 +166,10 @@ Production setup: [First deploy & seed](docs/flows/04-catalog-first-deploy.md).
 
 ## Contributing
 
-- **Missing a command?** Use the [feedback form](https://aidevreference.vercel.app/feedback) or open an issue.
+- **Branch naming:** use `feature/<descriptive-name>` for all PR branches (not `cursor/`).
+- **Missing a command?** Use the [feedback form](https://www.aidevreference.com/feedback) or open an issue.
 - **Add catalog data?** PR with `data/catalog.pending.json` — see [Catalog update flow](docs/flows/03-catalog-update.md).
+- **Security reports:** see [SECURITY.md](SECURITY.md) · operators: [Security verification guide](docs/SECURITY_VERIFICATION.md).
 - **Operators:** Start at [docs/README.md](docs/README.md).
 
 ### Official vendor docs

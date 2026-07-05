@@ -38,6 +38,9 @@ yarn-error.log*
 data/subscribers.json
 data/catalog.merged.json
 
+# local operator files (security audit checklists, personal notes — not committed)
+/local/
+
 # vercel
 .vercel
 

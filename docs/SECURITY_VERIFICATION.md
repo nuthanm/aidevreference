@@ -42,6 +42,18 @@ curl -s -X POST "https://www.aidevreference.com/api/catalog/sync"
 
 Always use **`www.aidevreference.com`**, not the apex `aidevreference.com`, when typing full URLs.
 
+## Local operator checklist (not in GitHub)
+
+The full **16-test live audit** with fill-in results lives on your machine only:
+
+```
+local/security-live-tests.md
+```
+
+This path is listed in `.gitignore` — it is **never pushed** to GitHub. After cloning the repo, create the folder and copy your checklist there (or restore from backup).
+
+The sections below cover **in-scope categories** and staging commands for maintainers. For the step-by-step live production audit, use `local/security-live-tests.md`.
+
 ## Recommended workflow
 
 For each item below, follow the same cycle:
@@ -309,17 +321,17 @@ Also try: `'; DROP TABLE subscribers;--`, `1 OR 1=1`, etc.
 
 ### 4.2 Stored / reflected XSS
 
-**Baseline (secure):** User content escaped on HTML pages (`escapeHtml` on resolve page); email templates sanitize input.
+**Baseline (secure):** Payload blocked at validation **or** escaped on HTML pages (`escapeHtml` on resolve page).
 
 **Replication:**
 
 1. Submit feedback with message: `<img src=x onerror=alert(1)>`.
-2. Open the admin resolve link (`GET /api/feedback/resolve?token=…`).
-3. View page source — script must not execute.
+2. **Production (Turnstile on):** form should reject with **"Suspicious input is not allowed"** before storage.
+3. If accepted on staging, open the admin resolve link — script must not execute.
 
 **Vulnerable if:** Browser runs attacker script on resolve or feedback-related pages.
 
-**Revalidation:** HTML entities escaped in `<h1>`, `<p>`, and summary blocks.
+**Revalidation:** Blocked at validation or HTML entities escaped; no alert popup.
 
 ---
 
@@ -377,9 +389,13 @@ curl -s -X POST "$BASE_URL/api/notify" \
   }'
 ```
 
+**Secure on production:** `"CAPTCHA verification failed"` when no token (CAPTCHA is checked before honeypot).
+
+**Also secure on dev (Turnstile skipped):** `"Spam detection triggered. Please try again."`
+
 **Vulnerable if:** Subscription is created or confirmation email sent.
 
-**Revalidation:** Response contains spam detection error; no new subscriber row.
+**Revalidation:** Request blocked; no new subscriber row.
 
 ---
 
