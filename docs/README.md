@@ -40,6 +40,7 @@ Start here for focused guides. Each document has **flow diagrams** and step-by-s
 |-------|----------------|
 | [Security policy](../SECURITY.md) | How to report issues, in-scope / out-of-scope categories |
 | [Security verification](SECURITY_VERIFICATION.md) | Staging replication steps and revalidation checklist |
+| [Live security audit (16 tests)](SECURITY_LIVE_TESTS.md) | Step-by-step production test script with expected outputs |
 
 ## Other
 

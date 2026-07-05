@@ -42,17 +42,11 @@ curl -s -X POST "https://www.aidevreference.com/api/catalog/sync"
 
 Always use **`www.aidevreference.com`**, not the apex `aidevreference.com`, when typing full URLs.
 
-## Local operator checklist (not in GitHub)
+## Local operator notes (optional, gitignored)
 
-The full **16-test live audit** with fill-in results lives on your machine only:
+Copy [SECURITY_LIVE_TESTS.md](SECURITY_LIVE_TESTS.md) to `local/my-audit-YYYY-MM-DD.md` when you want a private filled-in copy. The `local/` folder is gitignored and never pushed.
 
-```
-local/security-live-tests.md
-```
-
-This path is listed in `.gitignore` — it is **never pushed** to GitHub. After cloning the repo, create the folder and copy your checklist there (or restore from backup).
-
-The sections below cover **in-scope categories** and staging commands for maintainers. For the step-by-step live production audit, use `local/security-live-tests.md`.
+The sections below cover **in-scope categories** and staging commands for maintainers. For the step-by-step live production audit, use [SECURITY_LIVE_TESTS.md](SECURITY_LIVE_TESTS.md).
 
 ## Recommended workflow
 
