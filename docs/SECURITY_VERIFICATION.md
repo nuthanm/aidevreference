@@ -4,6 +4,44 @@ Use this guide to **verify in-scope issues on a staging environment** before app
 
 > **Do not run destructive or high-volume tests against production.** Use a local or preview deployment with test data you control.
 
+## Live site browser testing (important)
+
+Production canonical host: **`https://www.aidevreference.com`**
+
+| Mistake | What happens |
+|---------|----------------|
+| Open site on `www.aidevreference.com` but fetch `https://aidevreference.com/api/...` | Browser treats this as **cross-origin**; apex returns **308 redirect** to `www`; fetch fails with **CORS blocked** |
+| Using wrong domain in Console | `Failed to fetch` / `net::ERR_FAILED 308` — this is **not** an admin-auth failure |
+
+**Do not add CORS headers to admin APIs to “fix” this.** Admin routes should not be callable from arbitrary origins.
+
+### Correct browser Console tests
+
+1. Open **`https://www.aidevreference.com`** (note the `www`)
+2. Press **F12 → Console**
+3. Use a **relative URL** so the request stays same-origin:
+
+```javascript
+fetch("/api/catalog/sync", { method: "POST" })
+  .then(async (r) => ({ status: r.status, body: await r.json() }))
+  .then(console.log)
+```
+
+Expected secure output on production:
+
+```json
+{ "status": 401, "body": { "ok": false, "error": "Unauthorized" } }
+```
+
+### Alternative: curl (no CORS, works from terminal)
+
+```bash
+curl -s -X POST "https://www.aidevreference.com/api/catalog/sync"
+# {"ok":false,"error":"Unauthorized"}
+```
+
+Always use **`www.aidevreference.com`**, not the apex `aidevreference.com`, when typing full URLs.
+
 ## Recommended workflow
 
 For each item below, follow the same cycle:
