@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Github,
   Home,
+  Keyboard,
   LayoutGrid,
   Linkedin,
   Lightbulb,
@@ -26,6 +27,7 @@ import {
 import { CommandRunPreview } from "@/components/command-run-preview";
 import { CopyButton } from "@/components/copy-button";
 import { ScrollNav } from "@/components/scroll-nav";
+import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { buildCommandRunPreview, commandEntryKey } from "@/lib/command-run-preview";
 import { ToolIcon } from "@/components/tool-icon";
 import { FeedbackForm, NotifyForm } from "@/features/forms/forms";
@@ -38,6 +40,7 @@ import {
 } from "@/lib/catalog-updates-client";
 import { baseCatalog, type Catalog, type Group, type ToolCatalog, type Badge } from "@/lib/catalog";
 import type { AgentEntry, HookEntry, SkillEntry, CommandEntry } from "@/lib/catalog";
+import type { ShortcutTool } from "@/lib/keyboard-shortcuts";
 
 type RouteId =
   | "landing"
@@ -239,10 +242,17 @@ export function ReferenceShell() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [shortcutsTool, setShortcutsTool] = useState<ShortcutTool>("claude");
   const ticker = useFooterTicker();
   const route = PATH_TO_ROUTE[pathname] || "landing";
 
   const activeTool = route === "claude" || route === "cursor" || route === "copilot" ? route : null;
+
+  function openShortcuts() {
+    setShortcutsTool(activeTool ?? "claude");
+    setShortcutsOpen(true);
+  }
 
   const searchSuggestions = useMemo(() => {
     const toolsToSearch = activeTool
@@ -1032,6 +1042,10 @@ export function ReferenceShell() {
               ? "Searching..."
               : `${totalEntries} entries · 3 tools`}
           </div>
+          <button className="shortcuts-topbar-btn" type="button" onClick={openShortcuts} aria-haspopup="dialog">
+            <Keyboard size={14} />
+            <span className="shortcuts-topbar-label">Shortcuts</span>
+          </button>
         </div>
         <div className="top-actions">
           <label className="sr-only" htmlFor="global-search">
@@ -1529,7 +1543,14 @@ export function ReferenceShell() {
         </div>
       </footer>
 
-      <ScrollNav key={route} />
+      <ScrollNav key={route} onOpenShortcuts={openShortcuts} />
+
+      <KeyboardShortcutsModal
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+        selectedTool={shortcutsTool}
+        onSelectTool={setShortcutsTool}
+      />
     </div>
   );
 }
