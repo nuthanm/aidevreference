@@ -1,7 +1,7 @@
 import { releaseBroadcastTemplate } from "@/lib/email-templates";
 
 const PREVIEW_NOTES = [
-  "Site: Keyboard Shortcuts — press ? or use the Shortcuts button in the top bar",
+  "Site: Keyboard Shortcuts — press ? or use the Keyboard Shortcuts button in the top bar",
   "Site: Browse Claude, Cursor, and Copilot shortcuts in one modal",
   "Site: Print-friendly shortcut sheet included",
   "Added /trace command to Claude Code",

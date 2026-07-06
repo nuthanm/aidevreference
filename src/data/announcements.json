@@ -3,7 +3,7 @@
     "id": "keyboard-shortcuts-v1",
     "kind": "site",
     "title": "Keyboard Shortcuts",
-    "summary": "Press ? or use the Shortcuts button in the top bar to browse Claude, Cursor, and Copilot shortcuts in one modal.",
+    "summary": "Press ? or use the Keyboard Shortcuts button in the top bar to browse Claude, Cursor, and Copilot shortcuts in one modal.",
     "since": "2026-07-06",
     "ctaLabel": "Open shortcuts",
     "ctaTarget": "shortcuts-modal",

@@ -3,7 +3,7 @@ import path from "node:path";
 import { releaseBroadcastTemplate } from "../src/emails/templates";
 
 const notes = [
-  "Site: Keyboard Shortcuts — press ? or use the Shortcuts button in the top bar",
+  "Site: Keyboard Shortcuts — press ? or use the Keyboard Shortcuts button in the top bar",
   "Site: Browse Claude, Cursor, and Copilot shortcuts in one modal",
   "Site: Print-friendly shortcut sheet included",
   "Added /trace command to Claude Code",

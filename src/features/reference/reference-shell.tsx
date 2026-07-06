@@ -1375,7 +1375,7 @@ export function ReferenceShell() {
           onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "shortcuts" }))}
         >
           <Keyboard size={12} aria-hidden />
-          Shortcuts
+          Keyboard Shortcuts
         </button>,
       );
     }
@@ -1550,10 +1550,10 @@ export function ReferenceShell() {
             type="button"
             onClick={() => openShortcuts()}
             aria-haspopup="dialog"
-            aria-label={hasUnseenSiteAnnouncements ? "Shortcuts, new feature" : "Shortcuts"}
+            aria-label={hasUnseenSiteAnnouncements ? "Keyboard Shortcuts, new feature" : "Keyboard Shortcuts"}
           >
             <Keyboard size={14} />
-            <span className="shortcuts-topbar-label">Shortcuts</span>
+            <span className="shortcuts-topbar-label">Keyboard Shortcuts</span>
             {hasUnseenSiteAnnouncements ? <span className="shortcuts-new-dot" aria-hidden="true" /> : null}
           </button>
         </div>
@@ -1817,7 +1817,7 @@ export function ReferenceShell() {
                         name: "Copilot",
                         maker: "Microsoft/GitHub",
                         desc: "Workspace-aware chat commands, IDE keyboard shortcuts, and quality workflows across VS Code, JetBrains, and more.",
-                        tags: ["Chat", "Shortcuts", "Workspace", "Hooks"],
+                        tags: ["Chat", "Keyboard Shortcuts", "Workspace", "Hooks"],
                       },
                     ] as const).map((card) => (
                       <article className={`tool-card ${card.id}`} key={card.id} onClick={() => navigate(card.id)}>
