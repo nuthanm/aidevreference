@@ -31,6 +31,13 @@ export function CommandRunPreview({
         <div className="cmd-run-preview-title">{preview.title}</div>
         <p className="cmd-run-preview-desc">{preview.description}</p>
 
+        {preview.supportedSurfaces?.length ? (
+          <div className="cmd-run-preview-surfaces">
+            <span className="cmd-run-preview-section-label">Supported in:</span>{" "}
+            {preview.supportedSurfaces.join(" · ")}
+          </div>
+        ) : null}
+
         {preview.status?.length ? (
           <div className="cmd-run-preview-status">
             {preview.status.map((row) => (

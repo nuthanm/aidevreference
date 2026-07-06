@@ -1,8 +1,8 @@
 export type Badge = "skill" | "wf" | "chat" | "ide" | "other";
 
 import type { SurfaceId } from "@/lib/catalog-surfaces";
+import { COPILOT_SURFACES } from "@/lib/catalog-surfaces";
 import type { KeyboardShortcutIde } from "@/lib/copilot-keyboard-shortcuts";
-import { copilotKeyboardShortcuts } from "@/lib/copilot-keyboard-shortcuts";
 
 export type { SurfaceId } from "@/lib/catalog-surfaces";
 
@@ -1733,6 +1733,8 @@ export const baseCatalog: Catalog = {
       "subtitle": "Slash commands, IDE keyboard shortcuts, skills, and quality workflows for GitHub Copilot across VS Code, JetBrains, Visual Studio, Xcode, Eclipse, and Vim/Neovim.",
       "officialDocs": [
         "https://docs.github.com/en/copilot",
+        "https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet",
+        "https://code.visualstudio.com/docs/editing/copilot-smart-actions",
         "https://docs.github.com/en/copilot/reference/keyboard-shortcuts"
       ],
       "groups": [
@@ -1743,42 +1745,42 @@ export const baseCatalog: Catalog = {
             {
               "cmd": "/explain",
               "name": "Explain Code",
-              "desc": "Explain selected code behavior.",
+              "desc": "Explain selected code or a programming concept in Chat.",
               "ex": "/explain this module",
+              "usage": "/explain [code or concept]",
               "badge": "chat",
-              "officialUrl": "https://code.visualstudio.com/docs/copilot"
+              "surfaces": COPILOT_SURFACES.chatCore,
+              "officialUrl": "https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet"
             },
             {
               "cmd": "/fix",
               "name": "Fix Issues",
-              "desc": "Fixes current diagnostics with proposed edits.",
+              "desc": "Fix selected code or resolve compiler and linting errors.",
               "ex": "/fix this file",
+              "usage": "/fix [code or error]",
               "badge": "wf",
-              "officialUrl": "https://code.visualstudio.com/docs/copilot"
-            },
-            {
-              "cmd": "/tests",
-              "name": "Create Tests",
-              "desc": "Generate tests from context.",
-              "ex": "/tests for auth",
-              "badge": "wf",
-              "officialUrl": "https://code.visualstudio.com/docs/copilot"
+              "surfaces": COPILOT_SURFACES.chatCore,
+              "officialUrl": "https://code.visualstudio.com/docs/editing/copilot-smart-actions"
             },
             {
               "cmd": "/tests",
               "name": "Generate Tests",
-              "desc": "Create unit tests for selected functions using detected framework.",
+              "desc": "Generate unit tests for selected methods and functions using your project's detected test framework.",
               "ex": "/tests for validateEmail",
+              "usage": "/tests [for function or scope]",
               "badge": "wf",
-              "officialUrl": "https://docs.github.com/en/copilot/reference/chat-cheat-sheet"
+              "surfaces": COPILOT_SURFACES.chatCore,
+              "officialUrl": "https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet"
             },
             {
               "cmd": "/doc",
               "name": "Add Documentation",
               "desc": "Generate documentation comments for selected code symbols.",
               "ex": "/doc DeleteBasketAsync method",
+              "usage": "/doc [symbol or selection]",
               "badge": "ide",
-              "officialUrl": "https://docs.github.com/en/copilot/reference/chat-cheat-sheet"
+              "surfaces": COPILOT_SURFACES.vscodeVs,
+              "officialUrl": "https://code.visualstudio.com/docs/editing/copilot-smart-actions"
             },
             {
               "cmd": "/help",
@@ -1786,6 +1788,7 @@ export const baseCatalog: Catalog = {
               "desc": "Quick reference for using GitHub Copilot in the editor.",
               "ex": "/help",
               "badge": "chat",
+              "surfaces": COPILOT_SURFACES.chatCore,
               "officialUrl": "https://docs.github.com/en/copilot/reference/chat-cheat-sheet"
             },
             {
@@ -1794,6 +1797,7 @@ export const baseCatalog: Catalog = {
               "desc": "Start a new chat session with empty context.",
               "ex": "/clear",
               "badge": "chat",
+              "surfaces": COPILOT_SURFACES.vscode,
               "officialUrl": "https://docs.github.com/en/copilot/reference/chat-cheat-sheet"
             },
             {
@@ -1802,15 +1806,18 @@ export const baseCatalog: Catalog = {
               "desc": "Scaffold a new project from a technology stack description.",
               "ex": "/new Node.js Express TypeScript API",
               "badge": "wf",
-              "officialUrl": "https://docs.github.com/en/copilot/reference/chat-cheat-sheet"
+              "surfaces": COPILOT_SURFACES.vscode,
+              "officialUrl": "https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet"
             },
             {
               "cmd": "/optimize",
               "name": "Optimize Code",
               "desc": "Analyze and improve runtime performance of selected code.",
               "ex": "/optimize the sortUsers function",
+              "usage": "/optimize [selection]",
               "badge": "wf",
-              "officialUrl": "https://docs.github.com/en/copilot/reference/chat-cheat-sheet"
+              "surfaces": COPILOT_SURFACES.vscodeVs,
+              "officialUrl": "https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet"
             },
             {
               "cmd": "/simplify",
@@ -1818,7 +1825,8 @@ export const baseCatalog: Catalog = {
               "desc": "Refactor selected code to be clearer and more concise.",
               "ex": "/simplify this nested conditional",
               "badge": "wf",
-              "officialUrl": "https://docs.github.com/en/copilot/reference/chat-cheat-sheet"
+              "surfaces": COPILOT_SURFACES.vscode,
+              "officialUrl": "https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet"
             },
             {
               "cmd": "/fixTestFailure",
@@ -1826,6 +1834,7 @@ export const baseCatalog: Catalog = {
               "desc": "Diagnose and suggest fixes for a failing test.",
               "ex": "/fixTestFailure",
               "badge": "wf",
+              "surfaces": COPILOT_SURFACES.vscode,
               "officialUrl": "https://code.visualstudio.com/docs/agents/reference/copilot-vscode-features"
             },
             {
@@ -1834,7 +1843,84 @@ export const baseCatalog: Catalog = {
               "desc": "Recommend and configure a testing framework for the project.",
               "ex": "/setupTests",
               "badge": "wf",
-              "officialUrl": "https://code.visualstudio.com/docs/agents/reference/copilot-vscode-features"
+              "surfaces": COPILOT_SURFACES.vscode,
+              "officialUrl": "https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet"
+            }
+          ]
+        },
+        {
+          "id": "editor",
+          "label": "Editor Context Menu",
+          "entries": [
+            {
+              "cmd": "Explain",
+              "name": "Explain the Code",
+              "desc": "Opens Chat with /explain and your editor selection attached as context.",
+              "ex": "Right-click selection → Explain",
+              "usage": "Editor context menu → Explain",
+              "badge": "ide",
+              "surfaces": COPILOT_SURFACES.vscodeVs,
+              "officialUrl": "https://code.visualstudio.com/docs/editing/copilot-smart-actions"
+            },
+            {
+              "cmd": "Add to Chat",
+              "name": "Add to Chat",
+              "desc": "Attaches selected code (or the whole file) to Chat as #selection context without sending a slash command.",
+              "ex": "Right-click selection → Add to Chat",
+              "usage": "Editor context menu → Add to Chat",
+              "badge": "ide",
+              "surfaces": COPILOT_SURFACES.vscodeVs,
+              "officialUrl": "https://code.visualstudio.com/docs/copilot/chat/copilot-chat-context"
+            },
+            {
+              "cmd": "Review",
+              "name": "Review Selection",
+              "desc": "Quick code review pass with inline comments in the editor and Comments panel.",
+              "ex": "Right-click selection → Generate Code → Review",
+              "usage": "Editor context menu → Generate Code → Review",
+              "badge": "ide",
+              "surfaces": COPILOT_SURFACES.vscode,
+              "officialUrl": "https://code.visualstudio.com/docs/editing/copilot-smart-actions"
+            },
+            {
+              "cmd": "Generate Tests",
+              "name": "Generate Tests",
+              "desc": "Opens Chat with /tests and your selection; writes tests to an existing or new test file.",
+              "ex": "Right-click selection → Generate Code → Generate Tests",
+              "usage": "Editor context menu → Generate Code → Generate Tests",
+              "badge": "ide",
+              "surfaces": COPILOT_SURFACES.vscodeVs,
+              "officialUrl": "https://code.visualstudio.com/docs/editing/copilot-smart-actions"
+            },
+            {
+              "cmd": "Generate Docs",
+              "name": "Generate Comments",
+              "desc": "Opens Chat with /doc and your selection; adds documentation comments to the code.",
+              "ex": "Right-click selection → Generate Code → Generate Docs",
+              "usage": "Editor context menu → Generate Code → Generate Docs",
+              "badge": "ide",
+              "surfaces": COPILOT_SURFACES.vscodeVs,
+              "officialUrl": "https://code.visualstudio.com/docs/editing/copilot-smart-actions"
+            },
+            {
+              "cmd": "Optimize",
+              "name": "Optimize Selection",
+              "desc": "Opens Chat with /optimize and your selection for performance and maintainability improvements.",
+              "ex": "Right-click selection → Optimize Selection",
+              "usage": "Editor context menu → Optimize Selection",
+              "badge": "ide",
+              "surfaces": COPILOT_SURFACES.vscodeVs,
+              "officialUrl": "https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet"
+            },
+            {
+              "cmd": "Fix",
+              "name": "Fix Selection",
+              "desc": "Opens Chat with /fix and your selection to resolve errors in the selected code.",
+              "ex": "Right-click selection → Generate Code → Fix",
+              "usage": "Editor context menu → Generate Code → Fix",
+              "badge": "ide",
+              "surfaces": COPILOT_SURFACES.vscode,
+              "officialUrl": "https://code.visualstudio.com/docs/editing/copilot-smart-actions"
             }
           ]
         },
@@ -1848,6 +1934,7 @@ export const baseCatalog: Catalog = {
               "desc": "Ask questions scoped to the entire workspace with semantic search.",
               "ex": "@workspace where is authentication configured?",
               "badge": "chat",
+              "surfaces": COPILOT_SURFACES.vscode,
               "officialUrl": "https://code.visualstudio.com/docs/copilot/chat/copilot-chat-context"
             },
             {
@@ -1856,6 +1943,7 @@ export const baseCatalog: Catalog = {
               "desc": "Get help with VS Code features, settings, and commands.",
               "ex": "@vscode how do I enable format on save?",
               "badge": "chat",
+              "surfaces": COPILOT_SURFACES.vscode,
               "officialUrl": "https://code.visualstudio.com/docs/copilot/chat/copilot-chat-context"
             },
             {
@@ -1864,6 +1952,7 @@ export const baseCatalog: Catalog = {
               "desc": "Include terminal output and shell context in the chat prompt.",
               "ex": "@terminal explain this build error",
               "badge": "chat",
+              "surfaces": COPILOT_SURFACES.chatCore,
               "officialUrl": "https://code.visualstudio.com/docs/copilot/chat/copilot-chat-context"
             }
           ]
@@ -1871,22 +1960,14 @@ export const baseCatalog: Catalog = {
       ],
       "skills": [
         {
-          "cmd": "/tests",
-          "name": "Test Scaffolding Skill",
-          "auto": false,
-          "desc": "Builds baseline unit and integration tests from local context.",
-          "ex": "/tests for notify route",
-          "trigger": "When user asks for test generation",
-          "officialUrl": "https://code.visualstudio.com/docs/copilot"
-        },
-        {
           "cmd": "/setupTests",
           "name": "Test Framework Setup",
           "auto": false,
           "desc": "Guide through choosing and configuring a project test framework.",
           "ex": "/setupTests for a React TypeScript app",
           "trigger": "When user needs test infrastructure from scratch",
-          "officialUrl": "https://code.visualstudio.com/docs/agents/reference/copilot-vscode-features"
+          "surfaces": COPILOT_SURFACES.vscode,
+          "officialUrl": "https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet"
         },
         {
           "cmd": "/savePrompt",
@@ -1895,6 +1976,7 @@ export const baseCatalog: Catalog = {
           "desc": "Save a reusable prompt to .github/prompts as a .prompt.md file.",
           "ex": "/savePrompt",
           "trigger": "When capturing a workflow prompt for reuse",
+          "surfaces": COPILOT_SURFACES.vscodeVs,
           "configPath": ".github/prompts/<name>.prompt.md",
           "configExample": "---\nname: review-pr\ndescription: Review pull request changes\n---\n\nReview the diff for bugs and style issues.",
           "detail": "Reusable prompts live in .github/prompts/ as .prompt.md files.\n\nRun /savePrompt to capture the current conversation as a prompt template.",
@@ -1907,6 +1989,7 @@ export const baseCatalog: Catalog = {
           "desc": "Start a debugging session by prefixing a run command with copilot-debug.",
           "ex": "copilot-debug python app.py",
           "trigger": "When debugging programs with AI-assisted launch configs",
+          "surfaces": COPILOT_SURFACES.vscode,
           "officialUrl": "https://code.visualstudio.com/docs/agents/reference/copilot-vscode-features"
         }
       ],
@@ -1920,7 +2003,8 @@ export const baseCatalog: Catalog = {
           "model": "Copilot Agent",
           "invoke": "On demand",
           "when": "When handling bug fixes with follow-up validation",
-          "officialUrl": "https://code.visualstudio.com/docs/copilot"
+          "surfaces": COPILOT_SURFACES.vscode,
+          "officialUrl": "https://code.visualstudio.com/docs/editing/copilot-smart-actions"
         },
         {
           "name": "Coding Agent",
@@ -1931,10 +2015,11 @@ export const baseCatalog: Catalog = {
           "model": "Copilot Agent",
           "invoke": "On demand",
           "when": "When implementing features across multiple files",
+          "surfaces": COPILOT_SURFACES.vscode,
           "configPath": ".github/copilot-instructions.md",
           "configExample": "# Copilot instructions\n\n- Use TypeScript strict mode\n- Run tests before completing tasks",
           "detail": "The Coding Agent works across your workspace with edit and terminal access.\n\nGuide behavior via .github/copilot-instructions.md or VS Code custom instructions.",
-          "officialUrl": "https://code.visualstudio.com/docs/copilot/copilot-coding-agent"
+          "officialUrl": "https://code.visualstudio.com/docs/agents/overview"
         },
         {
           "name": "Workspace",
@@ -1945,6 +2030,7 @@ export const baseCatalog: Catalog = {
           "model": "GPT-4o",
           "invoke": "Via @workspace",
           "when": "When locating code or understanding project structure",
+          "surfaces": COPILOT_SURFACES.vscode,
           "officialUrl": "https://code.visualstudio.com/docs/copilot/chat/copilot-chat-context"
         },
         {
@@ -1968,7 +2054,8 @@ export const baseCatalog: Catalog = {
           "usage": "Diagnostics context before /fix",
           "ex": "/fix this file",
           "trigger": "Runs when diagnostics update",
-          "officialUrl": "https://code.visualstudio.com/docs/copilot"
+          "surfaces": COPILOT_SURFACES.vscode,
+          "officialUrl": "https://code.visualstudio.com/docs/editing/copilot-smart-actions"
         },
         {
           "cmd": "test-coverage",
@@ -1978,7 +2065,8 @@ export const baseCatalog: Catalog = {
           "usage": "Testing view → generate tests for uncovered functions",
           "ex": "/tests for validateEmail",
           "trigger": "When uncovered functions are detected",
-          "officialUrl": "https://code.visualstudio.com/docs/agents/reference/copilot-vscode-features"
+          "surfaces": COPILOT_SURFACES.vscode,
+          "officialUrl": "https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet"
         },
         {
           "cmd": "inline-chat",
@@ -1988,10 +2076,10 @@ export const baseCatalog: Catalog = {
           "usage": "Ctrl+I with selection",
           "ex": "/explain this module",
           "trigger": "Fires when inline chat opens with editor context",
-          "officialUrl": "https://code.visualstudio.com/docs/copilot/chat/getting-started-chat"
+          "surfaces": COPILOT_SURFACES.vscode,
+          "officialUrl": "https://code.visualstudio.com/docs/agents/reference/copilot-vscode-features"
         }
-      ],
-      "keyboardShortcuts": copilotKeyboardShortcuts
+      ]
     }
   }
 };
@@ -2033,6 +2121,17 @@ export function collectCatalogValidationWarnings(catalog: Catalog) {
         if (!entry.desc?.trim()) warnings.push(`tools.${tool}.groups.${groupLabel}.entries[${entryIndex}].desc is missing`);
         if (!entry.ex?.trim()) warnings.push(`tools.${tool}.groups.${groupLabel}.entries[${entryIndex}].ex is missing`);
       });
+
+      const seenCmds = new Map<string, number>();
+      group.entries.forEach((entry) => {
+        const key = entry.cmd.trim();
+        seenCmds.set(key, (seenCmds.get(key) ?? 0) + 1);
+      });
+      for (const [cmd, count] of seenCmds) {
+        if (count > 1) {
+          warnings.push(`tools.${tool}.groups.${groupLabel} has duplicate cmd "${cmd}" (${count} entries)`);
+        }
+      }
     });
   }
 

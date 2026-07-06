@@ -7,3 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Git branches
 
 When creating feature branches or pull requests for this repository, use the **`feature/<descriptive-name>`** naming format (for example `feature/security-policy-docs`). Do not use `cursor/` prefixes.
+
+## Git commits
+
+- Never add `Co-authored-by: Cursor <cursoragent@cursor.com>` (or any agent co-author trailer) to commit messages, PR bodies, or files in this repo.

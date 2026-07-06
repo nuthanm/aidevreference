@@ -1,0 +1,20 @@
+---
+description: Never add Cursor co-author trailers to commits or files
+alwaysApply: true
+---
+
+# No Co-authored-by trailer
+
+Never add this line anywhere in this repository:
+
+```
+Co-authored-by: Cursor <cursoragent@cursor.com>
+```
+
+This applies to:
+
+- Git commit messages and commit bodies
+- Pull request descriptions
+- Source files, comments, docs, and changelogs
+
+Write commit messages with only the human-authored content. Do not append co-author trailers for Cursor or any agent.

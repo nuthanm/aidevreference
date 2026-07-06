@@ -1,4 +1,5 @@
 import type { CommandEntry } from "@/lib/catalog";
+import { renderSurfaceLabels, type CatalogTool } from "@/lib/catalog-surfaces";
 
 export type RunPreviewKind = "interactive" | "instant" | "workflow" | "settings";
 
@@ -20,6 +21,7 @@ export type CommandRunPreviewData = {
   previewKind: RunPreviewKind;
   title: string;
   description: string;
+  supportedSurfaces?: string[];
   status?: RunPreviewStatus[];
   menuItems?: RunPreviewMenuItem[];
   steps?: string[];
@@ -35,6 +37,147 @@ const SURFACE_LABELS: Record<ToolKey, string> = {
   claude: "Claude Code terminal",
   cursor: "Cursor agent chat",
   copilot: "GitHub Copilot chat",
+};
+
+const COPILOT_DOCS = {
+  cheatSheet: "https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet",
+  smartActions: "https://code.visualstudio.com/docs/editing/copilot-smart-actions",
+  chatContext: "https://code.visualstudio.com/docs/copilot/chat/copilot-chat-context",
+} as const;
+
+/** VS Code Copilot: context menu actions open Chat with a slash command and editor context attached. */
+const COPILOT_ENTRY_OVERRIDES: Record<string, Partial<CommandRunPreviewData>> = {
+  "/explain|Explain Code": {
+    previewKind: "workflow",
+    promptLine: "/explain",
+    steps: [
+      "Select code in the editor (or place the cursor in a file)",
+      "Right-click → Explain, or open Chat (Ctrl+Alt+I) and type /explain",
+      "Chat opens with your selection attached; Copilot explains the code in the chat response",
+    ],
+    notes: [
+      "The editor context menu sends /explain with scoped selection — you do not type the slash command manually.",
+      "Simulated preview — exact menu labels and submenu layout vary by VS Code version.",
+    ],
+    docsUrl: COPILOT_DOCS.smartActions,
+  },
+  "/fix|Fix Issues": {
+    previewKind: "workflow",
+    promptLine: "/fix",
+    steps: [
+      "Select code with a diagnostic, or open a file with lint or compiler errors",
+      "Right-click → Generate Code → Fix, use the lightbulb Fix action, or type /fix in Chat",
+      "Chat opens with /fix and relevant context; Copilot proposes a fix you can apply",
+    ],
+    docsUrl: COPILOT_DOCS.smartActions,
+  },
+  "/tests|Generate Tests": {
+    previewKind: "workflow",
+    promptLine: "/tests",
+    steps: [
+      "Select the function or method to test (optional — tests all uncovered symbols if none selected)",
+      "Right-click → Generate Code → Generate Tests, or type /tests in Chat",
+      "Copilot generates tests in an existing test file or creates a new one",
+    ],
+    docsUrl: COPILOT_DOCS.cheatSheet,
+  },
+  "/doc|Add Documentation": {
+    previewKind: "workflow",
+    promptLine: "/doc",
+    steps: [
+      "Select the code to document (optional — uses code near the cursor if none selected)",
+      "Right-click → Generate Code → Generate Docs, or type /doc in Chat",
+      "Copilot adds documentation comments to the selected symbols",
+    ],
+    docsUrl: COPILOT_DOCS.smartActions,
+  },
+  "/optimize|Optimize Code": {
+    previewKind: "workflow",
+    promptLine: "/optimize",
+    steps: [
+      "Select the code block to optimize",
+      "Right-click → Optimize Selection, or type /optimize in Chat",
+      "Copilot suggests performance and maintainability improvements for the selection",
+    ],
+    docsUrl: COPILOT_DOCS.cheatSheet,
+  },
+  "Explain|Explain the Code": {
+    previewKind: "workflow",
+    promptLine: "Right-click → Explain",
+    steps: [
+      "Select code in the editor (or place the cursor to explain nearby code)",
+      "Right-click and choose Explain from the editor context menu",
+      "Chat opens with /explain pre-filled and your selection attached as context",
+    ],
+    docsUrl: COPILOT_DOCS.smartActions,
+  },
+  "Add to Chat|Add to Chat": {
+    previewKind: "instant",
+    promptLine: "Right-click → Add to Chat",
+    steps: [
+      "Select code in the editor (or place the cursor to attach the whole file)",
+      "Right-click and choose Add to Chat",
+      "The selection is attached as #selection context in Chat — no slash command is sent",
+    ],
+    notes: [
+      "Use this when you want to reference code in a custom prompt without triggering a built-in action.",
+    ],
+    docsUrl: COPILOT_DOCS.chatContext,
+  },
+  "Review|Review Selection": {
+    previewKind: "workflow",
+    promptLine: "Right-click → Generate Code → Review",
+    steps: [
+      "Select a block of code in the editor",
+      "Right-click → Generate Code → Review",
+      "Review comments appear inline in the editor and in the Comments panel",
+    ],
+    notes: [
+      "This is a code review pass — it does not send a slash command to Chat.",
+      "For uncommitted changes, use Code Review in the Source Control view.",
+    ],
+    docsUrl: COPILOT_DOCS.smartActions,
+  },
+  "Generate Tests|Generate Tests": {
+    previewKind: "workflow",
+    promptLine: "Right-click → Generate Code → Generate Tests",
+    steps: [
+      "Select the code to test (optional)",
+      "Right-click → Generate Code → Generate Tests",
+      "Chat opens with /tests and your selection; tests are written to an existing or new test file",
+    ],
+    docsUrl: COPILOT_DOCS.smartActions,
+  },
+  "Generate Docs|Generate Comments": {
+    previewKind: "workflow",
+    promptLine: "Right-click → Generate Code → Generate Docs",
+    steps: [
+      "Select the code to document (optional)",
+      "Right-click → Generate Code → Generate Docs",
+      "Chat opens with /doc and your selection; documentation comments are added to the code",
+    ],
+    docsUrl: COPILOT_DOCS.smartActions,
+  },
+  "Optimize|Optimize Selection": {
+    previewKind: "workflow",
+    promptLine: "Right-click → Optimize Selection",
+    steps: [
+      "Select the code block to optimize",
+      "Right-click and choose Optimize Selection",
+      "Chat opens with /optimize and your selection; Copilot suggests improvements",
+    ],
+    docsUrl: COPILOT_DOCS.cheatSheet,
+  },
+  "Fix|Fix Selection": {
+    previewKind: "workflow",
+    promptLine: "Right-click → Generate Code → Fix",
+    steps: [
+      "Select the code with an error or diagnostic",
+      "Right-click → Generate Code → Fix (or use the lightbulb Fix code action)",
+      "Chat opens with /fix and your selection; Copilot proposes a corrected version",
+    ],
+    docsUrl: COPILOT_DOCS.smartActions,
+  },
 };
 
 /** Rich previews for commands with distinctive terminal UIs (docs-accurate). */
@@ -380,18 +523,26 @@ function mergeDefined<T extends Record<string, unknown>>(base: T, patch: Partial
   return out;
 }
 
+function resolveCommandOverride(entry: CommandEntry, tool: ToolKey): Partial<CommandRunPreviewData> {
+  if (tool === "copilot") {
+    return COPILOT_ENTRY_OVERRIDES[commandEntryKey(entry)] ?? {};
+  }
+  return COMMAND_RUN_OVERRIDES[entry.cmd] ?? {};
+}
+
 export function buildCommandRunPreview(
   entry: CommandEntry,
   tool: ToolKey = "claude",
 ): CommandRunPreviewData {
   const usage = commandUsage(entry.cmd, entry.ex, entry.usage);
-  const override = COMMAND_RUN_OVERRIDES[entry.cmd] ?? {};
+  const override = resolveCommandOverride(entry, tool);
   const previewKind = override.previewKind ?? inferPreviewKind(entry);
 
   const inferred: Partial<CommandRunPreviewData> = {
     previewKind,
     title: entry.name,
     description: entry.desc,
+    supportedSurfaces: tool === "copilot" ? renderSurfaceLabels(tool as CatalogTool, entry.surfaces) : undefined,
     status: inferStatus(entry, previewKind),
     menuItems: inferMenuItems(entry, previewKind),
     steps: inferSteps(entry, usage, tool, previewKind),

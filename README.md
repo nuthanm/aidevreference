@@ -174,7 +174,7 @@ Production setup: [First deploy & seed](docs/flows/04-catalog-first-deploy.md).
 
 ### Official vendor docs
 
-- [Claude Code](https://code.claude.com/docs) · [Cursor](https://cursor.com/docs) · [GitHub Copilot](https://code.visualstudio.com/docs/copilot)
+- [Claude Code](https://code.claude.com/docs) · [Cursor](https://cursor.com/docs) · [GitHub Copilot](https://code.visualstudio.com/docs/agents/reference/ai-features-cheat-sheet)
 
 ---
 

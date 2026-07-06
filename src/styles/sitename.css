@@ -1390,10 +1390,6 @@
       padding-top: 16px;
     }
 
-    .app-shell[data-route="landing"] .content {
-      padding-top: 58px;
-    }
-
     .app-shell[data-route="landing"] .hero {
       margin-top: 0;
     }
@@ -1416,17 +1412,15 @@
     }
 
     .landing-quick-start {
-      position: fixed;
+      position: sticky;
       top: 94px;
-      left: 236px;
-      right: 0;
       z-index: 44;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
       gap: 10px 12px;
-      margin: 0;
+      margin: -16px -28px 12px;
       padding: 10px 28px;
       border: 0;
       border-bottom: 1.5px solid var(--claude-m);
@@ -1437,10 +1431,6 @@
 
     body.has-update .landing-quick-start {
       top: 136px;
-    }
-
-    .layout.sidebar-collapsed .landing-quick-start {
-      left: 72px;
     }
 
     .landing-quick-start-copy {
@@ -2939,7 +2929,8 @@
       margin-bottom: 4px;
     }
 
-    .cmd-run-preview-usage {
+    .cmd-run-preview-usage,
+    .cmd-run-preview-surfaces {
       margin-bottom: 8px;
       color: #d0d0d0;
     }
@@ -4382,8 +4373,8 @@
       }
 
       .landing-quick-start {
-        left: 0;
         top: calc(var(--mobile-header-offset) + env(safe-area-inset-top));
+        margin: -16px -14px 12px;
         padding: 10px 14px;
         flex-direction: column;
         align-items: stretch;
@@ -4391,10 +4382,6 @@
 
       body.has-update .landing-quick-start {
         top: calc(var(--mobile-header-offset) + 42px + env(safe-area-inset-top));
-      }
-
-      .app-shell[data-route="landing"] .content {
-        padding-top: 54px;
       }
 
       .landing-quick-start-chips {
@@ -5427,12 +5414,33 @@
       margin-top: 0;
     }
 
+    .shortcuts-section-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px 16px;
+      margin-bottom: 10px;
+    }
+
     .shortcuts-section-title {
-      margin: 0 0 10px;
+      margin: 0;
       font: 700 10px Inter, sans-serif;
       letter-spacing: 0.1em;
       text-transform: uppercase;
       color: var(--text-3);
+    }
+
+    .shortcuts-section-source {
+      font: 500 12px Inter, sans-serif;
+      color: var(--text-2);
+      text-decoration: none;
+    }
+
+    .shortcuts-section-source:hover {
+      color: var(--text-1);
+      text-decoration: underline;
+      text-underline-offset: 2px;
     }
 
     .shortcuts-table-wrap {

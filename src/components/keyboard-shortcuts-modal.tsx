@@ -142,7 +142,19 @@ export function KeyboardShortcutsModal({
 
               {toolData.sections.map((section) => (
                 <section key={section.title} className="shortcuts-section">
-                  <h3 className="shortcuts-section-title">{section.title}</h3>
+                  <div className="shortcuts-section-head">
+                    <h3 className="shortcuts-section-title">{section.title}</h3>
+                    {section.sourceUrl ? (
+                      <Link
+                        className="shortcuts-section-source"
+                        href={section.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {section.sourceLabel ?? "Official docs"}
+                      </Link>
+                    ) : null}
+                  </div>
                   <div className="shortcuts-table-wrap">
                     <table className="shortcuts-table">
                       <thead>

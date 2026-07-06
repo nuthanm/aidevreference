@@ -3,6 +3,11 @@
  * Last verified against vendor docs — see sourceUrl on each tool.
  */
 
+import {
+  COPILOT_KEYBOARD_SHORTCUTS_DOCS,
+  copilotKeyboardShortcutsUrl,
+} from "@/lib/copilot-keyboard-shortcuts";
+
 export type ShortcutTool = "claude" | "cursor" | "copilot";
 
 export type KeyboardShortcut = {
@@ -13,6 +18,8 @@ export type KeyboardShortcut = {
 
 export type ShortcutSection = {
   title: string;
+  sourceUrl?: string;
+  sourceLabel?: string;
   shortcuts: KeyboardShortcut[];
 };
 
@@ -307,35 +314,15 @@ export const KEYBOARD_SHORTCUTS: Record<ShortcutTool, ToolShortcuts> = {
   },
   copilot: {
     label: "GitHub Copilot",
-    sourceUrl: "https://docs.github.com/en/copilot/reference/keyboard-shortcuts",
-    sourceLabel: "GitHub Docs — Copilot in the IDE",
+    sourceUrl: COPILOT_KEYBOARD_SHORTCUTS_DOCS,
+    sourceLabel: "GitHub Docs — Copilot keyboard shortcuts",
     surfaceNote:
       "Inline-suggestion shortcuts vary by IDE. Chat slash commands in this catalog target VS Code unless noted otherwise.",
     sections: [
       {
-        title: "JetBrains IDEs (IntelliJ, PyCharm, WebStorm, …)",
-        shortcuts: [
-          { action: "Accept an inline suggestion", mac: "Tab", winLinux: "Tab" },
-          { action: "Dismiss an inline suggestion", mac: "Esc", winLinux: "Esc" },
-          { action: "Show next inline suggestion", mac: "Option+]", winLinux: "Alt+]" },
-          { action: "Show previous inline suggestion", mac: "Option+[", winLinux: "Alt+[" },
-          { action: "Trigger inline suggestion", mac: "Option+\\", winLinux: "Alt+\\" },
-          {
-            action: "Open Copilot (additional suggestions in separate pane)",
-            mac: "Option+Return",
-            winLinux: "Alt+Enter",
-          },
-        ],
-      },
-      {
-        title: "Visual Studio",
-        shortcuts: [
-          { action: "Show next inline suggestion", mac: "Alt+.", winLinux: "Alt+." },
-          { action: "Show previous inline suggestion", mac: "Alt+,", winLinux: "Alt+," },
-        ],
-      },
-      {
         title: "Visual Studio Code",
+        sourceUrl: copilotKeyboardShortcutsUrl("vscode"),
+        sourceLabel: "GitHub Docs — VS Code",
         shortcuts: [
           { action: "Accept an inline suggestion", mac: "Tab", winLinux: "Tab" },
           { action: "Dismiss an inline suggestion", mac: "Esc", winLinux: "Esc" },
@@ -355,15 +342,35 @@ export const KEYBOARD_SHORTCUTS: Record<ShortcutTool, ToolShortcuts> = {
         ],
       },
       {
-        title: "Xcode",
+        title: "Visual Studio",
+        sourceUrl: copilotKeyboardShortcutsUrl("visualstudio"),
+        sourceLabel: "GitHub Docs — Visual Studio",
         shortcuts: [
-          { action: "Accept the first line of a suggestion", mac: "Tab", winLinux: "Tab" },
-          { action: "View full suggestion", mac: "Hold Option", winLinux: "Hold Option" },
-          { action: "Accept full suggestion", mac: "Option+Tab", winLinux: "Option+Tab" },
+          { action: "Show next inline suggestion", mac: "Alt+.", winLinux: "Alt+." },
+          { action: "Show previous inline suggestion", mac: "Alt+,", winLinux: "Alt+," },
+        ],
+      },
+      {
+        title: "JetBrains IDEs (IntelliJ, PyCharm, WebStorm, …)",
+        sourceUrl: copilotKeyboardShortcutsUrl("jetbrains"),
+        sourceLabel: "GitHub Docs — JetBrains",
+        shortcuts: [
+          { action: "Accept an inline suggestion", mac: "Tab", winLinux: "Tab" },
+          { action: "Dismiss an inline suggestion", mac: "Esc", winLinux: "Esc" },
+          { action: "Show next inline suggestion", mac: "Option+]", winLinux: "Alt+]" },
+          { action: "Show previous inline suggestion", mac: "Option+[", winLinux: "Alt+[" },
+          { action: "Trigger inline suggestion", mac: "Option+\\", winLinux: "Alt+\\" },
+          {
+            action: "Open Copilot (additional suggestions in separate pane)",
+            mac: "Option+Return",
+            winLinux: "Alt+Enter",
+          },
         ],
       },
       {
         title: "Eclipse",
+        sourceUrl: copilotKeyboardShortcutsUrl("eclipse"),
+        sourceLabel: "GitHub Docs — Eclipse",
         shortcuts: [
           { action: "Accept an inline suggestion", mac: "Tab", winLinux: "Tab" },
           {
@@ -381,12 +388,24 @@ export const KEYBOARD_SHORTCUTS: Record<ShortcutTool, ToolShortcuts> = {
       },
       {
         title: "Vim / Neovim",
+        sourceUrl: copilotKeyboardShortcutsUrl("vimneovim"),
+        sourceLabel: "GitHub Docs — Vim / Neovim",
         shortcuts: [
           {
             action: "Default keybindings",
             mac: "Rebind via :map — see Neovim docs",
             winLinux: "Rebind via :map — see Neovim docs",
           },
+        ],
+      },
+      {
+        title: "Xcode",
+        sourceUrl: copilotKeyboardShortcutsUrl("xcode"),
+        sourceLabel: "GitHub Docs — Xcode",
+        shortcuts: [
+          { action: "Accept the first line of a suggestion", mac: "Tab", winLinux: "Tab" },
+          { action: "View full suggestion", mac: "Hold Option", winLinux: "Hold Option" },
+          { action: "Accept full suggestion", mac: "Option+Tab", winLinux: "Option+Tab" },
         ],
       },
     ],

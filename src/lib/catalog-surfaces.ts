@@ -35,6 +35,13 @@ export const SURFACE_LABELS: Record<SurfaceId, string> = {
   "copilot-vim": "Vim / Neovim",
 };
 
+/** Reusable Copilot IDE sets — see GitHub Copilot chat cheat sheet (per-IDE tabs). */
+export const COPILOT_SURFACES = {
+  vscode: ["copilot-vscode"] as SurfaceId[],
+  chatCore: ["copilot-vscode", "copilot-jetbrains", "copilot-visualstudio"] as SurfaceId[],
+  vscodeVs: ["copilot-vscode", "copilot-visualstudio"] as SurfaceId[],
+} as const;
+
 export const TOOL_CATALOG_SURFACE: Record<
   CatalogTool,
   { defaultSurface: SurfaceId; title: string; description: string }
@@ -52,9 +59,9 @@ export const TOOL_CATALOG_SURFACE: Record<
   },
   copilot: {
     defaultSurface: "copilot-vscode",
-    title: "VS Code & compatible IDEs",
+    title: "IDE availability",
     description:
-      "Chat slash commands target VS Code. Keyboard shortcuts vary by IDE — see the Shortcuts modal for JetBrains, Visual Studio, Xcode, Eclipse, and Vim.",
+      "Each entry is tagged with supported IDEs. VS Code has the fullest feature set (agents, @workspace, smart actions). JetBrains and Visual Studio share core chat slash commands. Inline suggestions also work in Xcode, Eclipse, and Vim — see Keyboard shortcuts.",
   },
 };
 
@@ -66,7 +73,12 @@ export function hasExplicitSurfaces(surfaces?: SurfaceId[]) {
   return Array.isArray(surfaces) && surfaces.length > 0;
 }
 
+export function effectiveSurfaces(tool: CatalogTool, surfaces?: SurfaceId[]): SurfaceId[] {
+  if (hasExplicitSurfaces(surfaces)) return surfaces!;
+  if (tool === "copilot") return [TOOL_CATALOG_SURFACE.copilot.defaultSurface];
+  return [];
+}
+
 export function renderSurfaceLabels(tool: CatalogTool, surfaces?: SurfaceId[]) {
-  if (!hasExplicitSurfaces(surfaces)) return [];
-  return surfaces!.map((id) => surfaceLabel(id));
+  return effectiveSurfaces(tool, surfaces).map((id) => surfaceLabel(id));
 }

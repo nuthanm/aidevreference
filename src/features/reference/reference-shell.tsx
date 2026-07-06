@@ -30,7 +30,6 @@ import { ScrollNav } from "@/components/scroll-nav";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { buildCommandRunPreview, commandEntryKey } from "@/lib/command-run-preview";
 import { mergeCatalogWithSeed, mergeToolCatalogWithSeed } from "@/lib/catalog-merge";
-import { copilotKeyboardShortcuts } from "@/lib/copilot-keyboard-shortcuts";
 import { TOOL_CATALOG_SURFACE, renderSurfaceLabels } from "@/lib/catalog-surfaces";
 import { ToolIcon } from "@/components/tool-icon";
 import { FeedbackForm, NotifyForm } from "@/features/forms/forms";
@@ -235,11 +234,6 @@ function mergeRemoteTools(remote: Catalog["tools"]): Catalog["tools"] {
 
 function mergeRemoteTool(remote: ToolCatalog, tool: "claude" | "cursor" | "copilot"): ToolCatalog {
   return mergeToolCatalogWithSeed(remote, toCatalogTools()[tool]);
-}
-
-function copilotShortcutEntries(conf: ToolCatalog) {
-  if (conf.keyboardShortcuts?.length) return conf.keyboardShortcuts;
-  return copilotKeyboardShortcuts;
 }
 
 const TOOL_ORDER = ["claude", "cursor", "copilot"] as const;
@@ -996,7 +990,9 @@ export function ReferenceShell() {
         <div className="info-box info-skill">
           {tool === "claude"
             ? "Claude can auto-invoke skills based on request intent. User-only skills are available when invoked explicitly. Configure custom skills in .claude/skills/<name>/SKILL.md."
-            : "Agent skills extend Cursor with reusable workflows. Configure in .cursor/skills/ or via /create-skill."}
+            : tool === "copilot"
+              ? "Reusable Copilot workflows and slash-command helpers. Tags show which IDE supports each skill."
+              : "Agent skills extend Cursor with reusable workflows. Configure in .cursor/skills/ or via /create-skill."}
         </div>
         <div className="skills-list skills-list-compact">
           {skills.map((s) => {
@@ -1012,6 +1008,7 @@ export function ReferenceShell() {
               <div className="skill-right">
                 <div className="skill-name">{s.name}</div>
                 <div className="skill-desc">{s.desc}</div>
+                {renderSurfaceTags(tool, s.surfaces)}
                 <div className="skill-trigger">
                   <strong>Trigger:</strong> {s.trigger}
                 </div>
@@ -1117,7 +1114,9 @@ export function ReferenceShell() {
         <div className="info-box info-agent">
           {tool === "claude"
             ? "Subagents run focused tasks with tuned tools, model choices, and invocation patterns. Define custom agents in .claude/agents/<name>.md."
-            : "Subagents delegate specialized tasks. Configure in .cursor/agents/ or via /create-subagent."}
+            : tool === "copilot"
+              ? "Copilot agent modes for autonomous coding, workspace search, and PR review. VS Code has the fullest agent feature set."
+              : "Subagents delegate specialized tasks. Configure in .cursor/agents/ or via /create-subagent."}
         </div>
         <div className="agent-grid agent-grid-list">
           {agents.map((a) => (
@@ -1129,6 +1128,7 @@ export function ReferenceShell() {
                 </div>
               </div>
               <div className="agent-desc">{a.desc}</div>
+              {renderSurfaceTags(tool, a.surfaces)}
               <div className="agent-when">
                 <strong>When used:</strong> {a.when}
               </div>
@@ -1155,7 +1155,9 @@ export function ReferenceShell() {
         <div className="info-box info-skill">
           {tool === "claude"
             ? "Lifecycle hooks automate Claude Code sessions. Configure in .claude/settings.json under the hooks key, or globally in ~/.claude/settings.json."
-            : "Lifecycle hooks automate agent behavior. Configure in .cursor/hooks.json or via /create-hook."}
+            : tool === "copilot"
+              ? "Built-in Copilot behaviors tied to editor events. These are VS Code features, not user-configurable hooks."
+              : "Lifecycle hooks automate agent behavior. Configure in .cursor/hooks.json or via /create-hook."}
         </div>
         <div className="skills-list skills-list-compact">
           {hooks.map((h) => (
@@ -1169,6 +1171,7 @@ export function ReferenceShell() {
               <div className="skill-right">
                 <div className="skill-name">{h.name}</div>
                 <div className="skill-desc">{h.desc}</div>
+                {renderSurfaceTags(tool, h.surfaces)}
                 <div className="skill-trigger">
                   <strong>Trigger:</strong> {h.trigger}
                 </div>
@@ -1200,7 +1203,7 @@ export function ReferenceShell() {
     const groupValue = activeGroup[tool];
     const typeFilter = badgeFilter[tool];
     const q = search.trim().toLowerCase();
-    const shortcutEntries = tool === "copilot" ? copilotShortcutEntries(conf) : conf.keyboardShortcuts;
+    const shortcutEntries = conf.keyboardShortcuts;
     const commandGroups = groupValue === "all" ? conf.groups : conf.groups.filter((g) => g.id === groupValue);
     const showingCommandGroups = !["skills", "agents", "hooks-meta", "shortcuts"].includes(groupValue);
     const legendContext: LegendContext =
@@ -1413,14 +1416,6 @@ export function ReferenceShell() {
                   {g.label}
                 </button>
               ))}
-              {tool === "copilot" && copilotShortcutEntries(data[tool]).length ? (
-                <button
-                  className={`sub-link ${tool} ${activeGroup[tool] === "shortcuts" ? "active" : ""}`}
-                  onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "shortcuts" }))}
-                >
-                  Keyboard shortcuts
-                </button>
-              ) : null}
             </>
           ) : null}
         </div>
@@ -1538,29 +1533,6 @@ export function ReferenceShell() {
         </span>
       </div>
 
-      {route === "landing" ? (
-        <nav className="landing-quick-start" aria-label="Quick start">
-          <div className="landing-quick-start-copy">
-            <span className="landing-quick-start-label">Pick a tool</span>
-            <span className="landing-quick-start-hint">Jump straight to a command reference</span>
-          </div>
-          <div className="landing-quick-start-chips">
-            {TOOL_ORDER.map((tool) => (
-              <button
-                key={tool}
-                type="button"
-                className={`landing-quick-chip ${tool}`}
-                onClick={() => navigate(tool)}
-              >
-                <ToolIcon tool={tool} size={14} aria-hidden />
-                {TOOL_LABELS[tool]}
-                <span className="landing-quick-chip-meta">{countToolEntries(data[tool])}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
-      ) : null}
-
       <div className={`layout ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${isMobileMenuOpen ? "mobile-menu-open" : ""}`}>
         <button
           className="sidebar-overlay"
@@ -1659,6 +1631,28 @@ export function ReferenceShell() {
         </aside>
 
         <div className="content">
+          {route === "landing" ? (
+            <nav className="landing-quick-start" aria-label="Quick start">
+              <div className="landing-quick-start-copy">
+                <span className="landing-quick-start-label">Pick a tool</span>
+                <span className="landing-quick-start-hint">Jump straight to a command reference</span>
+              </div>
+              <div className="landing-quick-start-chips">
+                {TOOL_ORDER.map((tool) => (
+                  <button
+                    key={tool}
+                    type="button"
+                    className={`landing-quick-chip ${tool}`}
+                    onClick={() => navigate(tool)}
+                  >
+                    <ToolIcon tool={tool} size={14} aria-hidden />
+                    {TOOL_LABELS[tool]}
+                    <span className="landing-quick-chip-meta">{countToolEntries(data[tool])}</span>
+                  </button>
+                ))}
+              </div>
+            </nav>
+          ) : null}
           <AnimatePresence mode="wait">
             <motion.main
               key={route}
