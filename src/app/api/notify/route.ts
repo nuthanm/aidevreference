@@ -3,7 +3,7 @@ import { notifySchema } from "@/lib/validators";
 import { notifyAdminTemplate, notifyVerificationTemplate } from "@/lib/email-templates";
 import { isBotLikeSubmission } from "@/lib/anti-bot";
 import { isMailerConfigured, sendMail } from "@/lib/mailer";
-import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
+import { checkRateLimitAsync, getRequestIp } from "@/lib/rate-limit";
 import {
   createPendingSubscriber,
   getSubscriberByEmailStored,
@@ -14,6 +14,9 @@ import { verifyTurnstileToken } from "@/lib/turnstile";
 import { zodErrorToFieldMap } from "@/lib/validators";
 
 export const runtime = "nodejs";
+
+const NOTIFY_SUCCESS_MESSAGE =
+  "If this email can receive updates, check your inbox for next steps about your subscription.";
 
 function getBaseUrl(req: NextRequest) {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -40,7 +43,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ip = getRequestIp(req.headers.get("x-forwarded-for"));
-    const rate = checkRateLimit(ip);
+    const rate = await checkRateLimitAsync(ip);
     if (rate.blocked) {
       return NextResponse.json({ ok: false, error: "Too many requests. Please try later." }, { status: 429 });
     }
@@ -68,8 +71,7 @@ export async function POST(req: NextRequest) {
     if (existing?.confirmed) {
       return NextResponse.json({
         ok: true,
-        alreadySubscribed: true,
-        message: "This email is already subscribed to release updates. No further action is needed.",
+        message: NOTIFY_SUCCESS_MESSAGE,
       });
     }
 
@@ -88,8 +90,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         ok: true,
-        pendingConfirmation: true,
-        message: "This email is pending confirmation. Check your inbox for a new confirmation link (valid for 48 hours).",
+        message: NOTIFY_SUCCESS_MESSAGE,
       });
     }
 
@@ -113,7 +114,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      message: "Check your inbox and confirm your subscription to receive release updates.",
+      message: NOTIFY_SUCCESS_MESSAGE,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

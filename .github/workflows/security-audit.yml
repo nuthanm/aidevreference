@@ -1,0 +1,43 @@
+name: Security Audit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit (high severity and above)
+        run: npm audit --audit-level=high
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build (production secret validation)
+        run: npm run build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_SITE_URL: https://example.vercel.app
+          DATABASE_URL: postgresql://user:pass@host/db?sslmode=require
+          SMTP_HOST: smtp.example.com
+          SMTP_PORT: "587"
+          SMTP_USER: ci-user@example.com
+          SMTP_PASS: ci-test-password-not-placeholder
+          MAIL_FROM: "CI <ci-user@example.com>"
+          MAIL_TO: admin@example.com
+          TURNSTILE_SECRET_KEY: ci-turnstile-secret-key
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ci-turnstile-site-key
+          ADMIN_BROADCAST_KEY: ci-admin-key-not-placeholder-value
+          CRON_BROADCAST_KEY: ci-cron-key-not-placeholder-value

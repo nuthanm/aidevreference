@@ -1,5 +1,14 @@
 export type Badge = "skill" | "wf" | "chat" | "ide" | "other";
 
+import type { KeyboardShortcutIde } from "@/lib/copilot-keyboard-shortcuts";
+import { copilotKeyboardShortcuts } from "@/lib/copilot-keyboard-shortcuts";
+
+export type {
+  KeyboardShortcutIde,
+  KeyboardShortcutPlatformTable,
+  KeyboardShortcutRow,
+} from "@/lib/copilot-keyboard-shortcuts";
+
 export type CommandEntry = {
   cmd: string;
   name: string;
@@ -67,6 +76,7 @@ export type ToolCatalog = {
   skills?: SkillEntry[];
   agents?: AgentEntry[];
   hooks?: HookEntry[];
+  keyboardShortcuts?: KeyboardShortcutIde[];
 };
 
 export type Catalog = {
@@ -1705,9 +1715,10 @@ export const baseCatalog: Catalog = {
     },
     "copilot": {
       "maker": "Microsoft/GitHub",
-      "subtitle": "Slash commands, reusable skills, and quality workflows for GitHub Copilot in VS Code.",
+      "subtitle": "Slash commands, IDE keyboard shortcuts, skills, and quality workflows for GitHub Copilot across VS Code, JetBrains, Visual Studio, Xcode, Eclipse, and Vim/Neovim.",
       "officialDocs": [
-        "https://docs.github.com/en/copilot"
+        "https://docs.github.com/en/copilot",
+        "https://docs.github.com/en/copilot/reference/keyboard-shortcuts"
       ],
       "groups": [
         {
@@ -1964,7 +1975,8 @@ export const baseCatalog: Catalog = {
           "trigger": "Fires when inline chat opens with editor context",
           "officialUrl": "https://code.visualstudio.com/docs/copilot/chat/getting-started-chat"
         }
-      ]
+      ],
+      "keyboardShortcuts": copilotKeyboardShortcuts
     }
   }
 };

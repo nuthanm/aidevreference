@@ -5,6 +5,7 @@ import type {
   Catalog,
   Group,
   HookEntry,
+  KeyboardShortcutIde,
   SkillEntry,
   ToolCatalog,
 } from "@/lib/catalog";
@@ -18,6 +19,7 @@ type PendingTool = {
   skills?: SkillEntry[];
   agents?: AgentEntry[];
   hooks?: HookEntry[];
+  keyboardShortcuts?: KeyboardShortcutIde[];
 };
 
 type PendingCatalog = {
@@ -65,6 +67,7 @@ function applyPendingTool(target: ToolCatalog, pending: PendingTool | undefined)
     target.skills?.length || 0,
     target.agents?.length || 0,
     target.hooks?.length || 0,
+    target.keyboardShortcuts?.length || 0,
   ].reduce((sum, n) => sum + n, 0);
 
   if (Array.isArray(pending.groups) && pending.groups.length) {
@@ -86,11 +89,17 @@ function applyPendingTool(target: ToolCatalog, pending: PendingTool | undefined)
     mergeUniqueBy(target.hooks, pending.hooks, (hook) => `${hook.cmd}|${hook.name}`);
   }
 
+  if (Array.isArray(pending.keyboardShortcuts) && pending.keyboardShortcuts.length) {
+    if (!target.keyboardShortcuts) target.keyboardShortcuts = [];
+    mergeUniqueBy(target.keyboardShortcuts, pending.keyboardShortcuts, (shortcut) => shortcut.id);
+  }
+
   const afterCount = [
     target.groups.reduce((sum, group) => sum + group.entries.length, 0),
     target.skills?.length || 0,
     target.agents?.length || 0,
     target.hooks?.length || 0,
+    target.keyboardShortcuts?.length || 0,
   ].reduce((sum, n) => sum + n, 0);
 
   return Math.max(0, afterCount - beforeCount);
@@ -99,9 +108,9 @@ function applyPendingTool(target: ToolCatalog, pending: PendingTool | undefined)
 function emptyPending(): PendingCatalog {
   return {
     tools: {
-      claude: { groups: [], skills: [], agents: [], hooks: [] },
-      cursor: { groups: [], skills: [], agents: [], hooks: [] },
-      copilot: { groups: [], skills: [], agents: [], hooks: [] },
+      claude: { groups: [], skills: [], agents: [], hooks: [], keyboardShortcuts: [] },
+      cursor: { groups: [], skills: [], agents: [], hooks: [], keyboardShortcuts: [] },
+      copilot: { groups: [], skills: [], agents: [], hooks: [], keyboardShortcuts: [] },
     },
   };
 }

@@ -114,7 +114,7 @@ Before merging security fixes to `main`, run the checks in [Security verificatio
 ## Related documentation
 
 - [Security verification guide](docs/SECURITY_VERIFICATION.md)
-- [Live security audit — 16 tests](docs/SECURITY_LIVE_TESTS.md)
+- [Live security audit — 32 tests](docs/SECURITY_LIVE_TESTS.md)
 - [Environment variables and keys](docs/flows/10-environment-and-keys.md)
 - [Operations handbook](docs/OPERATIONS.md)
 - [Terms and Conditions](https://www.aidevreference.com/terms-and-conditions)

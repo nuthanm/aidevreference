@@ -1,30 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyCronOrAdminKey } from "@/lib/auth-keys";
 import { buildCatalogBroadcastPayload } from "@/lib/catalog-broadcast";
 import { sendReleaseBroadcast } from "@/lib/release-broadcast";
 import { getBroadcastStateStored, upsertBroadcastStateStored } from "@/lib/subscribers";
 
 export const runtime = "nodejs";
-
-function isAuthorized(req: NextRequest) {
-  const cronKey = process.env.CRON_BROADCAST_KEY?.trim();
-  const adminKey = process.env.ADMIN_BROADCAST_KEY?.trim();
-  const cronHeader = req.headers.get("x-cron-key")?.trim();
-  const adminHeader = req.headers.get("x-admin-key")?.trim();
-
-  if (cronKey && cronHeader === cronKey) {
-    return true;
-  }
-
-  if (adminKey && adminHeader === adminKey) {
-    return true;
-  }
-
-  if (!cronKey && !adminKey) {
-    return process.env.NODE_ENV !== "production";
-  }
-
-  return false;
-}
 
 function getBaseUrl(req: NextRequest) {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -35,8 +15,9 @@ function getBaseUrl(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const auth = await verifyCronOrAdminKey(req);
+  if (!auth.ok) {
+    return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
   }
 
   try {

@@ -15,6 +15,7 @@ import {
   Home,
   LayoutGrid,
   Linkedin,
+  Keyboard,
   Lightbulb,
   List,
   Menu,
@@ -37,7 +38,7 @@ import {
   type ReleaseLogEntry,
 } from "@/lib/catalog-updates-client";
 import { baseCatalog, type Catalog, type Group, type ToolCatalog, type Badge } from "@/lib/catalog";
-import type { AgentEntry, HookEntry, SkillEntry, CommandEntry } from "@/lib/catalog";
+import type { AgentEntry, HookEntry, SkillEntry, CommandEntry, KeyboardShortcutIde } from "@/lib/catalog";
 
 type RouteId =
   | "landing"
@@ -90,7 +91,7 @@ const ROUTE_TO_PATH: Record<RouteId, string> = {
 
 type BadgeFilter = "all" | Badge;
 type ViewMode = "tiles" | "list";
-type LegendContext = "commands" | "skills" | "agents" | "hooks";
+type LegendContext = "commands" | "skills" | "agents" | "hooks" | "shortcuts";
 
 const BADGE_FILTERS: Array<{ value: BadgeFilter; label: string }> = [
   { value: "all", label: "All types" },
@@ -164,6 +165,7 @@ function countMeta(tool: ToolCatalog) {
     skills: Array.isArray(tool.skills) ? tool.skills.length : 0,
     agents: Array.isArray(tool.agents) ? tool.agents.length : 0,
     hooks: Array.isArray(tool.hooks) ? tool.hooks.length : 0,
+    shortcuts: Array.isArray(tool.keyboardShortcuts) ? tool.keyboardShortcuts.length : 0,
   };
 }
 
@@ -173,6 +175,7 @@ function formatMetaBreakdown(tool: ToolCatalog) {
   if (meta.skills) parts.push(`${meta.skills} skill${meta.skills === 1 ? "" : "s"}`);
   if (meta.agents) parts.push(`${meta.agents} agent${meta.agents === 1 ? "" : "s"}`);
   if (meta.hooks) parts.push(`${meta.hooks} hook${meta.hooks === 1 ? "" : "s"}`);
+  if (meta.shortcuts) parts.push(`${meta.shortcuts} IDE shortcut${meta.shortcuts === 1 ? "" : "s"}`);
   return parts.length ? parts.join(" · ") : "";
 }
 
@@ -193,7 +196,8 @@ function countToolEntries(tool: ToolCatalog) {
   const skills = Array.isArray(tool.skills) ? tool.skills.length : 0;
   const agents = Array.isArray(tool.agents) ? tool.agents.length : 0;
   const hooks = Array.isArray(tool.hooks) ? tool.hooks.length : 0;
-  return commands + skills + agents + hooks;
+  const shortcuts = Array.isArray(tool.keyboardShortcuts) ? tool.keyboardShortcuts.length : 0;
+  return commands + skills + agents + hooks + shortcuts;
 }
 
 function toCatalogTools() {
@@ -257,7 +261,7 @@ export function ReferenceShell() {
         name: string;
         category: string;
         tool: "claude" | "cursor" | "copilot";
-        kind: "command" | "skill" | "agent" | "hook" | "prompt";
+        kind: "command" | "skill" | "agent" | "hook" | "prompt" | "shortcut";
       }>;
     }
 
@@ -267,7 +271,7 @@ export function ReferenceShell() {
       name: string;
       category: string;
       tool: "claude" | "cursor" | "copilot";
-      kind: "command" | "skill" | "agent" | "hook" | "prompt";
+      kind: "command" | "skill" | "agent" | "hook" | "prompt" | "shortcut";
     }> = [];
 
     for (const tool of toolsToSearch) {
@@ -326,6 +330,29 @@ export function ReferenceShell() {
           kind: "hook",
         });
       }
+
+      for (const ks of conf.keyboardShortcuts || []) {
+        const shortcutHaystack = [
+          ks.label,
+          ks.note,
+          ...(ks.shortcuts || []).flatMap((row) => [row.action, row.shortcut, row.commandName]),
+          ...(ks.platforms || []).flatMap((platform) =>
+            platform.shortcuts.flatMap((row) => [row.action, row.shortcut, row.commandName, platform.label]),
+          ),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!shortcutHaystack.includes(q)) continue;
+        matches.push({
+          key: `${tool}|shortcut|${ks.id}`,
+          cmd: "⌨",
+          name: ks.label,
+          category: `${tool[0].toUpperCase() + tool.slice(1)} · Keyboard shortcuts`,
+          tool,
+          kind: "shortcut",
+        });
+      }
     }
 
     return matches.slice(0, 8);
@@ -353,7 +380,8 @@ export function ReferenceShell() {
       const skillsCount = Array.isArray(tool.skills) ? tool.skills.length : 0;
       const agentsCount = Array.isArray(tool.agents) ? tool.agents.length : 0;
       const hooksCount = Array.isArray(tool.hooks) ? tool.hooks.length : 0;
-      return sum + groupsCount + skillsCount + agentsCount + hooksCount;
+      const shortcutsCount = Array.isArray(tool.keyboardShortcuts) ? tool.keyboardShortcuts.length : 0;
+      return sum + groupsCount + skillsCount + agentsCount + hooksCount + shortcutsCount;
     }, 0);
   }, [data]);
 
@@ -471,6 +499,28 @@ export function ReferenceShell() {
   }
 
   function renderLegend(context: LegendContext) {
+    if (context === "shortcuts") {
+      return (
+        <aside className="badge-legend-aside" aria-label="Keyboard shortcut legend">
+          <p className="badge-legend-title">Legend</p>
+          <ul className="badge-legend-list">
+            <li className="badge-legend-aside-item">
+              <span className="kbd-legend-sample">Tab</span>
+              <span className="badge-legend-desc">Accept inline suggestion</span>
+            </li>
+            <li className="badge-legend-aside-item">
+              <span className="kbd-legend-sample">Esc</span>
+              <span className="badge-legend-desc">Dismiss inline suggestion</span>
+            </li>
+            <li className="badge-legend-aside-item">
+              <span className="kbd-legend-sample mono">command</span>
+              <span className="badge-legend-desc">Searchable in the IDE Keyboard Shortcuts editor (VS Code, Visual Studio)</span>
+            </li>
+          </ul>
+        </aside>
+      );
+    }
+
     if (context === "skills" || context === "hooks") {
       return (
         <aside className="badge-legend-aside" aria-label="Invocation legend">
@@ -592,6 +642,114 @@ export function ReferenceShell() {
           </div>
         ) : null}
       </div>
+    );
+  }
+
+  function renderShortcutTable(rows: KeyboardShortcutIde["shortcuts"], showCommandName = false) {
+    if (!rows?.length) return null;
+
+    return (
+      <div className="shortcut-table-wrap">
+        <table className="shortcut-table">
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Shortcut</th>
+              {showCommandName ? <th>Command name</th> : null}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={`${row.action}-${row.shortcut}`}>
+                <td>{row.action}</td>
+                <td>
+                  <kbd className="shortcut-kbd">{row.shortcut}</kbd>
+                </td>
+                {showCommandName ? (
+                  <td>
+                    {row.commandName ? <code className="shortcut-cmd">{row.commandName}</code> : "—"}
+                  </td>
+                ) : null}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  function renderKeyboardShortcutsSection(
+    shortcuts: KeyboardShortcutIde[] = [],
+    tool: "claude" | "cursor" | "copilot" = "copilot",
+  ) {
+    const q = search.trim().toLowerCase();
+    const filtered = shortcuts.filter((ide) => {
+      if (!q) return true;
+      const haystack = [
+        ide.label,
+        ide.note,
+        ...(ide.shortcuts || []).flatMap((row) => [row.action, row.shortcut, row.commandName]),
+        ...(ide.platforms || []).flatMap((platform) =>
+          platform.shortcuts.flatMap((row) => [row.action, row.shortcut, row.commandName, platform.label]),
+        ),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+
+    return (
+      <section>
+        <div className="group-label" id={`${tool}-keyboard-shortcuts`}>
+          <h3>IDE Keyboard Shortcuts</h3>
+          <div className="line" />
+        </div>
+        <div className="info-box info-shortcut">
+          Default inline-suggestion shortcuts for GitHub Copilot across supported IDEs. Source:{" "}
+          <a
+            href="https://docs.github.com/en/copilot/reference/keyboard-shortcuts"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub Copilot keyboard shortcuts
+          </a>
+          .
+        </div>
+        <div className="shortcut-ide-list">
+          {filtered.length ? (
+            filtered.map((ide) => {
+              const hasCommandNames = Boolean(
+                ide.shortcuts?.some((row) => row.commandName) ||
+                  ide.platforms?.some((platform) => platform.shortcuts.some((row) => row.commandName)),
+              );
+
+              return (
+                <article className="shortcut-ide-card" key={ide.id} id={`${tool}-shortcut-${ide.id}`}>
+                  <div className="shortcut-ide-head">
+                    <h4>{ide.label}</h4>
+                    {ide.officialUrl ? (
+                      <a className="shortcut-ide-link" href={ide.officialUrl} target="_blank" rel="noopener noreferrer">
+                        Docs
+                      </a>
+                    ) : null}
+                  </div>
+                  {ide.note ? <p className="shortcut-ide-note">{ide.note}</p> : null}
+                  {ide.platforms?.map((platform) => (
+                    <div className="shortcut-platform-block" key={platform.id}>
+                      <h5>{platform.label}</h5>
+                      {renderShortcutTable(platform.shortcuts, hasCommandNames)}
+                    </div>
+                  ))}
+                  {ide.shortcuts?.length ? renderShortcutTable(ide.shortcuts, hasCommandNames) : null}
+                </article>
+              );
+            })
+          ) : (
+            <div className="empty">{q ? `No keyboard shortcuts match "${search}"` : "No keyboard shortcuts available."}</div>
+          )}
+        </div>
+      </section>
     );
   }
 
@@ -808,9 +966,17 @@ export function ReferenceShell() {
     const typeFilter = badgeFilter[tool];
     const q = search.trim().toLowerCase();
     const commandGroups = groupValue === "all" ? conf.groups : conf.groups.filter((g) => g.id === groupValue);
-    const showingCommandGroups = !["skills", "agents", "hooks-meta"].includes(groupValue);
+    const showingCommandGroups = !["skills", "agents", "hooks-meta", "shortcuts"].includes(groupValue);
     const legendContext: LegendContext =
-      groupValue === "skills" ? "skills" : groupValue === "agents" ? "agents" : groupValue === "hooks-meta" ? "hooks" : "commands";
+      groupValue === "skills"
+        ? "skills"
+        : groupValue === "agents"
+          ? "agents"
+          : groupValue === "hooks-meta"
+            ? "hooks"
+            : groupValue === "shortcuts"
+              ? "shortcuts"
+              : "commands";
 
     const commandPills = [
       <button
@@ -872,6 +1038,19 @@ export function ReferenceShell() {
       );
     }
 
+    if (Array.isArray(conf.keyboardShortcuts) && conf.keyboardShortcuts.length) {
+      metaPills.push(
+        <button
+          key="shortcuts"
+          className={`pill pill-meta pill-meta-shortcuts ${tool} ${groupValue === "shortcuts" ? "active" : ""}`}
+          onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "shortcuts" }))}
+        >
+          <Keyboard size={12} aria-hidden />
+          Shortcuts
+        </button>,
+      );
+    }
+
     const sections: React.ReactNode[] = [];
 
     if (groupValue === "skills" && conf.skills?.length) {
@@ -880,6 +1059,8 @@ export function ReferenceShell() {
       sections.push(renderAgentsSection(conf.agents, tool));
     } else if (groupValue === "hooks-meta" && conf.hooks) {
       sections.push(renderHooksSection(conf.hooks, tool));
+    } else if (groupValue === "shortcuts" && conf.keyboardShortcuts?.length) {
+      sections.push(renderKeyboardShortcutsSection(conf.keyboardShortcuts, tool));
     } else {
       for (const g of commandGroups) {
         const filtered = g.entries.filter((e) => {
@@ -993,6 +1174,14 @@ export function ReferenceShell() {
                   {g.label}
                 </button>
               ))}
+              {data[tool].keyboardShortcuts?.length ? (
+                <button
+                  className={`sub-link ${tool} ${activeGroup[tool] === "shortcuts" ? "active" : ""}`}
+                  onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "shortcuts" }))}
+                >
+                  Keyboard shortcuts
+                </button>
+              ) : null}
             </>
           ) : null}
         </div>
@@ -1288,8 +1477,8 @@ export function ReferenceShell() {
                         id: "copilot",
                         name: "Copilot",
                         maker: "Microsoft/GitHub",
-                        desc: "Workspace-aware chat commands for review, edits, tests, and docs in one surface.",
-                        tags: ["Chat", "Workspace", "Quality", "Hooks"],
+                        desc: "Workspace-aware chat commands, IDE keyboard shortcuts, and quality workflows across VS Code, JetBrains, and more.",
+                        tags: ["Chat", "Shortcuts", "Workspace", "Hooks"],
                       },
                     ] as const).map((card) => (
                       <article className={`tool-card ${card.id}`} key={card.id} onClick={() => navigate(card.id)}>

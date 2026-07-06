@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyAdminKey } from "@/lib/auth-keys";
 import { notifyVerificationTemplate } from "@/lib/email-templates";
 import { isMailerConfigured, sendMail } from "@/lib/mailer";
 import {
@@ -10,13 +11,6 @@ import {
 
 export const runtime = "nodejs";
 
-function isAdminAuthorized(req: NextRequest) {
-  const adminKey = process.env.ADMIN_BROADCAST_KEY?.trim();
-  const authHeader = req.headers.get("x-admin-key");
-  const allowWithoutKey = process.env.NODE_ENV !== "production" && !adminKey;
-  return allowWithoutKey || Boolean(adminKey && authHeader === adminKey);
-}
-
 function getBaseUrl(req: NextRequest) {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (configured) {
@@ -26,8 +20,9 @@ function getBaseUrl(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!isAdminAuthorized(req)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const auth = await verifyAdminKey(req);
+  if (!auth.ok) {
+    return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
   }
 
   try {

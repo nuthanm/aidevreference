@@ -505,24 +505,73 @@ Copy this table when running a full audit. Mark each row after baseline + replic
 | 1.1 | Admin key on protected POST routes | ☐ | ☐ | | | ☐ |
 | 1.2 | Cron key on auto-broadcast | ☐ | ☐ | | | ☐ |
 | 1.3 | No open admin in production | ☐ | ☐ | | | ☐ |
+| 1.4 | Placeholder admin/cron keys rejected (P0) | ☐ | ☐ | | | ☐ |
+| 1.5 | Production build fails on placeholder secrets (P0) | ☐ | ☐ | | | ☐ |
 | 2.1 | Token IDOR | ☐ | ☐ | | | ☐ |
 | 2.2 | Invalid tokens rejected | ☐ | ☐ | | | ☐ |
 | 2.3 | Token entropy | ☐ | ☐ | | | ☐ |
+| 2.4 | GET token links require POST confirm (P2) | ☐ | ☐ | | | ☐ |
 | 3.1 | Public API data leakage | ☐ | ☐ | | | ☐ |
 | 3.2 | Safe production errors | ☐ | ☐ | | | ☐ |
 | 3.3 | Resolve links scoped correctly | ☐ | ☐ | | | ☐ |
+| 3.4 | Notify signup prevents email enumeration (P2) | ☐ | ☐ | | | ☐ |
 | 4.1 | SQL injection | ☐ | ☐ | | | ☐ |
 | 4.2 | XSS on resolve/UI | ☐ | ☐ | | | ☐ |
 | 4.3 | Email injection | ☐ | ☐ | | | ☐ |
+| 4.4 | Resolution note length limit (P2) | ☐ | ☐ | | | ☐ |
 | 5.1 | Rate limit | ☐ | ☐ | | | ☐ |
 | 5.2 | Honeypot | ☐ | ☐ | | | ☐ |
 | 5.3 | Fast-form bot block | ☐ | ☐ | | | ☐ |
 | 5.4 | Turnstile in production | ☐ | ☐ | | | ☐ |
 | 5.5 | Broadcast auth | ☐ | ☐ | | | ☐ |
+| 5.6 | Admin auth brute-force rate limit (P2) | ☐ | ☐ | | | ☐ |
+| 5.7 | Shared rate limit via Upstash (P1, optional) | ☐ | ☐ | | | ☐ |
 | 6.1 | SSRF | ☐ | ☐ | | | ☐ |
 | 6.2 | RCE paths | ☐ | ☐ | | | ☐ |
 | 7.1 | Secrets not in repo/client | ☐ | ☐ | | | ☐ |
 | 7.2 | Cron/admin key alignment | ☐ | ☐ | | | ☐ |
+| 7.3 | Security headers present (P3) | ☐ | ☐ | | | ☐ |
+| 7.4 | npm audit CI passes (P1) | ☐ | ☐ | | | ☐ |
+| 7.5 | Next.js patched to ≥ 15.5.20 (P1) | ☐ | ☐ | | | ☐ |
+
+---
+
+## Hardening verification (P0–P3)
+
+After applying security hardening changes, run the extended live audit in [SECURITY_LIVE_TESTS.md](SECURITY_LIVE_TESTS.md) (Tests **17–32** in addition to **1–16**).
+
+### P0 — Placeholder secret rejection
+
+**Code:** `src/lib/auth-keys.ts`, `src/lib/env-validation.ts`, `instrumentation.ts`
+
+**Baseline:** Admin/cron keys containing `replace_with` are treated as unset. Production startup/build fails if required secrets are missing or placeholder.
+
+**Replication:**
+
+```bash
+# Preview with bad key — must still return 401
+curl -s -X POST "$BASE_URL/api/catalog/sync" -H "x-admin-key: replace_with_secure_random_key"
+
+# Build must fail with placeholder production env (see Test 18 in live tests)
+```
+
+### P1 — Rate limiting & dependencies
+
+**Code:** `src/lib/rate-limit.ts`, `.github/workflows/security-audit.yml`, `package.json`
+
+**Baseline:** Optional Upstash Redis shared limits; CI runs `npm audit`, lint, and production build; Next.js ≥ 15.5.20.
+
+### P2 — CSRF-safe tokens & enumeration
+
+**Code:** `src/lib/token-action-page.ts`, confirm/unsubscribe/resolve routes, `src/app/api/notify/route.ts`
+
+**Baseline:** GET token links show confirmation forms only. Notify signup returns generic success message. Admin auth uses timing-safe compare + failed-auth rate limit.
+
+### P3 — Security headers
+
+**Code:** `next.config.ts`, token action HTML pages
+
+**Baseline:** CSP, `X-Frame-Options`, `Referrer-Policy`, and `no-referrer` on token pages.
 
 ---
 

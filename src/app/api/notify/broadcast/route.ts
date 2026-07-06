@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyAdminKey } from "@/lib/auth-keys";
 import { buildCatalogBroadcastPayload } from "@/lib/catalog-broadcast";
 import { sendReleaseBroadcast } from "@/lib/release-broadcast";
 import { getBroadcastStateStored, upsertBroadcastStateStored } from "@/lib/subscribers";
@@ -14,15 +15,12 @@ function getBaseUrl(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await verifyAdminKey(req);
+  if (!auth.ok) {
+    return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
+  }
+
   try {
-    const adminKey = process.env.ADMIN_BROADCAST_KEY;
-    const authHeader = req.headers.get("x-admin-key");
-    const allowWithoutKey = process.env.NODE_ENV !== "production" && !adminKey;
-
-    if (!allowWithoutKey && (!adminKey || authHeader !== adminKey)) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await req.json();
     const requestedVersion = typeof body?.version === "string" && body.version.trim() ? body.version.trim() : "";
     const requestedNotes = Array.isArray(body?.notes) ? body.notes.filter((v: unknown): v is string => typeof v === "string") : [];

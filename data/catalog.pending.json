@@ -4,19 +4,22 @@
       "groups": [],
       "skills": [],
       "agents": [],
-      "hooks": []
+      "hooks": [],
+      "keyboardShortcuts": []
     },
     "cursor": {
       "groups": [],
       "skills": [],
       "agents": [],
-      "hooks": []
+      "hooks": [],
+      "keyboardShortcuts": []
     },
     "copilot": {
       "groups": [],
       "skills": [],
       "agents": [],
-      "hooks": []
+      "hooks": [],
+      "keyboardShortcuts": []
     }
   }
 }

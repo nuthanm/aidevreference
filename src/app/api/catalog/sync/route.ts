@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyCatalogSyncKey } from "@/lib/auth-keys";
 import { applyPendingEntriesToCatalog, clearPendingCatalogEntries } from "@/lib/catalog-sync";
 import { baseCatalog, collectCatalogValidationWarnings } from "@/lib/catalog";
 import { getCatalogSnapshotStored, upsertCatalogSnapshotStored } from "@/lib/catalog-store";
 
 export const runtime = "nodejs";
 
-function isAuthorized(req: NextRequest) {
-  const adminKey = process.env.ADMIN_BROADCAST_KEY?.trim();
-  if (!adminKey) {
-    return process.env.NODE_ENV !== "production";
-  }
-  return req.headers.get("x-admin-key") === adminKey;
-}
-
 export async function POST(req: NextRequest) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const auth = await verifyCatalogSyncKey(req);
+  if (!auth.ok) {
+    return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
   }
 
   try {

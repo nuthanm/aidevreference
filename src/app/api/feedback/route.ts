@@ -4,7 +4,7 @@ import { requestNotificationTemplate, requestTemplate } from "@/lib/email-templa
 import { isBotLikeSubmission } from "@/lib/anti-bot";
 import { createFeedbackRequest } from "@/lib/feedback-requests";
 import { isMailerConfigured, sendMail } from "@/lib/mailer";
-import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
+import { checkRateLimitAsync, getRequestIp } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { zodErrorToFieldMap } from "@/lib/validators";
 
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ip = getRequestIp(req.headers.get("x-forwarded-for"));
-    const rate = checkRateLimit(ip);
+    const rate = await checkRateLimitAsync(ip);
     if (rate.blocked) {
       return NextResponse.json({ ok: false, error: "Too many requests. Please try later." }, { status: 429 });
     }
