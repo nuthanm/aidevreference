@@ -578,6 +578,9 @@ export function ReferenceShell() {
   function navigate(nextRoute: RouteId) {
     setIsMobileMenuOpen(false);
     router.push(ROUTE_TO_PATH[nextRoute]);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
   }
 
   function toggleSidebarMenu() {
@@ -1527,7 +1530,11 @@ export function ReferenceShell() {
               {route === "landing" ? (
                 <>
                   <nav className="landing-quick-start" aria-label="Quick start">
-                    <span className="landing-quick-start-label">Pick a tool</span>
+                    <div className="landing-quick-start-copy">
+                      <span className="landing-quick-start-label">Pick a tool</span>
+                      <span className="landing-quick-start-hint">Jump straight to a command reference</span>
+                    </div>
+                    <div className="landing-quick-start-chips">
                     {TOOL_ORDER.map((tool) => (
                       <button
                         key={tool}
@@ -1542,6 +1549,7 @@ export function ReferenceShell() {
                         </span>
                       </button>
                     ))}
+                    </div>
                   </nav>
 
                   <section className="hero">
