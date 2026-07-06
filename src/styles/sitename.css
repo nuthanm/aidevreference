@@ -196,6 +196,13 @@
       max-width: 52ch;
     }
 
+    .catalog-updates-local-hint {
+      margin: 10px 0 0;
+      color: var(--text-3);
+      font: 500 12px/1.5 Inter, sans-serif;
+      max-width: 62ch;
+    }
+
     .catalog-updates-shell {
       flex: 1;
       display: flex;

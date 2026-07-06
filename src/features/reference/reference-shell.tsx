@@ -76,6 +76,15 @@ type ReleaseDisplay = {
   unseenCount: number;
 };
 
+type SearchSuggestionItem = {
+  key: string;
+  cmd: string;
+  name: string;
+  category: string;
+  tool: "claude" | "cursor" | "copilot";
+  kind: "command" | "skill" | "agent" | "hook" | "prompt" | "shortcut";
+};
+
 const PATH_TO_ROUTE: Record<string, RouteId> = {
   "/": "landing",
   "/claude": "claude",
@@ -336,24 +345,10 @@ export function ReferenceShell() {
 
     const q = search.trim().toLowerCase();
     if (!q) {
-      return [] as Array<{
-        key: string;
-        cmd: string;
-        name: string;
-        category: string;
-        tool: "claude" | "cursor" | "copilot";
-        kind: "command" | "skill" | "agent" | "hook" | "prompt" | "shortcut";
-      }>;
+      return [] as SearchSuggestionItem[];
     }
 
-    const matches: Array<{
-      key: string;
-      cmd: string;
-      name: string;
-      category: string;
-      tool: "claude" | "cursor" | "copilot";
-      kind: "command" | "skill" | "agent" | "hook" | "prompt" | "shortcut";
-    }> = [];
+    const matches: SearchSuggestionItem[] = [];
 
     for (const tool of toolsToSearch) {
       const conf = data[tool];
@@ -581,6 +576,47 @@ export function ReferenceShell() {
     router.push(ROUTE_TO_PATH[nextRoute]);
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }
+
+  function applySearchSuggestion(item: SearchSuggestionItem) {
+    setSearchFocused(false);
+
+    const parts = item.key.split("|");
+    let groupId = "all";
+
+    if (item.kind === "skill") groupId = "skills";
+    else if (item.kind === "agent") groupId = "agents";
+    else if (item.kind === "hook") groupId = "hooks-meta";
+    else if (item.kind === "shortcut") groupId = "shortcuts";
+    else if (item.kind === "command" || item.kind === "prompt") groupId = parts[2] || "all";
+
+    const searchTerm =
+      item.kind === "agent" || item.kind === "shortcut" ? item.name : item.cmd;
+
+    setActiveGroup((prev) => ({ ...prev, [item.tool]: groupId }));
+    setSearch(searchTerm);
+
+    if (item.kind === "command" || item.kind === "prompt") {
+      setExpandedCommand(`${item.tool}|${parts[3]}|${parts[4]}`);
+    } else {
+      setExpandedCommand(null);
+    }
+
+    setIsMobileMenuOpen(false);
+
+    if (route !== item.tool) {
+      router.push(ROUTE_TO_PATH[item.tool]);
+    }
+
+    window.scrollTo({ top: 0, behavior: "auto" });
+
+    if (item.kind === "shortcut" && parts[2]) {
+      window.setTimeout(() => {
+        document
+          .getElementById(`${item.tool}-shortcut-${parts[2]}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 220);
     }
   }
 
@@ -1377,6 +1413,12 @@ export function ReferenceShell() {
                 window.setTimeout(() => setSearchFocused(false), 120);
               }}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && searchSuggestions.length) {
+                  e.preventDefault();
+                  applySearchSuggestion(searchSuggestions[0]);
+                }
+              }}
             />
             {showSearchSuggestions ? (
               <div className="search-dropdown" role="listbox" aria-label="Command suggestions">
@@ -1388,8 +1430,7 @@ export function ReferenceShell() {
                       type="button"
                       onMouseDown={(e) => {
                         e.preventDefault();
-                        setSearch(item.cmd);
-                        setSearchFocused(false);
+                        applySearchSuggestion(item);
                       }}
                     >
                       <span className="search-option-main">
@@ -1738,6 +1779,10 @@ export function ReferenceShell() {
                       </div>
                     ) : null}
                   </div>
+                  <p className="catalog-updates-local-hint">
+                    Reviewed status is saved in this browser only — other visitors and devices keep
+                    their own &quot;new&quot; badges until they mark items reviewed.
+                  </p>
 
                   <section className="catalog-updates-shell">
                     {SITE_ANNOUNCEMENTS.length ? (
