@@ -19,6 +19,7 @@ import {
   List,
   Menu,
   Plug,
+  Search,
   Sparkles,
   Terminal,
   X,
@@ -300,7 +301,7 @@ export function ReferenceShell() {
       return `Search ${TOOL_LABELS[route]} commands…`;
     }
     if (route === "landing" || route === "whats-new") {
-      return "Search all commands, skills, and agents…";
+      return "Search commands, skills, and agents…";
     }
     return "Search commands…";
   }, [route]);
@@ -1365,6 +1366,7 @@ export function ReferenceShell() {
             Search
           </label>
           <div className={`search-wrap ${showSearchSuggestions ? "open" : ""}`}>
+            <Search size={15} className="search-icon" aria-hidden />
             <input
               id="global-search"
               type="search"
@@ -1419,6 +1421,29 @@ export function ReferenceShell() {
           </span>
         </span>
       </div>
+
+      {route === "landing" ? (
+        <nav className="landing-quick-start" aria-label="Quick start">
+          <div className="landing-quick-start-copy">
+            <span className="landing-quick-start-label">Pick a tool</span>
+            <span className="landing-quick-start-hint">Jump straight to a command reference</span>
+          </div>
+          <div className="landing-quick-start-chips">
+            {TOOL_ORDER.map((tool) => (
+              <button
+                key={tool}
+                type="button"
+                className={`landing-quick-chip ${tool}`}
+                onClick={() => navigate(tool)}
+              >
+                <ToolIcon tool={tool} size={14} aria-hidden />
+                {TOOL_LABELS[tool]}
+                <span className="landing-quick-chip-meta">{countToolEntries(data[tool])}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
+      ) : null}
 
       <div className={`layout ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${isMobileMenuOpen ? "mobile-menu-open" : ""}`}>
         <button
@@ -1529,29 +1554,6 @@ export function ReferenceShell() {
             >
               {route === "landing" ? (
                 <>
-                  <nav className="landing-quick-start" aria-label="Quick start">
-                    <div className="landing-quick-start-copy">
-                      <span className="landing-quick-start-label">Pick a tool</span>
-                      <span className="landing-quick-start-hint">Jump straight to a command reference</span>
-                    </div>
-                    <div className="landing-quick-start-chips">
-                    {TOOL_ORDER.map((tool) => (
-                      <button
-                        key={tool}
-                        type="button"
-                        className={`landing-quick-chip ${tool}`}
-                        onClick={() => navigate(tool)}
-                      >
-                        <ToolIcon tool={tool} size={14} aria-hidden />
-                        {TOOL_LABELS[tool]}
-                        <span className="landing-quick-chip-meta">
-                          {countToolEntries(data[tool])}
-                        </span>
-                      </button>
-                    ))}
-                    </div>
-                  </nav>
-
                   <section className="hero">
                     <div className="hero-surface">
                       <div className="eyebrow">Developer Command Reference · 2026</div>
