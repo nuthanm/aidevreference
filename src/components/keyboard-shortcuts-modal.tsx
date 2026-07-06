@@ -13,7 +13,21 @@ import { ToolIcon } from "@/components/tool-icon";
 function ShortcutKeys({ value }: { value: string }) {
   if (value === "—") return <span className="shortcuts-empty">—</span>;
 
-  if (value.includes(" or ") || value.includes(" at start") || value.includes("\\")) {
+  const isProse =
+    value.includes(" or ") ||
+    value.includes(" at start") ||
+    value.includes("\\") ||
+    value.includes(" / ") ||
+    value.includes(", ") ||
+    value.includes("—") ||
+    value.startsWith("No default") ||
+    value.startsWith("Rebind") ||
+    value.startsWith("Select code") ||
+    value.startsWith("Hold or") ||
+    value.startsWith("Hold ") ||
+    value.includes("(code or log");
+
+  if (isProse) {
     return <span className="shortcuts-keys-text">{value}</span>;
   }
 
@@ -118,6 +132,7 @@ export function KeyboardShortcutsModal({
           <div className="shortcuts-modal-body" ref={printRef}>
             <div className="shortcuts-print-root">
               <p className="shortcuts-source">
+                {toolData.surfaceNote}{" "}
                 Sourced from{" "}
                 <Link href={toolData.sourceUrl} target="_blank" rel="noreferrer">
                   {toolData.sourceLabel}

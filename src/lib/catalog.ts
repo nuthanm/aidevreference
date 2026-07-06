@@ -1,7 +1,10 @@
 export type Badge = "skill" | "wf" | "chat" | "ide" | "other";
 
+import type { SurfaceId } from "@/lib/catalog-surfaces";
 import type { KeyboardShortcutIde } from "@/lib/copilot-keyboard-shortcuts";
 import { copilotKeyboardShortcuts } from "@/lib/copilot-keyboard-shortcuts";
+
+export type { SurfaceId } from "@/lib/catalog-surfaces";
 
 export type {
   KeyboardShortcutIde,
@@ -16,6 +19,7 @@ export type CommandEntry = {
   ex: string;
   usage?: string;
   badge?: Badge;
+  surfaces?: SurfaceId[];
   officialUrl?: string;
 };
 
@@ -33,6 +37,7 @@ export type SkillEntry = {
   ex: string;
   usage?: string;
   trigger: string;
+  surfaces?: SurfaceId[];
   configPath?: string;
   configExample?: string;
   detail?: string;
@@ -48,6 +53,7 @@ export type AgentEntry = {
   model: string;
   invoke: string;
   when: string;
+  surfaces?: SurfaceId[];
   configPath?: string;
   configExample?: string;
   detail?: string;
@@ -62,6 +68,7 @@ export type HookEntry = {
   ex: string;
   usage?: string;
   trigger: string;
+  surfaces?: SurfaceId[];
   configPath?: string;
   configExample?: string;
   detail?: string;
@@ -93,7 +100,7 @@ export const baseCatalog: Catalog = {
   "tools": {
     "claude": {
       "maker": "Anthropic",
-      "subtitle": "Slash commands, skills, subagents, and workflow hooks for Claude Code environments.",
+      "subtitle": "Slash commands, skills, subagents, and hooks for Claude Code (terminal CLI). Surface tags mark entries that also work on Desktop, IDE, Chrome, mobile, or integrations.",
       "officialDocs": [
         "https://code.claude.com/docs/en/overview"
       ],
@@ -339,6 +346,7 @@ export const baseCatalog: Catalog = {
               "desc": "Pull a Claude Code on the web session into this terminal.",
               "ex": "/teleport",
               "badge": "wf",
+              "surfaces": ["remote"],
               "officialUrl": "https://code.claude.com/docs/en/commands"
             }
           ]
@@ -587,6 +595,7 @@ export const baseCatalog: Catalog = {
               "desc": "Show QR code to download the Claude mobile app.",
               "ex": "/mobile",
               "badge": "other",
+              "surfaces": ["claude-mobile"],
               "officialUrl": "https://code.claude.com/docs/en/commands"
             },
             {
@@ -625,6 +634,7 @@ export const baseCatalog: Catalog = {
               "desc": "Configure Claude in Chrome browser integration settings.",
               "ex": "/chrome",
               "badge": "ide",
+              "surfaces": ["claude-chrome"],
               "officialUrl": "https://code.claude.com/docs/en/commands"
             },
             {
@@ -633,6 +643,7 @@ export const baseCatalog: Catalog = {
               "desc": "Continue the current session in the Claude Code Desktop app.",
               "ex": "/desktop",
               "badge": "ide",
+              "surfaces": ["claude-desktop"],
               "officialUrl": "https://code.claude.com/docs/en/commands"
             },
             {
@@ -641,6 +652,7 @@ export const baseCatalog: Catalog = {
               "desc": "Manage IDE integrations and show connection status.",
               "ex": "/ide",
               "badge": "ide",
+              "surfaces": ["claude-ide"],
               "officialUrl": "https://code.claude.com/docs/en/commands"
             },
             {
@@ -649,6 +661,7 @@ export const baseCatalog: Catalog = {
               "desc": "Install the Claude GitHub App and optionally set up Actions workflows.",
               "ex": "/install-github-app",
               "badge": "wf",
+              "surfaces": ["github-actions"],
               "officialUrl": "https://code.claude.com/docs/en/commands"
             },
             {
@@ -657,6 +670,7 @@ export const baseCatalog: Catalog = {
               "desc": "Install the Claude Slack app via OAuth in the browser.",
               "ex": "/install-slack-app",
               "badge": "wf",
+              "surfaces": ["slack"],
               "officialUrl": "https://code.claude.com/docs/en/commands"
             },
             {
@@ -665,6 +679,7 @@ export const baseCatalog: Catalog = {
               "desc": "Make this session available for remote control from claude.ai.",
               "ex": "/remote-control",
               "badge": "ide",
+              "surfaces": ["remote"],
               "officialUrl": "https://code.claude.com/docs/en/commands"
             }
           ]

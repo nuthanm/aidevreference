@@ -29,6 +29,9 @@ import { CopyButton } from "@/components/copy-button";
 import { ScrollNav } from "@/components/scroll-nav";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { buildCommandRunPreview, commandEntryKey } from "@/lib/command-run-preview";
+import { mergeCatalogWithSeed, mergeToolCatalogWithSeed } from "@/lib/catalog-merge";
+import { copilotKeyboardShortcuts } from "@/lib/copilot-keyboard-shortcuts";
+import { TOOL_CATALOG_SURFACE, renderSurfaceLabels } from "@/lib/catalog-surfaces";
 import { ToolIcon } from "@/components/tool-icon";
 import { FeedbackForm, NotifyForm } from "@/features/forms/forms";
 import { AboutContent, PrivacyContent, TermsContent } from "@/features/policy/policy-pages";
@@ -206,12 +209,45 @@ function toCatalogTools() {
   return JSON.parse(JSON.stringify(baseCatalog.tools)) as Catalog["tools"];
 }
 
+function mergeRemoteTools(remote: Catalog["tools"]): Catalog["tools"] {
+  const seed = toCatalogTools();
+  const merged = mergeCatalogWithSeed(
+    { generatedAt: baseCatalog.generatedAt, sourceFeeds: baseCatalog.sourceFeeds, tools: remote },
+    { generatedAt: baseCatalog.generatedAt, sourceFeeds: baseCatalog.sourceFeeds, tools: seed },
+  );
+  return merged.tools;
+}
+
+function mergeRemoteTool(remote: ToolCatalog, tool: "claude" | "cursor" | "copilot"): ToolCatalog {
+  return mergeToolCatalogWithSeed(remote, toCatalogTools()[tool]);
+}
+
+function copilotShortcutEntries(conf: ToolCatalog) {
+  if (conf.keyboardShortcuts?.length) return conf.keyboardShortcuts;
+  return copilotKeyboardShortcuts;
+}
+
 const TOOL_ORDER = ["claude", "cursor", "copilot"] as const;
 const TOOL_LABELS: Record<(typeof TOOL_ORDER)[number], string> = {
   claude: "Claude",
   cursor: "Cursor",
   copilot: "Copilot",
 };
+
+function renderSurfaceTags(tool: "claude" | "cursor" | "copilot", surfaces?: import("@/lib/catalog").SurfaceId[]) {
+  const labels = renderSurfaceLabels(tool, surfaces);
+  if (!labels.length) return null;
+
+  return (
+    <div className="surface-tag-row" aria-label="Supported surfaces">
+      {labels.map((label) => (
+        <span className={`surface-tag surface-tag-${tool}`} key={label}>
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 function formatReleaseDate(value: string) {
   const date = new Date(value);
@@ -436,9 +472,10 @@ export function ReferenceShell() {
           const remote = (await res.json()) as { tool?: "claude" | "cursor" | "copilot"; data?: ToolCatalog };
           const tool = remote?.tool;
           if (tool && remote?.data && (tool === "claude" || tool === "cursor" || tool === "copilot")) {
+            const remoteTool = remote.data;
             setData((prev) => ({
               ...prev,
-              [tool]: remote.data,
+              [tool]: mergeRemoteTool(remoteTool, tool),
             }));
           }
           return;
@@ -446,7 +483,7 @@ export function ReferenceShell() {
 
         const remote = (await res.json()) as Catalog;
         if (remote?.tools) {
-          setData(remote.tools);
+          setData(mergeRemoteTools(remote.tools));
         }
       } catch {
         // silent
@@ -572,6 +609,12 @@ export function ReferenceShell() {
               <span className="badge-legend-desc">{item.hint}</span>
             </li>
           ))}
+          <li className="badge-legend-aside-item">
+            <span className="surface-tag surface-tag-claude">Surface</span>
+            <span className="badge-legend-desc">
+              Shown when a command works outside the default surface (e.g. Desktop app, IDE, Chrome)
+            </span>
+          </li>
         </ul>
       </aside>
     );
@@ -851,6 +894,7 @@ export function ReferenceShell() {
           </div>
           <div className="cmd-name">{entry.name}</div>
           <div className="cmd-desc">{entry.desc}</div>
+          {renderSurfaceTags(tool, entry.surfaces)}
           <div className="cmd-card-meta">
             <span className="cmd-card-preview-hint">
               <Terminal size={12} aria-hidden />
@@ -974,6 +1018,7 @@ export function ReferenceShell() {
     const groupValue = activeGroup[tool];
     const typeFilter = badgeFilter[tool];
     const q = search.trim().toLowerCase();
+    const shortcutEntries = tool === "copilot" ? copilotShortcutEntries(conf) : conf.keyboardShortcuts;
     const commandGroups = groupValue === "all" ? conf.groups : conf.groups.filter((g) => g.id === groupValue);
     const showingCommandGroups = !["skills", "agents", "hooks-meta", "shortcuts"].includes(groupValue);
     const legendContext: LegendContext =
@@ -1047,7 +1092,7 @@ export function ReferenceShell() {
       );
     }
 
-    if (Array.isArray(conf.keyboardShortcuts) && conf.keyboardShortcuts.length) {
+    if (shortcutEntries?.length) {
       metaPills.push(
         <button
           key="shortcuts"
@@ -1068,8 +1113,8 @@ export function ReferenceShell() {
       sections.push(renderAgentsSection(conf.agents, tool));
     } else if (groupValue === "hooks-meta" && conf.hooks) {
       sections.push(renderHooksSection(conf.hooks, tool));
-    } else if (groupValue === "shortcuts" && conf.keyboardShortcuts?.length) {
-      sections.push(renderKeyboardShortcutsSection(conf.keyboardShortcuts, tool));
+    } else if (groupValue === "shortcuts" && shortcutEntries?.length) {
+      sections.push(renderKeyboardShortcutsSection(shortcutEntries, tool));
     } else {
       for (const g of commandGroups) {
         const filtered = g.entries.filter((e) => {
@@ -1128,6 +1173,9 @@ export function ReferenceShell() {
             ← Back
           </button>
         </section>
+        <div className={`info-box info-surface info-surface-${tool}`}>
+          <strong>{TOOL_CATALOG_SURFACE[tool].title}:</strong> {TOOL_CATALOG_SURFACE[tool].description}
+        </div>
         <div className="tool-content-layout">
           <div className="tool-content-main">
             <nav className="pill-nav" aria-label="Command groups and extensions">
@@ -1183,7 +1231,7 @@ export function ReferenceShell() {
                   {g.label}
                 </button>
               ))}
-              {data[tool].keyboardShortcuts?.length ? (
+              {tool === "copilot" && copilotShortcutEntries(data[tool]).length ? (
                 <button
                   className={`sub-link ${tool} ${activeGroup[tool] === "shortcuts" ? "active" : ""}`}
                   onClick={() => setActiveGroup((prev) => ({ ...prev, [tool]: "shortcuts" }))}

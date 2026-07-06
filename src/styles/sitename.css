@@ -2965,6 +2965,80 @@
       text-underline-offset: 2px;
     }
 
+    .info-surface {
+      margin: 0 0 14px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font: 500 12.5px/1.55 Inter, sans-serif;
+      border: 1.5px solid var(--border);
+      background: var(--bg);
+      color: var(--text-2);
+    }
+
+    .info-surface strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .info-surface-claude {
+      border-color: #FCD34D;
+      background: #FFFBEB;
+      color: #78350F;
+    }
+
+    .info-surface-cursor {
+      border-color: #C4B5FD;
+      background: #F5F3FF;
+      color: #4C1D95;
+    }
+
+    .info-surface-copilot {
+      border-color: #BFDBFE;
+      background: #EFF6FF;
+      color: #1E3A8A;
+    }
+
+    .surface-tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .surface-tag {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font: 700 9.5px Inter, sans-serif;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+
+    .surface-tag-claude {
+      background: #FEF3C7;
+      color: #92400E;
+      border-color: #FDE68A;
+    }
+
+    .surface-tag-cursor {
+      background: #EDE9FE;
+      color: #5B21B6;
+      border-color: #DDD6FE;
+    }
+
+    .surface-tag-copilot {
+      background: #DBEAFE;
+      color: #1D4ED8;
+      border-color: #BFDBFE;
+    }
+
+    .cmd-card-list .surface-tag-row,
+    .cmd-card-compact .surface-tag-row {
+      padding: 0 12px 0;
+    }
+
     .shortcut-ide-list {
       display: grid;
       gap: 12px;
@@ -4784,8 +4858,8 @@
     }
 
     .shortcuts-modal {
-      width: min(680px, 100%);
-      max-height: min(82dvh, 720px);
+      width: min(1180px, 96vw);
+      max-height: min(88dvh, 900px);
       border-radius: 16px;
       border: 1.5px solid var(--border);
       background: var(--surface);
@@ -4960,7 +5034,7 @@
 
     .shortcuts-table {
       width: 100%;
-      min-width: 520px;
+      min-width: 720px;
       border-collapse: collapse;
       font-size: 13px;
       table-layout: fixed;
@@ -4968,14 +5042,14 @@
 
     .shortcuts-table th:nth-child(1),
     .shortcuts-table td:nth-child(1) {
-      width: 44%;
+      width: 50%;
     }
 
     .shortcuts-table th:nth-child(2),
     .shortcuts-table td:nth-child(2),
     .shortcuts-table th:nth-child(3),
     .shortcuts-table td:nth-child(3) {
-      width: 28%;
+      width: 25%;
     }
 
     .shortcuts-table th {

@@ -1,17 +1,18 @@
 import { getCatalogSnapshotStored } from "@/lib/catalog-store";
 import { baseCatalog, collectCatalogValidationWarnings, type Catalog } from "@/lib/catalog";
+import { mergeCatalogWithSeed } from "@/lib/catalog-merge";
 
 export async function getMergedCatalog(): Promise<Catalog> {
-  const fallback: Catalog = JSON.parse(JSON.stringify(baseCatalog));
+  const seed: Catalog = JSON.parse(JSON.stringify(baseCatalog));
 
-  let merged: Catalog = fallback;
+  let merged: Catalog = seed;
   merged.sourceFeeds = ["json-seed-cache"];
 
   try {
     const snapshot = await getCatalogSnapshotStored();
     if (snapshot?.catalog?.tools) {
-      merged = JSON.parse(JSON.stringify(snapshot.catalog)) as Catalog;
-      merged.sourceFeeds = ["database-snapshot"];
+      merged = mergeCatalogWithSeed(snapshot.catalog, seed);
+      merged.sourceFeeds = ["database-snapshot", "json-seed-cache"];
     }
   } catch {
     // Fallback to in-code base catalog when DB is unavailable.
