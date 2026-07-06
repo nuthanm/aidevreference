@@ -16,7 +16,6 @@ import {
   Keyboard,
   LayoutGrid,
   Linkedin,
-  Lightbulb,
   List,
   Menu,
   Plug,
@@ -289,11 +288,26 @@ export function ReferenceShell() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [shortcutsTool, setShortcutsTool] = useState<ShortcutTool>("claude");
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const [unseenSiteAnnouncementIds, setUnseenSiteAnnouncementIds] = useState<string[]>([]);
   const ticker = useFooterTicker();
   const route = PATH_TO_ROUTE[pathname] || "landing";
 
   const activeTool = route === "claude" || route === "cursor" || route === "copilot" ? route : null;
+
+  const searchPlaceholder = useMemo(() => {
+    if (route === "claude" || route === "cursor" || route === "copilot") {
+      return `Search ${TOOL_LABELS[route]} commands…`;
+    }
+    if (route === "landing" || route === "whats-new") {
+      return "Search all commands, skills, and agents…";
+    }
+    return "Search commands…";
+  }, [route]);
+
+  useEffect(() => {
+    setAdvancedFiltersOpen(false);
+  }, [route]);
 
   function openShortcuts(announcementId?: string) {
     setShortcutsTool(activeTool ?? "claude");
@@ -655,27 +669,46 @@ export function ReferenceShell() {
   }
 
   function renderViewToolbar(tool: "claude" | "cursor" | "copilot", showTypeFilter: boolean) {
+    const typeFilter = badgeFilter[tool];
+    const hasActiveTypeFilter = typeFilter !== "all";
+
     return (
       <div className="ref-toolbar-wrap">
         <div className="ref-toolbar">
           {showTypeFilter ? (
-            <label className="ref-toolbar-field">
-              <span className="ref-toolbar-label">Type</span>
-              <select
-                className="ref-type-select"
-                value={badgeFilter[tool]}
-                onChange={(event) => {
-                  const value = event.target.value as BadgeFilter;
-                  setBadgeFilter((prev) => ({ ...prev, [tool]: value }));
-                }}
+            <div className="ref-toolbar-filters">
+              <button
+                type="button"
+                className={`ref-filter-toggle ${advancedFiltersOpen ? "open" : ""} ${hasActiveTypeFilter ? "has-active" : ""}`}
+                onClick={() => setAdvancedFiltersOpen((prev) => !prev)}
+                aria-expanded={advancedFiltersOpen}
               >
-                {BADGE_FILTERS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+                More filters
+                <ChevronDown size={14} aria-hidden />
+                {hasActiveTypeFilter && !advancedFiltersOpen ? (
+                  <span className="ref-filter-active-dot" aria-hidden />
+                ) : null}
+              </button>
+              {advancedFiltersOpen ? (
+                <label className="ref-toolbar-field">
+                  <span className="ref-toolbar-label">Type</span>
+                  <select
+                    className="ref-type-select"
+                    value={typeFilter}
+                    onChange={(event) => {
+                      const value = event.target.value as BadgeFilter;
+                      setBadgeFilter((prev) => ({ ...prev, [tool]: value }));
+                    }}
+                  >
+                    {BADGE_FILTERS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+            </div>
           ) : (
             <span className="ref-toolbar-spacer" />
           )}
@@ -1332,7 +1365,7 @@ export function ReferenceShell() {
             <input
               id="global-search"
               type="search"
-              placeholder="Search active tool commands..."
+              placeholder={searchPlaceholder}
               value={search}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => {
@@ -1382,9 +1415,6 @@ export function ReferenceShell() {
             Educational reference for Claude, Cursor, and Copilot.
           </span>
         </span>
-        <button className="link-btn link-btn-sm disclaimer-action" onClick={() => navigate("feedback")}>
-          Anything Missing / Found an error?
-        </button>
       </div>
 
       <div className={`layout ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${isMobileMenuOpen ? "mobile-menu-open" : ""}`}>
@@ -1441,18 +1471,6 @@ export function ReferenceShell() {
               </span>
               <span className="nav-label">What&apos;s new</span>
             </button>
-            <button
-              className={`nav-btn has-tooltip ${route === "feedback" ? "active" : ""}`}
-              onClick={() => navigate("feedback")}
-              data-tooltip="Request a feature"
-              aria-label="Request a feature"
-              title="Request a feature"
-            >
-              <span className="nav-icon-wrap">
-                <Lightbulb size={15} className="nav-icon" />
-              </span>
-              <span className="nav-label">Request a feature</span>
-            </button>
             <div className="sidebar-tools">
               <p className="nav-title">Tools</p>
               {toolNav("claude", "Claude")}
@@ -1508,6 +1526,24 @@ export function ReferenceShell() {
             >
               {route === "landing" ? (
                 <>
+                  <nav className="landing-quick-start" aria-label="Quick start">
+                    <span className="landing-quick-start-label">Pick a tool</span>
+                    {TOOL_ORDER.map((tool) => (
+                      <button
+                        key={tool}
+                        type="button"
+                        className={`landing-quick-chip ${tool}`}
+                        onClick={() => navigate(tool)}
+                      >
+                        <ToolIcon tool={tool} size={14} aria-hidden />
+                        {TOOL_LABELS[tool]}
+                        <span className="landing-quick-chip-meta">
+                          {countToolEntries(data[tool])}
+                        </span>
+                      </button>
+                    ))}
+                  </nav>
+
                   <section className="hero">
                     <div className="hero-surface">
                       <div className="eyebrow">Developer Command Reference · 2026</div>
@@ -1528,33 +1564,24 @@ export function ReferenceShell() {
                         </span>
                       </div>
                       <div className="hero-tool-row" aria-label="Included tools">
-                        <article className="hero-tool-item claude" aria-label="Claude">
-                          <span className="hero-tool-icon">
-                            <ToolIcon tool="claude" size={18} />
-                          </span>
-                          <span className="hero-tool-name">Claude</span>
-                          <span className="hero-tool-meta">
-                            {countToolEntries(data.claude)} entries
-                          </span>
-                        </article>
-                        <article className="hero-tool-item cursor" aria-label="Cursor">
-                          <span className="hero-tool-icon">
-                            <ToolIcon tool="cursor" size={18} />
-                          </span>
-                          <span className="hero-tool-name">Cursor</span>
-                          <span className="hero-tool-meta">
-                            {countToolEntries(data.cursor)} entries
-                          </span>
-                        </article>
-                        <article className="hero-tool-item copilot" aria-label="Copilot">
-                          <span className="hero-tool-icon">
-                            <ToolIcon tool="copilot" size={18} />
-                          </span>
-                          <span className="hero-tool-name">Copilot</span>
-                          <span className="hero-tool-meta">
-                            {countToolEntries(data.copilot)} entries
-                          </span>
-                        </article>
+                        {TOOL_ORDER.map((tool) => (
+                          <button
+                            key={tool}
+                            type="button"
+                            className={`hero-tool-item ${tool}`}
+                            onClick={() => navigate(tool)}
+                            aria-label={`Browse ${TOOL_LABELS[tool]} — ${countToolEntries(data[tool])} entries`}
+                          >
+                            <span className="hero-tool-icon">
+                              <ToolIcon tool={tool} size={18} />
+                            </span>
+                            <span className="hero-tool-name">{TOOL_LABELS[tool]}</span>
+                            <span className="hero-tool-meta">
+                              {countToolEntries(data[tool])} entries
+                            </span>
+                            <span className="hero-tool-cta">Browse →</span>
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </section>

@@ -3,7 +3,7 @@ import { ReferenceShell } from "@/features/reference/reference-shell";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata(
-  "Home",
+  "Commands for Claude, Cursor & Copilot",
   "Searchable commands, skills, agents, and hooks for Claude, Cursor, and GitHub Copilot.",
   "/",
 );
