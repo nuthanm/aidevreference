@@ -2714,6 +2714,46 @@
       box-shadow: 0 0 0 1px var(--copilot-m);
     }
 
+    .cmd-card-highlighted {
+      animation: cmd-search-highlight 2.4s ease-out;
+    }
+
+    @keyframes cmd-search-highlight {
+      0%, 25% {
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
+      }
+      100% {
+        box-shadow: none;
+      }
+    }
+
+    .cmd-card-highlighted.cmd-card-expanded.claude {
+      animation: cmd-search-highlight-claude 2.4s ease-out;
+    }
+
+    .cmd-card-highlighted.cmd-card-expanded.cursor {
+      animation: cmd-search-highlight-cursor 2.4s ease-out;
+    }
+
+    .cmd-card-highlighted.cmd-card-expanded.copilot {
+      animation: cmd-search-highlight-copilot 2.4s ease-out;
+    }
+
+    @keyframes cmd-search-highlight-claude {
+      0%, 25% { box-shadow: 0 0 0 3px var(--claude-m); }
+      100% { box-shadow: 0 0 0 1px var(--claude-m); }
+    }
+
+    @keyframes cmd-search-highlight-cursor {
+      0%, 25% { box-shadow: 0 0 0 3px var(--cursor-m); }
+      100% { box-shadow: 0 0 0 1px var(--cursor-m); }
+    }
+
+    @keyframes cmd-search-highlight-copilot {
+      0%, 25% { box-shadow: 0 0 0 3px var(--copilot-m); }
+      100% { box-shadow: 0 0 0 1px var(--copilot-m); }
+    }
+
     .cmd-card-hit:focus-visible {
       outline: 2px solid var(--claude-m);
       outline-offset: 2px;

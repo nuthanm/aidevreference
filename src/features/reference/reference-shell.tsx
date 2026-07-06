@@ -270,6 +270,55 @@ function formatReleaseDate(value: string) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+function searchGroupIdForItem(item: SearchSuggestionItem) {
+  const parts = item.key.split("|");
+  if (item.kind === "skill") return "skills";
+  if (item.kind === "agent") return "agents";
+  if (item.kind === "hook") return "hooks-meta";
+  if (item.kind === "shortcut") return "shortcuts";
+  if (item.kind === "command" || item.kind === "prompt") return parts[2] || "all";
+  return "all";
+}
+
+function searchTermForItem(item: SearchSuggestionItem) {
+  return item.kind === "agent" || item.kind === "shortcut" ? item.name : item.cmd;
+}
+
+function previewKeyForItem(item: SearchSuggestionItem) {
+  if (item.kind !== "command" && item.kind !== "prompt") return null;
+  const parts = item.key.split("|");
+  return `${parts[3]}|${parts[4]}`;
+}
+
+function scrollTargetForItem(item: SearchSuggestionItem) {
+  const parts = item.key.split("|");
+  const tool = item.tool;
+  if (item.kind === "shortcut" && parts[2]) return `${tool}-shortcut-${parts[2]}`;
+  if (item.kind === "skill") return `${tool}-skills`;
+  if (item.kind === "agent") return `${tool}-agents`;
+  if (item.kind === "hook") return `${tool}-hooks`;
+  const preview = previewKeyForItem(item);
+  if (preview) return `cmd-card-${tool}|${preview}`;
+  return null;
+}
+
+function buildSearchTargetUrl(item: SearchSuggestionItem) {
+  const params = new URLSearchParams();
+  params.set("q", searchTermForItem(item));
+  params.set("group", searchGroupIdForItem(item));
+  const preview = previewKeyForItem(item);
+  if (preview) params.set("preview", preview);
+  const scroll = scrollTargetForItem(item);
+  if (scroll) params.set("scroll", scroll);
+  return `${ROUTE_TO_PATH[item.tool]}?${params.toString()}`;
+}
+
+function scrollToSearchTarget(targetId: string, delayMs = 220) {
+  window.setTimeout(() => {
+    document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, delayMs);
+}
+
 export function ReferenceShell() {
   const pathname = usePathname();
   const router = useRouter();
@@ -287,6 +336,7 @@ export function ReferenceShell() {
   });
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [expandedCommand, setExpandedCommand] = useState<string | null>(null);
+  const [highlightedCommand, setHighlightedCommand] = useState<string | null>(null);
   const [subscriberStats, setSubscriberStats] = useState<SubscriberStats | null>(null);
   const [releaseDisplay, setReleaseDisplay] = useState<ReleaseDisplay>({
     entries: [],
@@ -318,6 +368,38 @@ export function ReferenceShell() {
   useEffect(() => {
     setAdvancedFiltersOpen(false);
   }, [route]);
+
+  useEffect(() => {
+    if (!activeTool || typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("q") && !params.has("group") && !params.has("preview") && !params.has("scroll")) {
+      return;
+    }
+
+    const q = params.get("q");
+    const group = params.get("group");
+    const preview = params.get("preview");
+    const scroll = params.get("scroll");
+
+    if (q) setSearch(q);
+    if (group) {
+      setActiveGroup((prev) => ({ ...prev, [activeTool]: group }));
+    }
+    if (preview) {
+      const expanded = `${activeTool}|${preview}`;
+      setExpandedCommand(expanded);
+      setHighlightedCommand(expanded);
+      window.setTimeout(() => setHighlightedCommand(null), 2500);
+    }
+
+    router.replace(ROUTE_TO_PATH[activeTool], { scroll: false });
+
+    const scrollTarget = scroll || (preview ? `cmd-card-${activeTool}|${preview}` : null);
+    if (scrollTarget) {
+      scrollToSearchTarget(scrollTarget, 280);
+    }
+  }, [activeTool, pathname, router]);
 
   function openShortcuts(announcementId?: string) {
     setShortcutsTool(activeTool ?? "claude");
@@ -581,42 +663,32 @@ export function ReferenceShell() {
 
   function applySearchSuggestion(item: SearchSuggestionItem) {
     setSearchFocused(false);
+    setIsMobileMenuOpen(false);
 
-    const parts = item.key.split("|");
-    let groupId = "all";
+    if (route !== item.tool) {
+      router.push(buildSearchTargetUrl(item));
+      return;
+    }
 
-    if (item.kind === "skill") groupId = "skills";
-    else if (item.kind === "agent") groupId = "agents";
-    else if (item.kind === "hook") groupId = "hooks-meta";
-    else if (item.kind === "shortcut") groupId = "shortcuts";
-    else if (item.kind === "command" || item.kind === "prompt") groupId = parts[2] || "all";
-
-    const searchTerm =
-      item.kind === "agent" || item.kind === "shortcut" ? item.name : item.cmd;
+    const groupId = searchGroupIdForItem(item);
+    const searchTerm = searchTermForItem(item);
+    const preview = previewKeyForItem(item);
+    const scrollTarget = scrollTargetForItem(item);
 
     setActiveGroup((prev) => ({ ...prev, [item.tool]: groupId }));
     setSearch(searchTerm);
 
-    if (item.kind === "command" || item.kind === "prompt") {
-      setExpandedCommand(`${item.tool}|${parts[3]}|${parts[4]}`);
+    if (preview) {
+      const expanded = `${item.tool}|${preview}`;
+      setExpandedCommand(expanded);
+      setHighlightedCommand(expanded);
+      window.setTimeout(() => setHighlightedCommand(null), 2500);
     } else {
       setExpandedCommand(null);
     }
 
-    setIsMobileMenuOpen(false);
-
-    if (route !== item.tool) {
-      router.push(ROUTE_TO_PATH[item.tool]);
-    }
-
-    window.scrollTo({ top: 0, behavior: "auto" });
-
-    if (item.kind === "shortcut" && parts[2]) {
-      window.setTimeout(() => {
-        document
-          .getElementById(`${item.tool}-shortcut-${parts[2]}`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 220);
+    if (scrollTarget) {
+      scrollToSearchTarget(scrollTarget);
     }
   }
 
@@ -974,6 +1046,7 @@ export function ReferenceShell() {
     const usage = commandUsage(entry.cmd, entry.ex, entry.usage);
     const previewKey = `${tool}|${commandEntryKey(entry)}`;
     const isExpanded = expandedCommand === previewKey;
+    const isHighlighted = highlightedCommand === previewKey;
     const runPreview = buildCommandRunPreview(entry, tool);
 
     return (
@@ -983,9 +1056,11 @@ export function ReferenceShell() {
           tool,
           viewMode === "list" ? "cmd-card-list" : "cmd-card-compact",
           isExpanded ? "cmd-card-expanded" : "",
+          isHighlighted ? "cmd-card-highlighted" : "",
         ]
           .filter(Boolean)
           .join(" ")}
+        id={`cmd-card-${previewKey}`}
         key={`${entry.cmd}-${entry.name}`}
       >
         <button
@@ -1073,7 +1148,7 @@ export function ReferenceShell() {
   function renderHooksSection(hooks: HookEntry[] = [], tool: "claude" | "cursor" | "copilot" = "claude") {
     return (
       <section>
-        <div className="group-label">
+        <div className="group-label" id={`${tool}-hooks`}>
           <h3>Hooks</h3>
           <div className="line" />
         </div>
