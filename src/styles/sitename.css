@@ -2970,6 +2970,174 @@
       color: #93c5fd;
     }
 
+    .cmd-run-preview-section {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid #222;
+    }
+
+    .cmd-run-preview-section:first-of-type {
+      margin-top: 8px;
+      padding-top: 0;
+      border-top: none;
+    }
+
+    .cmd-run-preview-section-title {
+      margin: 0 0 6px;
+      font: 700 10px Inter, sans-serif;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #6a6a6a;
+    }
+
+    .cmd-run-preview-name {
+      font: 700 14px "JetBrains Mono", monospace;
+      color: #e8e8e8;
+    }
+
+    .cmd-run-preview-surface-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .cmd-run-preview-surface-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font: 600 10px Inter, sans-serif;
+      letter-spacing: 0.02em;
+      border: 1px solid #333;
+      background: #161616;
+      color: #c8c8c8;
+    }
+
+    .cmd-run-preview-surface-tag-claude {
+      border-color: rgba(232, 184, 74, 0.35);
+      color: #e8b84a;
+    }
+
+    .cmd-run-preview-surface-tag-cursor {
+      border-color: rgba(125, 211, 252, 0.35);
+      color: #7dd3fc;
+    }
+
+    .cmd-run-preview-surface-tag-copilot {
+      border-color: rgba(147, 197, 253, 0.35);
+      color: #93c5fd;
+    }
+
+    .cmd-run-preview-tool-note {
+      margin: 0;
+      font: 500 11px Inter, sans-serif;
+      color: #7a7a7a;
+    }
+
+    .cmd-run-preview-example,
+    .cmd-run-preview-config-example {
+      margin: 4px 0 0;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #252525;
+      background: #0c0c0c;
+      font: 600 11.5px/1.45 "JetBrains Mono", monospace;
+      color: #d0d0d0;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    .cmd-run-preview-config code {
+      font: 600 10.5px "JetBrains Mono", monospace;
+      color: #c0c0c0;
+    }
+
+    .cmd-run-preview-surface-block {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #2a2a2a;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .cmd-run-preview-surface-head {
+      margin-bottom: 4px;
+    }
+
+    .cmd-run-preview-surface-badge {
+      display: inline-flex;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font: 700 10px Inter, sans-serif;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #b0b0b0;
+    }
+
+    .cmd-run-preview-body {
+      margin: 0;
+      font: 500 12px/1.55 Inter, sans-serif;
+      color: #b0b0b0;
+    }
+
+    .cmd-run-preview-output {
+      color: #d4d4d4;
+    }
+
+    .cmd-run-preview-steps-list {
+      margin: 0;
+      padding-left: 18px;
+      font: 500 12px/1.55 Inter, sans-serif;
+      color: #b8b8b8;
+    }
+
+    .cmd-run-preview-steps-list li + li {
+      margin-top: 4px;
+    }
+
+    .skill-row-hit,
+    .agent-card-hit {
+      all: unset;
+      cursor: pointer;
+      text-align: left;
+      color: inherit;
+      font: inherit;
+    }
+
+    .skill-row-list > button.skill-row-hit {
+      display: grid;
+      grid-template-columns: minmax(120px, 160px) 1fr;
+      gap: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .skill-row-expanded,
+    .agent-card-expanded {
+      border-color: #333;
+    }
+
+    .skill-row-list > button.skill-row-hit:hover,
+    .agent-card-list > button.agent-card-hit:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .agent-card-list > button.agent-card-hit {
+      display: block;
+      width: 100%;
+      padding: 14px 16px;
+      box-sizing: border-box;
+    }
+
+    .skill-row-expanded .cmd-card-preview-wrap,
+    .agent-card-expanded .cmd-card-preview-wrap,
+    .cmd-card-expanded .cmd-card-preview-wrap {
+      margin: 0 12px 12px;
+    }
+
     .config-block {
       margin-top: 8px;
       display: grid;

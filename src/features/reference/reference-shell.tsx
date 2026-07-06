@@ -28,7 +28,13 @@ import { CommandRunPreview } from "@/components/command-run-preview";
 import { CopyButton } from "@/components/copy-button";
 import { ScrollNav } from "@/components/scroll-nav";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { buildCommandRunPreview, commandEntryKey } from "@/lib/command-run-preview";
+import {
+  buildAgentRunPreview,
+  buildCommandRunPreview,
+  buildHookRunPreview,
+  buildSkillRunPreview,
+  commandEntryKey,
+} from "@/lib/command-run-preview";
 import { mergeCatalogWithSeed, mergeToolCatalogWithSeed } from "@/lib/catalog-merge";
 import { TOOL_CATALOG_SURFACE, renderSurfaceLabels } from "@/lib/catalog-surfaces";
 import { ToolIcon } from "@/components/tool-icon";
@@ -329,7 +335,7 @@ export function ReferenceShell() {
     copilot: "all",
   });
   const [viewMode, setViewMode] = useState<ViewMode>("list");
-  const [expandedCommand, setExpandedCommand] = useState<string | null>(null);
+  const [expandedPreview, setExpandedPreview] = useState<string | null>(null);
   const [highlightedCommand, setHighlightedCommand] = useState<string | null>(null);
   const [subscriberStats, setSubscriberStats] = useState<SubscriberStats | null>(null);
   const [releaseDisplay, setReleaseDisplay] = useState<ReleaseDisplay>({
@@ -382,7 +388,7 @@ export function ReferenceShell() {
     }
     if (preview) {
       const expanded = `${activeTool}|${preview}`;
-      setExpandedCommand(expanded);
+      setExpandedPreview(expanded);
       setHighlightedCommand(expanded);
       window.setTimeout(() => setHighlightedCommand(null), 2500);
     }
@@ -674,11 +680,11 @@ export function ReferenceShell() {
 
     if (preview) {
       const expanded = `${item.tool}|${preview}`;
-      setExpandedCommand(expanded);
+      setExpandedPreview(expanded);
       setHighlightedCommand(expanded);
       window.setTimeout(() => setHighlightedCommand(null), 2500);
     } else {
-      setExpandedCommand(null);
+      setExpandedPreview(null);
     }
 
     if (scrollTarget) {
@@ -841,7 +847,7 @@ export function ReferenceShell() {
         </div>
         {showTypeFilter ? (
           <p className="ref-toolbar-hint">
-            Click any command to see a simulated terminal preview of what happens when you run it.
+            Click any entry to expand a step-by-step run guide — where to access it, how to run it, and what to expect.
           </p>
         ) : null}
       </div>
@@ -989,41 +995,65 @@ export function ReferenceShell() {
         </div>
         <div className="info-box info-skill">
           {tool === "claude"
-            ? "Claude can auto-invoke skills based on request intent. User-only skills are available when invoked explicitly. Configure custom skills in .claude/skills/<name>/SKILL.md."
+            ? "Claude can auto-invoke skills based on request intent. User-only skills are available when invoked explicitly. Configure custom skills in .claude/skills/<name>/SKILL.md. Click a skill for a step-by-step run guide."
             : tool === "copilot"
-              ? "Reusable Copilot workflows and slash-command helpers. Tags show which IDE supports each skill."
-              : "Agent skills extend Cursor with reusable workflows. Configure in .cursor/skills/ or via /create-skill."}
+              ? "Reusable Copilot workflows and slash-command helpers. Tags show which IDE supports each skill. Click a skill for per-IDE run steps."
+              : "Agent skills extend Cursor with reusable workflows. Configure in .cursor/skills/ or via /create-skill. Click a skill for a step-by-step run guide."}
         </div>
         <div className="skills-list skills-list-compact">
           {skills.map((s) => {
             const usage = commandUsage(s.cmd, s.ex, s.usage);
+            const previewKey = `${tool}|skill|${s.cmd}|${s.name}`;
+            const isExpanded = expandedPreview === previewKey;
+            const runPreview = buildSkillRunPreview(s, tool);
+
             return (
-            <article className="skill-row skill-row-list" key={`${s.cmd}-${s.name}`}>
-              <div className="skill-left">
-                <div className="skill-cmd-row">
-                  <div className="skill-cmd">{s.cmd}</div>
+            <article
+              className={`skill-row skill-row-list ${isExpanded ? "skill-row-expanded" : ""}`}
+              key={`${s.cmd}-${s.name}`}
+              id={`skill-card-${previewKey}`}
+            >
+              <button
+                type="button"
+                className="skill-row-hit"
+                onClick={() => togglePreview(previewKey)}
+                aria-expanded={isExpanded}
+                aria-controls={`skill-preview-${previewKey}`}
+              >
+                <div className="skill-left">
+                  <div className="skill-cmd-row">
+                    <div className="skill-cmd">{s.cmd}</div>
+                  </div>
+                  <div className="skill-auto">{s.auto ? "auto-invoked" : "user-only"}</div>
                 </div>
-                <div className="skill-auto">{s.auto ? "auto-invoked" : "user-only"}</div>
-              </div>
-              <div className="skill-right">
-                <div className="skill-name">{s.name}</div>
-                <div className="skill-desc">{s.desc}</div>
-                {renderSurfaceTags(tool, s.surfaces)}
-                <div className="skill-trigger">
-                  <strong>Trigger:</strong> {s.trigger}
+                <div className="skill-right">
+                  <div className="skill-name">{s.name}</div>
+                  <div className="skill-desc">{s.desc}</div>
+                  {renderSurfaceTags(tool, s.surfaces)}
+                  <div className="skill-trigger">
+                    <strong>Trigger:</strong> {s.trigger}
+                  </div>
+                  {renderPreviewToggle(previewKey, isExpanded)}
                 </div>
-                {renderConfigBlock(s.configPath, s.configExample)}
-                <div className="ex-label-row">
-                  <span className="ex-label">Command</span>
-                  <CopyButton text={usage} label="Copy command pattern" />
+              </button>
+              {isExpanded ? (
+                <div className="cmd-card-preview-wrap" id={`skill-preview-${previewKey}`}>
+                  <CommandRunPreview preview={runPreview} tool={tool} />
+                  <div className="cmd-card-copy-row">
+                    {renderConfigBlock(s.configPath, s.configExample)}
+                    <div className="ex-label-row">
+                      <span className="ex-label">Command</span>
+                      <CopyButton text={usage} label="Copy command pattern" />
+                    </div>
+                    <pre className="skill-ex cmd-usage">{usage}</pre>
+                    <div className="ex-label-row">
+                      <span className="ex-label">Example</span>
+                      <CopyButton text={s.ex} label="Copy example" />
+                    </div>
+                    <pre className="skill-ex">{s.ex}</pre>
+                  </div>
                 </div>
-                <pre className="skill-ex cmd-usage">{usage}</pre>
-                <div className="ex-label-row">
-                  <span className="ex-label">Example</span>
-                  <CopyButton text={s.ex} label="Copy example" />
-                </div>
-                <pre className="skill-ex">{s.ex}</pre>
-              </div>
+              ) : null}
             </article>
             );
           })}
@@ -1032,9 +1062,24 @@ export function ReferenceShell() {
     );
   }
 
+  function togglePreview(key: string) {
+    setExpandedPreview((current) => (current === key ? null : key));
+  }
+
+  function renderPreviewToggle(key: string, isExpanded: boolean) {
+    return (
+      <div className="cmd-card-meta">
+        <span className="cmd-card-preview-hint">
+          <Terminal size={12} aria-hidden />
+          {isExpanded ? "Hide run guide" : "Show run guide"}
+        </span>
+        <ChevronDown size={14} className={`cmd-card-chevron ${isExpanded ? "open" : ""}`} aria-hidden />
+      </div>
+    );
+  }
+
   function toggleCommandPreview(tool: "claude" | "cursor" | "copilot", entry: CommandEntry) {
-    const key = `${tool}|${commandEntryKey(entry)}`;
-    setExpandedCommand((current) => (current === key ? null : key));
+    togglePreview(`${tool}|${commandEntryKey(entry)}`);
   }
 
   function renderCommandCard(tool: "claude" | "cursor" | "copilot", entry: CommandEntry) {
@@ -1042,7 +1087,7 @@ export function ReferenceShell() {
     const badge = badgeValue ? <span className={`badge ${badgeValue}`}>{badgeLabel(badgeValue)}</span> : null;
     const usage = commandUsage(entry.cmd, entry.ex, entry.usage);
     const previewKey = `${tool}|${commandEntryKey(entry)}`;
-    const isExpanded = expandedCommand === previewKey;
+    const isExpanded = expandedPreview === previewKey;
     const isHighlighted = highlightedCommand === previewKey;
     const runPreview = buildCommandRunPreview(entry, tool);
 
@@ -1074,13 +1119,7 @@ export function ReferenceShell() {
           <div className="cmd-name">{entry.name}</div>
           <div className="cmd-desc">{entry.desc}</div>
           {renderSurfaceTags(tool, entry.surfaces)}
-          <div className="cmd-card-meta">
-            <span className="cmd-card-preview-hint">
-              <Terminal size={12} aria-hidden />
-              {isExpanded ? "Hide run preview" : "Show run preview"}
-            </span>
-            <ChevronDown size={14} className={`cmd-card-chevron ${isExpanded ? "open" : ""}`} aria-hidden />
-          </div>
+          {renderPreviewToggle(previewKey, isExpanded)}
         </button>
 
         {isExpanded ? (
@@ -1119,27 +1158,52 @@ export function ReferenceShell() {
               : "Subagents delegate specialized tasks. Configure in .cursor/agents/ or via /create-subagent."}
         </div>
         <div className="agent-grid agent-grid-list">
-          {agents.map((a) => (
-            <article className="agent-card agent-card-list" style={{ borderLeftColor: a.color }} key={a.name}>
-              <div className="agent-top">
-                <div className="agent-name">{a.name}</div>
-                <div className="agent-top-actions">
-                  <span className="agent-badge">{a.badge}</span>
+          {agents.map((a) => {
+            const previewKey = `${tool}|agent|${a.name}`;
+            const isExpanded = expandedPreview === previewKey;
+            const runPreview = buildAgentRunPreview(a, tool);
+
+            return (
+            <article
+              className={`agent-card agent-card-list ${isExpanded ? "agent-card-expanded" : ""}`}
+              style={{ borderLeftColor: a.color }}
+              key={a.name}
+              id={`agent-card-${previewKey}`}
+            >
+              <button
+                type="button"
+                className="agent-card-hit"
+                onClick={() => togglePreview(previewKey)}
+                aria-expanded={isExpanded}
+                aria-controls={`agent-preview-${previewKey}`}
+              >
+                <div className="agent-top">
+                  <div className="agent-name">{a.name}</div>
+                  <div className="agent-top-actions">
+                    <span className="agent-badge">{a.badge}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="agent-desc">{a.desc}</div>
-              {renderSurfaceTags(tool, a.surfaces)}
-              <div className="agent-when">
-                <strong>When used:</strong> {a.when}
-              </div>
-              {renderConfigBlock(a.configPath, a.configExample)}
-              <div className="meta-pills">
-                <span className="meta-pill">Tools: {a.tools}</span>
-                <span className="meta-pill">Model: {a.model}</span>
-                <span className="meta-pill">Invoke: {a.invoke}</span>
-              </div>
+                <div className="agent-desc">{a.desc}</div>
+                {renderSurfaceTags(tool, a.surfaces)}
+                <div className="agent-when">
+                  <strong>When used:</strong> {a.when}
+                </div>
+                <div className="meta-pills">
+                  <span className="meta-pill">Tools: {a.tools}</span>
+                  <span className="meta-pill">Model: {a.model}</span>
+                  <span className="meta-pill">Invoke: {a.invoke}</span>
+                </div>
+                {renderPreviewToggle(previewKey, isExpanded)}
+              </button>
+              {isExpanded ? (
+                <div className="cmd-card-preview-wrap" id={`agent-preview-${previewKey}`}>
+                  <CommandRunPreview preview={runPreview} tool={tool} />
+                  {renderConfigBlock(a.configPath, a.configExample)}
+                </div>
+              ) : null}
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
     );
@@ -1160,39 +1224,65 @@ export function ReferenceShell() {
               : "Lifecycle hooks automate agent behavior. Configure in .cursor/hooks.json or via /create-hook."}
         </div>
         <div className="skills-list skills-list-compact">
-          {hooks.map((h) => (
-            <article className="skill-row skill-row-list" key={`${h.cmd}-${h.name}`}>
-              <div className="skill-left">
-                <div className="skill-cmd-row">
-                  <div className="skill-cmd">{h.cmd}</div>
+          {hooks.map((h) => {
+            const previewKey = `${tool}|hook|${h.cmd}|${h.name}`;
+            const isExpanded = expandedPreview === previewKey;
+            const runPreview = buildHookRunPreview(h, tool);
+
+            return (
+            <article
+              className={`skill-row skill-row-list ${isExpanded ? "skill-row-expanded" : ""}`}
+              key={`${h.cmd}-${h.name}`}
+              id={`hook-card-${previewKey}`}
+            >
+              <button
+                type="button"
+                className="skill-row-hit"
+                onClick={() => togglePreview(previewKey)}
+                aria-expanded={isExpanded}
+                aria-controls={`hook-preview-${previewKey}`}
+              >
+                <div className="skill-left">
+                  <div className="skill-cmd-row">
+                    <div className="skill-cmd">{h.cmd}</div>
+                  </div>
+                  <div className="skill-auto">{h.auto ? "auto-invoked" : "user-only"}</div>
                 </div>
-                <div className="skill-auto">{h.auto ? "auto-invoked" : "user-only"}</div>
-              </div>
-              <div className="skill-right">
-                <div className="skill-name">{h.name}</div>
-                <div className="skill-desc">{h.desc}</div>
-                {renderSurfaceTags(tool, h.surfaces)}
-                <div className="skill-trigger">
-                  <strong>Trigger:</strong> {h.trigger}
+                <div className="skill-right">
+                  <div className="skill-name">{h.name}</div>
+                  <div className="skill-desc">{h.desc}</div>
+                  {renderSurfaceTags(tool, h.surfaces)}
+                  <div className="skill-trigger">
+                    <strong>Trigger:</strong> {h.trigger}
+                  </div>
+                  {renderPreviewToggle(previewKey, isExpanded)}
                 </div>
-                {renderConfigBlock(h.configPath, h.configExample)}
-                <div className="ex-label-row">
-                  <span className="ex-label">Command</span>
-                  <CopyButton text={h.ex} label="Copy hook command" />
-                </div>
-                <pre className="skill-ex cmd-usage">{h.ex}</pre>
-                {h.usage ? (
-                  <>
+              </button>
+              {isExpanded ? (
+                <div className="cmd-card-preview-wrap" id={`hook-preview-${previewKey}`}>
+                  <CommandRunPreview preview={runPreview} tool={tool} />
+                  <div className="cmd-card-copy-row">
+                    {renderConfigBlock(h.configPath, h.configExample)}
                     <div className="ex-label-row">
-                      <span className="ex-label">Configuration</span>
-                      <CopyButton text={h.usage} label="Copy configuration" />
+                      <span className="ex-label">Command</span>
+                      <CopyButton text={h.ex} label="Copy hook command" />
                     </div>
-                    <pre className="skill-ex">{h.usage}</pre>
-                  </>
-                ) : null}
-              </div>
+                    <pre className="skill-ex cmd-usage">{h.ex}</pre>
+                    {h.usage ? (
+                      <>
+                        <div className="ex-label-row">
+                          <span className="ex-label">Configuration</span>
+                          <CopyButton text={h.usage} label="Copy configuration" />
+                        </div>
+                        <pre className="skill-ex">{h.usage}</pre>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
     );
