@@ -1,4 +1,5 @@
 import type { FeedbackInput, NotifyInput } from "@/lib/validators";
+import { broadcastEmailSubtitle, classifyBroadcastNotes } from "@/lib/broadcast-notes";
 import { escapeHtml } from "@/lib/sanitize";
 
 type MailTemplate = {
@@ -292,49 +293,82 @@ export function notifyUserTemplate(unsubscribeUrl: string): MailTemplate {
   };
 }
 
-export function releaseBroadcastTemplate(version: string, notes: string[], unsubscribeUrl: string): MailTemplate {
-  const commitItems = notes.filter((n) => n.startsWith("Commit "));
-  const catalogItems = notes.filter((n) => !n.startsWith("Commit "));
+function renderNoteList(items: string[]) {
+  return items
+    .map(
+      (n) =>
+        `<li style="margin:0 0 8px;color:${shell.ink};font-size:14px;line-height:1.5;">${escapeHtml(n)}</li>`,
+    )
+    .join("");
+}
 
-  function renderList(items: string[]) {
-    return items
-      .map(
-        (n) =>
-          `<li style="margin:0 0 8px;color:${shell.ink};font-size:14px;line-height:1.5;">${escapeHtml(n)}</li>`,
-      )
-      .join("");
-  }
+function renderNoteSection(label: string, items: string[], accent = shell.body) {
+  if (!items.length) return "";
+  return `
+    <div style="font-size:12px;color:${accent};font-weight:700;margin:0 0 8px;">${escapeHtml(label)}</div>
+    <ul style="margin:0 0 14px;padding-left:18px;">${renderNoteList(items)}</ul>
+  `;
+}
 
-  const commitSection = commitItems.length
-    ? `
-      <div style="font-size:12px;color:${shell.body};font-weight:700;margin:0 0 8px;">Recent pushes</div>
-      <ul style="margin:0 0 14px;padding-left:18px;">${renderList(commitItems)}</ul>
-    `
-    : "";
+export function releaseBroadcastTemplate(
+  version: string,
+  notes: string[],
+  unsubscribeUrl: string,
+  siteUrl?: string,
+): MailTemplate {
+  const classified = classifyBroadcastNotes(notes);
+  const subtitle = broadcastEmailSubtitle(classified);
 
-  const catalogSection = catalogItems.length
-    ? `
-      <div style="font-size:12px;color:${shell.body};font-weight:700;margin:0 0 8px;">Catalog updates</div>
-      <ul style="margin:0;padding-left:18px;">${renderList(catalogItems)}</ul>
-    `
-    : "";
+  const siteSection = renderNoteSection("Site features", classified.siteItems, "#6D28D9");
+  const catalogSection = renderNoteSection("Catalog updates", classified.catalogItems);
+  const commitSection = renderNoteSection("Recent pushes", classified.commitItems);
 
   const fallbackSection =
-    !commitSection && !catalogSection
+    !siteSection && !catalogSection && !commitSection
       ? `<ul style="margin:0;padding-left:18px;"><li style="margin:0;color:${shell.ink};font-size:14px;">Catalog and references were refreshed.</li></ul>`
       : "";
 
+  const visitUrl = (siteUrl || "").replace(/\/$/, "");
+  const siteCta =
+    classified.siteItems.length && visitUrl
+      ? `
+    <p style="margin:16px 0 0;">
+      <a
+        href="${escapeHtml(visitUrl)}"
+        style="display:inline-block;padding:10px 16px;border-radius:10px;background:#7C4DFF;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:14px;"
+      >
+        Try the new features
+      </a>
+    </p>
+  `
+      : "";
+
   const content = `
-    ${contentCard(`${commitSection}${catalogSection}${fallbackSection}`)}
+    ${contentCard(`${siteSection}${catalogSection}${commitSection}${fallbackSection}`)}
+    ${siteCta}
     <p style="font-size:12px;color:${shell.body};margin:12px 0 0;">
       Want to stop release notifications?
       <a href="${escapeHtml(unsubscribeUrl)}" style="color:#7C4DFF;text-decoration:none;font-weight:700;">Unsubscribe</a>.
     </p>
   `;
 
+  const textSections: string[] = [];
+  if (classified.siteItems.length) {
+    textSections.push(`Site features:\n- ${classified.siteItems.join("\n- ")}`);
+  }
+  if (classified.catalogItems.length) {
+    textSections.push(`Catalog updates:\n- ${classified.catalogItems.join("\n- ")}`);
+  }
+  if (classified.commitItems.length) {
+    textSections.push(`Recent pushes:\n- ${classified.commitItems.join("\n- ")}`);
+  }
+  const textBody = textSections.length
+    ? textSections.join("\n\n")
+    : "Catalog and references were refreshed.";
+
   return {
     subject: `AI Dev Reference update ${version}`,
-    html: wrapEmail(`New reference update: ${escapeHtml(version)}`, "Recent pushes and catalog changes.", content),
-    text: `Update ${version}\n- ${notes.join("\n- ")}\n\nUnsubscribe: ${unsubscribeUrl}`,
+    html: wrapEmail(`New reference update: ${escapeHtml(version)}`, subtitle, content),
+    text: `Update ${version}\n\n${textBody}\n\nUnsubscribe: ${unsubscribeUrl}`,
   };
 }

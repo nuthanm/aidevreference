@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       notes:
-        description: "Release notes (one line per bullet)"
+        description: "Release notes (one line per bullet). Prefix with Site: for site features, Commit for pushes."
         required: false
         type: string
 

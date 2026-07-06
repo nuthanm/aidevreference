@@ -51,6 +51,7 @@ export async function sendReleaseBroadcast(input: {
       input.version,
       input.notes.length ? input.notes : ["Catalog and references were refreshed."],
       unsubscribeUrl,
+      input.baseUrl,
     );
 
     try {

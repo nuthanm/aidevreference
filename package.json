@@ -12,7 +12,8 @@
     "catalog:merge": "npx tsx scripts/merge-catalog.ts --write",
     "catalog:validate": "npx tsx scripts/merge-catalog.ts",
     "catalog:seed-db": "npx tsx scripts/seed-catalog-db.ts",
-    "catalog:reset-pending": "npx tsx scripts/reset-pending.ts"
+    "catalog:reset-pending": "npx tsx scripts/reset-pending.ts",
+    "email:preview": "npx tsx scripts/preview-broadcast-email.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

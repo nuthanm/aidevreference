@@ -41,6 +41,12 @@ import {
   syncCatalogUpdates,
   type ReleaseLogEntry,
 } from "@/lib/catalog-updates-client";
+import { SITE_ANNOUNCEMENTS, type SiteAnnouncement } from "@/lib/announcements";
+import {
+  getUnseenSiteAnnouncements,
+  markAllSiteAnnouncementsSeen,
+  markSiteAnnouncementSeen,
+} from "@/lib/product-announcements-client";
 import { baseCatalog, type Catalog, type Group, type ToolCatalog, type Badge } from "@/lib/catalog";
 import type { AgentEntry, HookEntry, SkillEntry, CommandEntry, KeyboardShortcutIde } from "@/lib/catalog";
 import type { ShortcutTool } from "@/lib/keyboard-shortcuts";
@@ -283,14 +289,29 @@ export function ReferenceShell() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [shortcutsTool, setShortcutsTool] = useState<ShortcutTool>("claude");
+  const [unseenSiteAnnouncementIds, setUnseenSiteAnnouncementIds] = useState<string[]>([]);
   const ticker = useFooterTicker();
   const route = PATH_TO_ROUTE[pathname] || "landing";
 
   const activeTool = route === "claude" || route === "cursor" || route === "copilot" ? route : null;
 
-  function openShortcuts() {
+  function openShortcuts(announcementId?: string) {
     setShortcutsTool(activeTool ?? "claude");
     setShortcutsOpen(true);
+    const idsToMark = announcementId ? [announcementId] : unseenSiteAnnouncementIds;
+    if (idsToMark.length) {
+      markAllSiteAnnouncementsSeen(idsToMark);
+      setUnseenSiteAnnouncementIds((prev) => prev.filter((id) => !idsToMark.includes(id)));
+    }
+  }
+
+  function handleSiteAnnouncementAction(announcement: SiteAnnouncement) {
+    if (announcement.ctaTarget === "shortcuts-modal") {
+      openShortcuts(announcement.id);
+      return;
+    }
+    markSiteAnnouncementSeen(announcement.id);
+    setUnseenSiteAnnouncementIds((prev) => prev.filter((id) => id !== announcement.id));
   }
 
   const searchSuggestions = useMemo(() => {
@@ -431,6 +452,10 @@ export function ReferenceShell() {
   }, [data]);
 
   useEffect(() => {
+    setUnseenSiteAnnouncementIds(getUnseenSiteAnnouncements().map((entry) => entry.id));
+  }, []);
+
+  useEffect(() => {
     const stored = localStorage.getItem("aidevref-sidebar-collapsed");
     if (stored !== null) {
       setSidebarCollapsed(stored === "1");
@@ -507,11 +532,20 @@ export function ReferenceShell() {
 
   function handleMarkUpdatesReviewed() {
     const synced = syncCatalogUpdates(data);
-    if (!synced.unseenEntries.length) return;
+    if (synced.unseenEntries.length) {
+      markAllUnseenReviewed(synced.unseenEntries.map((entry) => entry.key));
+      setReleaseDisplay({ entries: [], mode: "empty", unseenCount: 0 });
+    }
 
-    markAllUnseenReviewed(synced.unseenEntries.map((entry) => entry.key));
-    setReleaseDisplay({ entries: [], mode: "empty", unseenCount: 0 });
+    if (unseenSiteAnnouncementIds.length) {
+      markAllSiteAnnouncementsSeen(unseenSiteAnnouncementIds);
+      setUnseenSiteAnnouncementIds([]);
+    }
   }
+
+  const hasUnseenSiteAnnouncements = unseenSiteAnnouncementIds.length > 0;
+  const hasUnseenCatalogUpdates = releaseDisplay.mode === "new";
+  const hasAnyUnseenUpdates = hasUnseenSiteAnnouncements || hasUnseenCatalogUpdates;
 
   useEffect(() => {
     void (async () => {
@@ -1278,9 +1312,16 @@ export function ReferenceShell() {
               ? "Searching..."
               : `${totalEntries} entries · 3 tools`}
           </div>
-          <button className="shortcuts-topbar-btn" type="button" onClick={openShortcuts} aria-haspopup="dialog">
+          <button
+            className={`shortcuts-topbar-btn ${hasUnseenSiteAnnouncements ? "has-new" : ""}`}
+            type="button"
+            onClick={() => openShortcuts()}
+            aria-haspopup="dialog"
+            aria-label={hasUnseenSiteAnnouncements ? "Shortcuts, new feature" : "Shortcuts"}
+          >
             <Keyboard size={14} />
             <span className="shortcuts-topbar-label">Shortcuts</span>
+            {hasUnseenSiteAnnouncements ? <span className="shortcuts-new-dot" aria-hidden="true" /> : null}
           </button>
         </div>
         <div className="top-actions">
@@ -1624,33 +1665,95 @@ export function ReferenceShell() {
                   <div className="catalog-updates-hero">
                     <div>
                       <h1>What&apos;s new</h1>
-                      {releaseDisplay.mode === "new" ? (
+                      {hasAnyUnseenUpdates ? (
                         <p>
-                          {releaseDisplay.unseenCount} new{" "}
-                          {releaseDisplay.unseenCount === 1 ? "entry" : "entries"} since your last
-                          review.
+                          {hasUnseenCatalogUpdates ? (
+                            <>
+                              {releaseDisplay.unseenCount} new catalog{" "}
+                              {releaseDisplay.unseenCount === 1 ? "entry" : "entries"}
+                            </>
+                          ) : null}
+                          {hasUnseenCatalogUpdates && hasUnseenSiteAnnouncements ? " · " : null}
+                          {hasUnseenSiteAnnouncements ? (
+                            <>
+                              {unseenSiteAnnouncementIds.length} new site{" "}
+                              {unseenSiteAnnouncementIds.length === 1 ? "feature" : "features"}
+                            </>
+                          ) : null}
+                          {" "}since your last review.
                         </p>
                       ) : (
-                        <p>Recently added catalog entries appear here when the reference is updated.</p>
+                        <p>
+                          Site features and catalog updates appear here when the reference grows or
+                          improves.
+                        </p>
                       )}
                     </div>
-                    {releaseDisplay.mode === "new" ? (
+                    {hasAnyUnseenUpdates ? (
                       <div className="catalog-updates-actions">
                         <button
                           className="btn-primary catalog-mark-read"
                           type="button"
                           onClick={handleMarkUpdatesReviewed}
                         >
-                          Mark as reviewed
+                          Mark all as reviewed
                         </button>
                       </div>
                     ) : null}
                   </div>
 
                   <section className="catalog-updates-shell">
-                    {releaseDisplay.mode === "new" ? (
-                      <>
+                    {SITE_ANNOUNCEMENTS.length ? (
+                      <section className="site-features-section">
+                        <div className="site-features-head">
+                          <h2>Site features</h2>
+                          {hasUnseenSiteAnnouncements ? (
+                            <div className="catalog-chip catalog-chip-site-new">
+                              {unseenSiteAnnouncementIds.length} new
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="site-feature-card-list">
+                          {SITE_ANNOUNCEMENTS.map((announcement) => {
+                            const isNew = unseenSiteAnnouncementIds.includes(announcement.id);
+                            return (
+                              <article
+                                className={`site-feature-card ${isNew ? "is-new" : ""}`}
+                                key={announcement.id}
+                              >
+                                <div className="site-feature-card-top">
+                                  <span className="site-feature-kind">Site feature</span>
+                                  <time className="update-date" dateTime={announcement.since}>
+                                    {formatReleaseDate(announcement.since)}
+                                  </time>
+                                </div>
+                                <h3 className="update-title">{announcement.title}</h3>
+                                <p className="update-details">{announcement.summary}</p>
+                                {announcement.bullets?.length ? (
+                                  <ul className="site-feature-bullets">
+                                    {announcement.bullets.map((bullet) => (
+                                      <li key={bullet}>{bullet}</li>
+                                    ))}
+                                  </ul>
+                                ) : null}
+                                <button
+                                  className="update-open site-feature-cta"
+                                  type="button"
+                                  onClick={() => handleSiteAnnouncementAction(announcement)}
+                                >
+                                  {announcement.ctaLabel}
+                                </button>
+                              </article>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    ) : null}
+
+                    {hasUnseenCatalogUpdates ? (
+                      <section className="catalog-updates-section">
                         <div className="catalog-updates-head">
+                          <h2>Catalog updates</h2>
                           <div className="catalog-chip catalog-chip-new">
                             {releaseDisplay.unseenCount} new
                           </div>
@@ -1664,7 +1767,7 @@ export function ReferenceShell() {
                             return (
                               <section className={`update-group update-group-${tool}`} key={tool}>
                                 <div className="update-group-head">
-                                  <h2>{TOOL_LABELS[tool]}</h2>
+                                  <h3>{TOOL_LABELS[tool]}</h3>
                                   <span className="update-group-count">{items.length}</span>
                                 </div>
                                 <div className="update-card-list">
@@ -1679,7 +1782,7 @@ export function ReferenceShell() {
                                           {formatReleaseDate(item.addedAt)}
                                         </time>
                                       </div>
-                                      <h3 className="update-title">{item.title}</h3>
+                                      <h4 className="update-title">{item.title}</h4>
                                       <p className="update-details">{item.details}</p>
                                       <button
                                         className={`update-open tool-link-${tool}`}
@@ -1695,10 +1798,10 @@ export function ReferenceShell() {
                             );
                           })}
                         </div>
-                      </>
-                    ) : (
+                      </section>
+                    ) : !hasUnseenCatalogUpdates && !SITE_ANNOUNCEMENTS.length ? (
                       <div className="catalog-updates-empty">
-                        <p>You&apos;re all caught up. No new entries since your last review.</p>
+                        <p>You&apos;re all caught up. No new site features or catalog entries since your last review.</p>
                         <p>
                           Subscribe on the{" "}
                           <button
@@ -1711,7 +1814,7 @@ export function ReferenceShell() {
                           to get email alerts when the catalog grows.
                         </p>
                       </div>
-                    )}
+                    ) : null}
                   </section>
                 </section>
               ) : null}
