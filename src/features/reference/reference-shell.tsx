@@ -40,6 +40,7 @@ import { TOOL_CATALOG_SURFACE, renderSurfaceLabels } from "@/lib/catalog-surface
 import { ToolIcon } from "@/components/tool-icon";
 import { FeedbackForm, NotifyForm } from "@/features/forms/forms";
 import { AboutContent, PrivacyContent, TermsContent } from "@/features/policy/policy-pages";
+import { ToolIntro } from "@/features/reference/tool-intro";
 import { useFooterTicker } from "@/hooks/use-footer-ticker";
 import {
   markAllUnseenReviewed,
@@ -1464,6 +1465,7 @@ export function ReferenceShell() {
             </nav>
             {showingCommandGroups ? renderViewToolbar(tool, true) : null}
             {sections}
+            <ToolIntro tool={tool} />
           </div>
           {renderLegend(legendContext)}
         </div>

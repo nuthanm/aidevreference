@@ -3521,6 +3521,88 @@
       color: #1E3A8A;
     }
 
+    .tool-intro {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      max-width: 760px;
+    }
+
+    .tool-intro h2 {
+      margin: 0 0 10px;
+      font-size: clamp(19px, 2.4vw, 23px);
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .tool-intro h3 {
+      margin: 22px 0 8px;
+      font-size: 16px;
+      line-height: 1.25;
+      color: var(--text);
+    }
+
+    .tool-intro h4 {
+      margin: 0 0 4px;
+      font-size: 14px;
+      line-height: 1.35;
+      color: var(--text);
+    }
+
+    .tool-intro p {
+      margin: 0 0 12px;
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .tool-intro-lead {
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    .tool-intro-list {
+      margin: 0;
+      padding-left: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .tool-intro-list li {
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .tool-intro-list strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .tool-intro-faq {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .tool-intro-faq-item p {
+      margin: 0;
+    }
+
+    .tool-intro-claude h2 {
+      color: #92400e;
+    }
+
+    .tool-intro-cursor h2 {
+      color: #5b21b6;
+    }
+
+    .tool-intro-copilot h2 {
+      color: #1e40af;
+    }
+
     .surface-tag-row {
       display: flex;
       flex-wrap: wrap;
